@@ -1,0 +1,65 @@
+✅ Issue 1: Video Not Displaying
+
+Possible Causes:
+	1.	Incorrect Video Path: Ensure that the src attribute in your <source> tag points to the correct path of your video file. If your video is located in a public/videos directory, the path should be /videos/your-video-file.mp4.
+	2.	Unsupported Video Format: The video file should be in a format supported by all major browsers, such as MP4 encoded with H.264.
+	3.	Incorrect MIME Type: Ensure that the type attribute in your <source> tag correctly reflects the MIME type of your video. For MP4 files, it should be type="video/mp4".
+
+Solution:
+Here’s how your video tag should look:
+<video autoplay muted loop playsinline>
+  <source src="/videos/your-video-file.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+Ensure that the video file exists at the specified path and is accessible.
+
+⸻
+
+✅ Issue 2: Video Size Too Small
+
+Cause:
+The video container may not be styled to occupy the full width of the screen, leading to a smaller display.
+
+Solution:
+Wrap your <video> tag in a container <div> and apply CSS to make it responsive and occupy the full width:
+<div class="video-container">
+  <video autoplay muted loop playsinline>
+    <source src="/videos/your-video-file.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
+Add the following css
+.video-container {
+  width: 100%;
+  max-width: 1200px; /* Adjust as needed */
+  margin: 0 auto;
+  padding: 0 20px; /* Matches website's horizontal padding */
+}
+
+.video-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.video-container {
+  width: 100%;
+  max-width: 1200px; /* Adjust as needed */
+  margin: 0 auto;
+  padding: 0 20px; /* Matches website's horizontal padding */
+}
+
+.video-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+✅ Additional Tips:
+	•	Responsive Design: Ensure that your CSS includes media queries if you need to adjust the video’s appearance on different devices.
+	•	Fallback Content: Include fallback content within the <video> tag to inform users if their browser doesn’t support HTML5 video.
+	•	Testing: Test the video on various browsers and devices to ensure compatibility and responsiveness

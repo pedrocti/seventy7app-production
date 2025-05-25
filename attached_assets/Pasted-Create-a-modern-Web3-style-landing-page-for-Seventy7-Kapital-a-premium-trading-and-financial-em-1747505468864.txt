@@ -1,0 +1,41 @@
+Create a modern, Web3-style landing page for "Seventy7 Kapital" — a premium trading and financial empowerment platform.
+
+### OVERVIEW:
+The brand is futuristic, bold, and designed to inspire trust and awe. The page should include virtual scrolling animations, sleek gradients, modern typography, and smooth transitions. Use a dark theme with neon glow accents (purples, blues, greens) to give a sophisticated yet edgy feel.
+
+### CONTENT SECTIONS:
+
+1. **Hero Section**
+- Headline: “Unlock Your Financial Power”
+- Subheading: “Access premium trading mentorship, funding support, and life-changing financial resources.”
+- Animated call-to-action button: “Launch 77AccessBot” — link to: `https://t.me/Access77bot`
+- Background: animated Web3-style abstract or particle animation (JS or CSS)
+
+2. **About Section**
+- Title: “What is Seventy7 Kapital?”
+- Short copy: 
+  “We are more than a trading platform. Seventy7 Kapital is a movement — giving traders access to free resources, professional mentorship, exclusive funding support, and a community of growth-minded achievers.”
+
+3. **What You Get (3 Cards With Hover Effects)**
+- **Free Trading Resources** — "Begin your journey with simplified, beginner-friendly lessons."
+- **Premium Services** — "Access lifetime mentorship, signals, and exclusive networking."
+- **Prop Firm Assist** — "Let our experts help you pass and manage funded accounts."
+
+4. **Section: Testimonials**
+- Add placeholder for 2–3 glowing user reviews (can be hardcoded with avatars and cards)
+
+5. **Call to Action (Sticky at bottom or final section)**
+- Glowing button: “Join Now via Telegram” 
+- Link to: `https://t.me/Access77bot`
+
+### DESIGN & FEATURES:
+- Dark theme with glowing neon accents (Web3 feel)
+- Parallax or virtual scrolling transitions between sections
+- Smooth animations using GSAP or ScrollReveal
+- Responsive on mobile and desktop
+- Use any free assets or frameworks (e.g. Three.js for background, Tailwind CSS, or Locomotive Scroll for motion)
+
+### FILES:
+Generate in one file (`index.html`) or multiple if needed. Optimize for simple deployment on Hostinger.
+
+Bonus if you add a favicon and simple loading screen or animation during page load.
