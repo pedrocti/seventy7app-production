@@ -37,7 +37,7 @@ const Navbar = () => {
     <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'backdrop-blur-lg bg-[#0F172A]/80 py-2 shadow-lg shadow-[#7E22CE]/10' : 'py-3'}`}>
       <nav className="container mx-auto px-4 flex justify-between items-center">
         <motion.div 
-          className="flex items-center space-x-3 md:space-x-4"
+          className="flex items-center"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -47,11 +47,11 @@ const Navbar = () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}>
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full opacity-70 blur-sm group-hover:opacity-100 transition duration-300"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full opacity-60 blur-sm group-hover:opacity-90 transition duration-300"></div>
               <img 
                 src={logoImage} 
                 alt="Seventy7 Kapital Logo" 
-                className="relative h-10 w-auto object-contain rounded-full"
+                className="relative h-7 w-7 object-cover rounded-full ring-1 ring-white/20"
               />
             </div>
           </a>
