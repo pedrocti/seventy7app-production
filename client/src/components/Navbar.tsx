@@ -47,11 +47,11 @@ const Navbar = () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}>
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full opacity-60 blur-sm group-hover:opacity-90 transition duration-300"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-lg opacity-60 blur-sm group-hover:opacity-90 transition duration-300"></div>
               <img 
                 src={logoImage} 
                 alt="Seventy7 Kapital Logo" 
-                className="relative h-7 w-7 object-cover rounded-full ring-1 ring-white/20"
+                className="relative h-8 w-10 object-cover rounded-lg ring-1 ring-white/20"
               />
             </div>
           </a>
