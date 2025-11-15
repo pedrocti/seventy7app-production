@@ -11,6 +11,10 @@ import ParticleBackground from '@/components/ParticleBackground';
 import TradingVisuals from '@/components/TradingVisuals';
 import MarketImpactVisual from '@/components/MarketImpactVisual';
 import { Helmet } from 'react-helmet';
+import FloatingQuickAccess from '@/components/FloatingQuickAccess';
+import CoreOfferingsSection from "@/components/CoreOfferingsSection";
+
+
 
 const Home = () => {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
@@ -46,6 +50,7 @@ const Home = () => {
         
         <main>
           <HeroSection />
+          <CoreOfferingsSection /> 
           <AboutSection />
           <ServicesSection />
           <TradingVisuals />
@@ -57,6 +62,8 @@ const Home = () => {
         <Footer />
         
         <StickyCTA visible={showStickyCTA} />
+        <FloatingQuickAccess />
+
       </div>
     </div>
   );

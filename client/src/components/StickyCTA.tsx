@@ -12,15 +12,15 @@ const StickyCTA = ({ visible }: { visible: boolean }) => {
           transition={{ duration: 0.3 }}
         >
           <div className="container mx-auto flex justify-between items-center">
-            <p className="text-white font-medium hidden sm:block">Ready to transform your trading career?</p>
+            <p className="text-white font-medium hidden sm:block">Get in touch with a Financial Expert</p>
             <a
-              href="https://t.me/Access77bot"
+              href="https://wa.me/2349030831907"
               target="_blank"
               rel="noopener noreferrer"
-              className="neon-button px-5 py-2 rounded-full text-white font-medium flex items-center space-x-2 mx-auto sm:mx-0"
+              className="bg-[#0F172A] text-[#0AEFFF] px-10 py-4 rounded-full text-lg font-semibold hover:bg-[#16203B] transition-all shadow-lg inline-flex items-center justify-center gap-2"
             >
               <i className="fab fa-telegram"></i>
-              <span>Join Now via Telegram</span>
+              <span>Chat on WhatsApp</span>
             </a>
           </div>
         </motion.div>
