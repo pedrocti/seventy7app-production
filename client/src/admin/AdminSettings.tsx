@@ -40,7 +40,7 @@ export default function AdminSettings() {
     try {
       const res = await axios.get(`${API_BASE}/admin/referral-settings`, { headers });
       if (res.data.success) {
-        setReferralPercent(res.data.percent || 10);
+        setReferralPercent(res.data.percent ?? 10);
       }
     } catch (err: any) {
       console.error("Load referral settings error:", err.response || err);
