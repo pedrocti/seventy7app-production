@@ -12,6 +12,11 @@ export default function AdminSettings() {
   const [address, setAddress] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Referral settings state
+  const [referralPercent, setReferralPercent] = useState<number>(10);
+  const [referralLoading, setReferralLoading] = useState(true);
+  const [referralSaving, setReferralSaving] = useState(false);
 
   const token = localStorage.getItem("token");
   const headers = {
@@ -31,8 +36,47 @@ export default function AdminSettings() {
     }
   };
 
+  const loadReferralSettings = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/referral-settings`, { headers });
+      if (res.data.success) {
+        setReferralPercent(res.data.percent || 10);
+      }
+    } catch (err: any) {
+      console.error("Load referral settings error:", err.response || err);
+    } finally {
+      setReferralLoading(false);
+    }
+  };
+
+  const saveReferralPercent = async () => {
+    if (referralPercent < 0 || referralPercent > 100) {
+      toast.error("Percentage must be between 0 and 100");
+      return;
+    }
+    
+    setReferralSaving(true);
+    try {
+      const res = await axios.patch(`${API_BASE}/admin/referral-settings`, 
+        { percent: referralPercent }, 
+        { headers }
+      );
+      if (res.data.success) {
+        toast.success("Referral percentage updated!");
+      } else {
+        toast.error(res.data.error || "Failed to update");
+      }
+    } catch (err: any) {
+      console.error("Save referral error:", err.response || err);
+      toast.error(err.response?.data?.error || "Failed to save referral settings");
+    } finally {
+      setReferralSaving(false);
+    }
+  };
+
   useEffect(() => {
     loadAddresses();
+    loadReferralSettings();
   }, []);
 
   const addAddress = async () => {
@@ -77,8 +121,50 @@ export default function AdminSettings() {
 
   return (
     <div className="p-8 text-white">
-      <h1 className="text-3xl font-bold mb-8">Deposit Address Settings</h1>
+      <h1 className="text-3xl font-bold mb-8">Platform Settings</h1>
 
+      {/* Referral Bonus Settings */}
+      <div className="bg-[#1E293B] p-6 rounded-xl mb-8 max-w-3xl border border-[#334155]">
+        <h2 className="text-xl font-semibold mb-4 text-[#0AEFFF]">Referral Bonus Settings</h2>
+        <p className="text-gray-400 text-sm mb-6">
+          Set the percentage of first deposit that referrers earn as a bonus when their referred users make their first deposit.
+        </p>
+        
+        {referralLoading ? (
+          <p className="text-gray-400">Loading...</p>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={referralPercent}
+                onChange={(e) => setReferralPercent(Number(e.target.value))}
+                className="bg-[#0F172A] border-[#334155] w-24 text-center text-lg font-bold"
+                data-testid="input-referral-percent"
+              />
+              <span className="text-xl font-bold text-gray-400">%</span>
+            </div>
+            <Button
+              onClick={saveReferralPercent}
+              disabled={referralSaving}
+              className="bg-[#7E22CE] hover:bg-purple-600 text-white font-bold px-6 disabled:opacity-70"
+              data-testid="button-save-referral"
+            >
+              {referralSaving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        )}
+        
+        <div className="mt-4 p-4 bg-[#0F172A] rounded-lg border border-[#334155]">
+          <p className="text-sm text-gray-400">
+            <span className="text-[#0AEFFF] font-semibold">Example:</span> If set to 10%, when a referred user deposits $100, the referrer earns $10 bonus.
+          </p>
+        </div>
+      </div>
+
+      {/* Deposit Address Settings */}
       <div className="bg-[#1E293B] p-6 rounded-xl mb-8 max-w-3xl border border-[#334155]">
         <h2 className="text-xl font-semibold mb-6">Add New Deposit Address</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
