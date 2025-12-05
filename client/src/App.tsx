@@ -1,7 +1,7 @@
-import { Route } from "wouter";
+import { Route, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react";
+import { AuthProvider } from "@/auth/AuthContext";
 
 import Home from "@/pages/Home";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -14,67 +14,61 @@ import MentorshipPage from "@/pages/MentorshipPage";
 import Login from "@/auth/Login";
 import Register from "@/auth/Register";
 import Dashboard from "@/pages/Dashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
-import { AuthProvider } from "@/auth/AuthContext";
 import PrivateRoute from "@/auth/PrivateRoute";
 import LoadingScreen from "@/components/LoadingScreen";
-
-import AdminDashboard from "@/pages/AdminDashboard";
 import DevErrorBoundary from "./DevErrorBoundary";
+import { useEffect, useState } from "react";
 
-// ---------------------------
-// Router Component
-// ---------------------------
-const Router = () => {
-  console.log("Router rendering");
+const Router = () => (
+  <Switch>
+    <Route path="/" component={Home} />
+    <Route path="/invest" component={InvestPage} />
+    <Route path="/portfolio" component={PortfolioPage} />
+    <Route path="/signal" component={Signal} />
+    <Route path="/mentorship" component={MentorshipPage} />
+    <Route path="/privacy-policy" component={PrivacyPolicy} />
+    <Route path="/terms-of-service" component={TermsOfService} />
+    <Route path="/disclaimer" component={Disclaimer} />
+    <Route path="/login" component={Login} />
+    <Route path="/register" component={Register} />
 
-  return (
-    <>
-      <Route path="/" component={Home} />
-      <Route path="/invest" component={InvestPage} />
-      <Route path="/privacy-policy" component={PrivacyPolicy} />
-      <Route path="/terms-of-service" component={TermsOfService} />
-      <Route path="/disclaimer" component={Disclaimer} />
-      <Route path="/portfolio" component={PortfolioPage} />
-      <Route path="/signal" component={Signal} />
-      <Route path="/mentorship" component={MentorshipPage} />
+    {/* FIXED PRIVATE ROUTES */}
+    <Route path="/dashboard">
+      <PrivateRoute>
+        <Dashboard />
+      </PrivateRoute>
+    </Route>
 
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
+    <Route path="/admin">
+      <PrivateRoute>
+        <AdminDashboard />
+      </PrivateRoute>
+    </Route>
 
-      {/* Protected Routes */}
-      <PrivateRoute path="/dashboard" component={Dashboard} />
-      <PrivateRoute path="/admin" component={AdminDashboard} />
+    <Route path="/:rest*" component={NotFound} />
+  </Switch>
+);
 
-      {/* Catch-all */}
-      <Route path="/:rest*" component={NotFound} />
-    </>
-  );
-};
 
-// ---------------------------
-// Main App
-// ---------------------------
 const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
+    setTimeout(() => setLoading(false), 1000);
   }, []);
 
   return (
+    <AuthProvider>
     <TooltipProvider>
       <Toaster />
-
-      {/* GLOBAL ERROR CATCHER */}
       <DevErrorBoundary>
-        <AuthProvider>
-          {loading ? <LoadingScreen /> : <Router />}
-        </AuthProvider>
+        {loading ? <LoadingScreen /> : <Router />}
       </DevErrorBoundary>
     </TooltipProvider>
+      </AuthProvider>
   );
 };
 

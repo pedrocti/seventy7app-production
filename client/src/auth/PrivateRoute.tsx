@@ -1,32 +1,35 @@
-// src/auth/PrivateRoute.tsx
-import { Route, useLocation } from "wouter";
-import { useAuth } from "./AuthContext";
-import { useEffect, useState } from "react";
+// client/src/auth/PrivateRoute.tsx
+import { ReactNode, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useAuth } from "@/auth/AuthContext";
 
 interface PrivateRouteProps {
-  path: string;
-  component: React.FC<any>;
+  children: ReactNode;
 }
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ path, component: Component }) => {
-  const { user, loading } = useAuth();
-  const [, setLocation] = useLocation();
-  const [allowed, setAllowed] = useState(false);
+export default function PrivateRoute({ children }: PrivateRouteProps) {
+  const { user, token, loading } = useAuth();
+  const [, navigate] = useLocation();
 
+  // Redirect only 
   useEffect(() => {
-    if (loading) return; // ✅ Wait until auth check finishes
-
-    if (!user) {
-      setAllowed(false);
-      setLocation("/login");
-    } else {
-      setAllowed(true);
+    if (!loading && (!user || !token)) {
+      navigate("/login", { replace: true });
     }
-  }, [user, loading, setLocation]);
+  }, [loading, user, token, navigate]);
 
-  if (loading || !allowed) return null; // prevents flicker before redirect check
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading...
+      </div>
+    );
+  }
+  
+  //  don't render the protected children
+  if (!user || !token) {
+    return null;
+  }
 
-  return <Route path={path} component={Component} />;
-};
-
-export default PrivateRoute;
+  return <>{children}</>;
+}

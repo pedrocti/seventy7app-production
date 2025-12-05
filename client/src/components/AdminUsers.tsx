@@ -1,5 +1,6 @@
+// client/src/components/AdminUsers.tsx
 import { useEffect, useState } from "react";
-import { useAuth } from "@/auth/AuthContext";
+import { apiRequest } from "@/api/http";
 
 interface User {
   id: number;
@@ -11,19 +12,29 @@ interface User {
 }
 
 export default function AdminUsers() {
-  const { token } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
 
-    fetch("/api/admin/users", {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setUsers(data.users))
-      .catch(err => console.error("Failed to fetch users:", err));
-  }, [token]);
+      const res = await apiRequest("/admin/users");
+      if (res.success && Array.isArray(res.users)) {
+        setUsers(res.users);
+      } else {
+        setError(res.error || "Failed to load users");
+      }
+      setLoading(false);
+    };
+
+    fetchUsers();
+  }, []);
+
+  if (loading) return <p>Loading users...</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div className="space-y-4">
@@ -40,7 +51,7 @@ export default function AdminUsers() {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => (
+            {users.map((u) => (
               <tr key={u.id} className="hover:bg-[#0AEFFF]/10">
                 <td className="p-2 border-b border-gray-700">{u.username}</td>
                 <td className="p-2 border-b border-gray-700">{u.email}</td>

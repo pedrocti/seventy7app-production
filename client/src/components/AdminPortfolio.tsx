@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE } from "@/api/http";
 
 interface Portfolio {
   id: number;
@@ -27,19 +28,19 @@ export default function AdminPortfolio() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // fetch active portfolios
-      const pRes = await axios.get("http://localhost:5050/api/admin/portfolios", {
+      // Active portfolios
+        const pRes = await axios.get(`${API_BASE}/admin/portfolio-requests/portfolios`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPortfolios(pRes.data.portfolios || []);
 
-      // fetch pending requests
-      const rRes = await axios.get("http://localhost:5050/api/admin/portfolio-requests", {
+      // Pending requests
+      const rRes = await axios.get(`${API_BASE}/admin/portfolio-requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setRequests(rRes.data.requests || []);
     } catch (err) {
-      console.error(err);
+      console.error("Admin portfolio fetch error:", err);
     } finally {
       setLoading(false);
     }
@@ -47,12 +48,16 @@ export default function AdminPortfolio() {
 
   const approveRequest = async (id: number) => {
     try {
-      await axios.patch(`http://localhost:5050/api/admin/portfolio-request/${id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchData(); // refresh both tables
+      await axios.patch(
+        `${API_BASE}/admin/portfolio-requests/${id}/approve`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      fetchData();
     } catch (err) {
-      console.error(err);
+      console.error("Approve request error:", err);
     }
   };
 

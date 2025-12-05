@@ -1,5 +1,15 @@
-import { Users, BarChart3, PieChart, Wallet, User, Activity } from "lucide-react";
-import clsx from "clsx";
+import {
+  Users,
+  BarChart3,
+  PieChart,
+  Wallet,
+  User,
+  Activity,
+  ClipboardList,
+  Settings,
+  TrendingUp,
+} from "lucide-react";
+import { clsx } from "clsx";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -13,9 +23,15 @@ export default function AdminSidebar({ collapsed, active, onNavigate }: SidebarP
     { key: "users", label: "Users", icon: <Users size={18} /> },
     { key: "transactions", label: "Transactions", icon: <BarChart3 size={18} /> },
     { key: "portfolio", label: "Portfolio", icon: <PieChart size={18} /> },
-    { key: "invest", label: "Invest", icon: <Wallet size={18} /> },
+    { key: "invest", label: "Investments", icon: <Wallet size={18} /> },
     { key: "mentorship", label: "Mentorship", icon: <User size={18} /> },
+    { key: "learning", label: "Learning", icon: <ClipboardList size={18} /> },
+    { key: "plans", label: "Plans", icon: <ClipboardList size={18} /> },
+    { key: "trades", label: "Trades & PnL", icon: <TrendingUp size={18} /> },
+    { key: "settings", label: "Deposit Settings", icon: <Settings size={18} /> },
   ];
+
+
 
   return (
     <aside
@@ -32,7 +48,6 @@ export default function AdminSidebar({ collapsed, active, onNavigate }: SidebarP
           </div>
         )}
       </div>
-
       <nav className="space-y-2">
         {items.map((it) => (
           <button

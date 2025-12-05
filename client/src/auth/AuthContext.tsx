@@ -1,21 +1,27 @@
-// src/auth/AuthContext.tsx
+// src/auth/AuthContext.tsx 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { toast } from "sonner";
 
 interface User {
   id: number;
   username: string;
   email?: string;
   role: string;
-  balance?: number;
+  balance: string;
+  bonus_balance: string;
+  referral_code?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (user: User, token: string) => void;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  setToken: React.Dispatch<React.SetStateAction<string | null>>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -24,42 +30,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Load user from localStorage once on mount
+  // Load from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
-
     if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
-      } catch (err) {
-        console.error("Error parsing stored user:", err);
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
-      }
+      setUser(JSON.parse(storedUser));
+      setToken(storedToken);
     }
-
     setLoading(false);
   }, []);
 
-  // ✅ Save user/token on login
-  const login = (user: User, token: string) => {
-    setUser(user);
-    setToken(token);
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", token);
+  // LOGIN FUNCTION
+  const login = async (username: string, password: string): Promise<boolean> => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.token && data.user) {
+        const userData = {
+          ...data.user,
+          balance: Number(data.user.balance || 0).toFixed(2),
+          bonus_balance: Number(data.user.bonus_balance || 0).toFixed(2),
+        };
+
+        setUser(userData);
+        setToken(data.token);
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("token", data.token);
+
+        toast.success("Welcome back, " + userData.username + "!");
+        return true;
+      } else {
+        toast.error(data.error || "Invalid credentials");
+        return false;
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      toast.error("Network error — is backend running?");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ✅ Clear on logout
   const logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    toast.success("Logged out");
   };
-
-  console.log("AuthContext state →", { user, token });
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, logout }}>
@@ -69,7 +96,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };

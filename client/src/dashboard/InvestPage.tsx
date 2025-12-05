@@ -1,283 +1,429 @@
+// ... imports unchanged
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { toast } from "sonner";
+import { API_BASE } from "@/api/http";
+
+interface Plan {
+  id: number;
+  name: string;
+  minAmount: number;
+  maxAmount: number | null;
+  description: string;
+  durationDays: number;
+}
+
+interface Investment {
+  id: number;
+  planId: number | null;
+  planName: string;
+  amount: number;
+  status: string; 
+  startDate: string | null;
+  endDate: string;
+  durationDays: number;
+  progress: number;
+  profit_loss: number;
+}
+
+
+function clamp(n: number, lo = 0, hi = 100) {
+  return Math.max(lo, Math.min(hi, n));
+}
 
 export default function InvestPage() {
-  const [amount, setAmount] = useState(100);
-  const [projectedMonthly, setProjectedMonthly] = useState(0);
-  const [projectedYearly, setProjectedYearly] = useState(0);
+  const { user, token, setUser } = useAuth();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [amount, setAmount] = useState<number>(100);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [useBonusFirst, setUseBonusFirst] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [tick, setTick] = useState(0);
 
-  // Mock historical performance
-  const performanceData = [
-    { month: "Jan", value: 100 },
-    { month: "Feb", value: 108 },
-    { month: "Mar", value: 112 },
-    { month: "Apr", value: 118 },
-    { month: "May", value: 125 },
-    { month: "Jun", value: 132 },
-    { month: "Jul", value: 138 },
-    { month: "Aug", value: 142 },
-    { month: "Sep", value: 148 },
-    { month: "Oct", value: 155 },
-    { month: "Nov", value: 162 },
-  ];
+  const userMainBalance = Number(user?.balance ?? 0);
+  const userBonusBalance = Number(user?.bonus_balance ?? 0);
 
-  // Live trades (mock real-time)
-  const liveTrades = [
-    { id: "T-101", pair: "BTC/USD", entry: "$68,420", status: "Active", pnl: "+2.3%", time: "2m ago" },
-    { id: "T-100", pair: "ETH/USD", entry: "$3,210", status: "Completed", pnl: "+4.1%", time: "1h ago" },
-    { id: "T-099", pair: "SOL/USD", entry: "$142", status: "Completed", pnl: "-1.2%", time: "3h ago" },
-  ];
+  // active investments locked amount (main balance only)
+  const activeInvestmentMain = useMemo(() => {
+    return investments.reduce((acc, inv) => {
+      if (inv.status === "active") {
+        const bonusUsed = useBonusFirst ? Math.min(userBonusBalance, inv.amount) : 0;
+        const remaining = Math.max(0, inv.amount - bonusUsed);
+        return acc + remaining;
+      }
+      return acc;
+    }, 0);
+  }, [investments, useBonusFirst, userBonusBalance]);
 
-  // Calculate projected earnings (example: 1.8% avg monthly)
+  const mainBalance = userMainBalance - activeInvestmentMain;
+  const bonusBalance = userBonusBalance;
+  const totalAvailable = mainBalance + bonusBalance;
+
+  // ticker for countdowns
   useEffect(() => {
-    const monthlyRate = 0.018; // 1.8% avg
-    const monthlyEarn = amount * monthlyRate;
-    const yearlyEarn = monthlyEarn * 12;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-    setProjectedMonthly(monthlyEarn);
-    setProjectedYearly(yearlyEarn);
-  }, [amount]);
+  // fetch plans
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE}/plans`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => res.ok ? res.json() : Promise.reject("Failed to fetch plans"))
+      .then((data) => {
+        const mapped: Plan[] = (data.plans ?? []).map((p: any) => ({
+          id: Number(p.id),
+          name: String(p.name ?? ""),
+          minAmount: Number(p.min_amount ?? 0),
+          maxAmount: p.max_amount == null ? null : Number(p.max_amount),
+          description: p.description ?? "",
+          durationDays: Number(p.duration_days ?? 0),
+        }));
+        setPlans(mapped);
+      })
+      .catch(() => toast.error("Failed to load plans"));
+  }, [token]);
 
+  // fetch investments
+  const fetchInvestments = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/investments`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Failed to fetch investments");
+      const data = await res.json();
+      const formatted: Investment[] = (data.investments ?? []).map((inv: any) => {
+        const startAt = inv.start_at ?? inv.startAt ?? null;
+        const durationDays = Number(inv.duration_days ?? inv.durationDays ?? 0);
+        const amount = Number(inv.amount ?? 0);
+        const progress = Number(inv.progress ?? 0);
+        const profitLoss = Number(inv.profit_loss ?? 0);
+        const status = String(inv.status ?? "active");
+        const startMs = startAt ? new Date(startAt).getTime() : Date.now();
+        const endAt = inv.end_at ?? new Date(startMs + durationDays * 86400 * 1000).toISOString();
+        return {
+          id: Number(inv.id ?? 0),
+          planId: Number(inv.plan_id ?? null),
+          planName: inv.plan_name ?? "Plan",
+          amount,
+          status,
+          startDate: startAt ? new Date(startAt).toISOString() : null,
+          endDate: endAt,
+          durationDays,
+          progress,
+          profit_loss: profitLoss,
+        };
+      });
+
+      formatted.sort((a, b) => {
+        if (a.status === b.status) return new Date(a.endDate || 0).getTime() - new Date(b.endDate || 0).getTime();
+        return a.status === "active" ? -1 : 1;
+      });
+
+      setInvestments(formatted);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load investments");
+      setInvestments([]);
+    }
+  };
+
+  useEffect(() => { fetchInvestments(); }, [token, tick]);
+
+  const selectedPlan = useMemo(() => plans.find((p) => p.id === selectedPlanId) ?? null, [plans, selectedPlanId]);
+
+  // canInvest now respects mainBalance adjusted for active investments
+  const canInvest = useMemo(() => {
+    if (!selectedPlan) return false;
+    if (amount < selectedPlan.minAmount) return false;
+    if (amount > totalAvailable) return false;
+    if (useBonusFirst) {
+      const bonusUsed = Math.min(bonusBalance, amount);
+      if (mainBalance < (amount - bonusUsed)) return false;
+    } else {
+      if (mainBalance < amount) return false;
+    }
+    return true;
+  }, [selectedPlan, amount, totalAvailable, bonusBalance, useBonusFirst, mainBalance]);
+
+  const handleInvest = async () => {
+    if (!token) return toast.error("Please log in");
+    if (!selectedPlan) return toast.error("Please select a plan.");
+    if (!canInvest) return toast.error("Insufficient balance.");
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${API_BASE}/invest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount, plan_id: selectedPlan.id, use_bonus: useBonusFirst }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error ?? "Investment failed");
+        return;
+      }
+
+      toast.success(`Invested $${amount.toFixed(2)}`);
+      if (data.balances && setUser) setUser((prev: any) => ({ ...prev, ...data.balances }));
+
+      setAmount(100);
+      setSelectedPlanId(null);
+      await fetchInvestments();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Investment failed");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // --- UI remains mostly unchanged ---
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1A2332] to-[#0F172A] p-6 space-y-10">
-      {/* Hero Section */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-6"
-      >
-        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-[#0AEFFF] to-cyan-400 bg-clip-text text-transparent">
-          Stake & Earn
-        </h1>
-        <p className="text-lg text-gray-300 max-w-3xl mx-auto">
-          Stake from <strong className="text-[#0AEFFF]">$100</strong> and earn <strong>up to 1.8% monthly </strong> 
-          fully automated, transparent, and withdrawable anytime.
-        </p>
+    <div className="min-h-screen p-6 bg-gradient-to-br from-[#071022] via-[#081225] to-[#071522]">
+      <div className="max-w-7xl mx-auto">
+        {/* Header & balances */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#0AEFFF] to-[#7EE7C3]">Stake & Earn</h1>
+            <p className="mt-2 text-sm text-gray-300">Choose a plan, see duration & countdown, and track active investments.</p>
+          </div>
+          <div className="flex gap-4 items-center">
+            <div className="text-right">
+              <div className="text-xs text-gray-400">Main Balance</div>
+              <div className="text-xl font-bold text-white">${mainBalance.toFixed(2)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-400">Bonus</div>
+              <div className="text-xl font-bold text-emerald-400">${bonusBalance.toFixed(2)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-gray-400">Total</div>
+              <div className="text-xl font-bold text-[#0AEFFF]">${totalAvailable.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
 
-        {/* Key Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-          {[
-            { label: "Total AUM", value: "$2.4M+" },
-            { label: "Active Traders", value: "1,200+" },
-            { label: "Avg Monthly Return", value: "1.8%" },
-            { label: "Uptime", value: "99.9%" },
-          ].map((stat, i) => (
+        {/* Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: form */}
+          <div className="lg:col-span-2">
             <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-[#1E293B]/50 backdrop-blur-sm border border-[#334155]/50 rounded-2xl p-4 text-center"
+              className="bg-white/5 border border-white/6 rounded-2xl p-6 shadow-xl"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <div className="text-2xl font-bold text-[#0AEFFF]">{stat.value}</div>
-              <div className="text-xs text-gray-400">{stat.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+              <h2 className="text-2xl font-semibold text-white mb-4">Deploy Capital</h2>
 
-      {/* Investment Calculator */}
-      <motion.section
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.3 }}
-        className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto"
-      >
-        <div className="bg-[#0F172A]/80 backdrop-blur-md p-8 rounded-3xl border border-[#1E293B]/60">
-          <h2 className="text-2xl font-bold text-[#0AEFFF] mb-6">Contribute & Earn</h2>
-          <div className="space-y-5">
-            <div>
-              <label className="text-sm text-gray-400">Investment Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(Math.max(100, Number(e.target.value)))}
-                min="100"
-                className="mt-1 w-full p-4 rounded-xl bg-[#1E293B]/60 border border-[#334155] text-white text-xl font-medium focus:outline-none focus:border-[#0AEFFF] transition"
-              />
-              <p className="text-xs text-gray-500 mt-1">Minimum: $100</p>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                {/* Amount Input */}
+                <div className="md:col-span-1">
+                  <label className="text-sm text-gray-300">
+                    Amount (min ${selectedPlan?.minAmount ?? 100})
+                  </label>
+                  <input
+                    type="number"
+                    min={selectedPlan?.minAmount ?? 100}
+                    step={1}
+                    value={amount}
+                    onChange={(e) => setAmount(Number(e.target.value) || 0)}
+                    className="mt-2 w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-700 text-white text-lg font-bold focus:outline-none"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-[#0AEFFF]/10 to-cyan-600/10 p-4 rounded-xl border border-[#0AEFFF]/20">
-                <div className="text-sm text-gray-400">Est. Monthly</div>
-                <div className="text-2xl font-bold text-[#0AEFFF]">${projectedMonthly.toFixed(2)}</div>
-              </div>
-              <div className="bg-gradient-to-br from-green-500/10 to-emerald-600/10 p-4 rounded-xl border border-green-500/20">
-                <div className="text-sm text-gray-400">Est. Yearly</div>
-                <div className="text-2xl font-bold text-green-400">${projectedYearly.toFixed(2)}</div>
-              </div>
-            </div>
-
-            <button className="w-full bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-[#0F172A] font-bold py-4 rounded-full hover:scale-105 transition transform duration-200 shadow-lg">
-              Contribute Now
-            </button>
-
-            <p className="text-xs text-center text-gray-400">
-              Withdraw principal + earnings anytime. No lock-in.
-            </p>
-          </div>
-        </div>
-
-        {/* Performance Chart */}
-        <div className="bg-[#0F172A]/80 backdrop-blur-md p-6 rounded-3xl border border-[#1E293B]/60">
-          <h3 className="text-lg font-semibold text-[#0AEFFF] mb-4">Portfolio Growth (2025)</h3>
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={performanceData}>
-              <defs>
-                <linearGradient id="growth" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0AEFFF" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#0AEFFF" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="month" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ background: "#1E293B", border: "1px solid #334155", borderRadius: "8px" }}
-                labelStyle={{ color: "#0AEFFF" }}
-              />
-              <Area type="monotone" dataKey="value" stroke="#0AEFFF" fillOpacity={1} fill="url(#growth)" />
-            </AreaChart>
-          </ResponsiveContainer>
-          <p className="text-xs text-gray-500 mt-3 text-center">Starting from $100 base</p>
-        </div>
-      </motion.section>
-
-      {/* Live Trade Feed */}
-      <motion.section
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="max-w-6xl mx-auto"
-      >
-        <div className="bg-[#0F172A]/80 backdrop-blur-md p-6 rounded-3xl border border-[#1E293B]/60">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-bold text-[#0AEFFF]">Live Trade Activity</h2>
-            <span className="flex items-center gap-2 text-xs bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              Real-time
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-400 border-b border-[#1E293B]/50">
-                  <th className="pb-3">ID</th>
-                  <th>Pair</th>
-                  <th>Entry</th>
-                  <th>Status</th>
-                  <th>P/L</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveTrades.map((t, i) => (
-                  <motion.tr
-                    key={t.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="border-b border-[#1E293B]/30"
+                {/* Plan Selector */}
+                <div className="md:col-span-1">
+                  <label className="text-sm text-gray-300">Plan</label>
+                  <select
+                    value={selectedPlanId ?? ""}
+                    onChange={(e) => setSelectedPlanId(e.target.value ? Number(e.target.value) : null)}
+                    className="mt-2 w-full px-4 py-3 rounded-xl bg-gray-900 border border-gray-700 text-white"
                   >
-                    <td className="py-3 font-mono text-[#0AEFFF]">{t.id}</td>
-                    <td className="text-white">{t.pair}</td>
-                    <td className="text-gray-300">{t.entry}</td>
-                    <td>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          t.status === "Active"
-                            ? "bg-blue-500/20 text-blue-400"
-                            : "bg-gray-500/20 text-gray-400"
-                        }`}
-                      >
-                        {t.status}
-                      </span>
-                    </td>
-                    <td className={t.pnl.startsWith("-") ? "text-red-400" : "text-green-400"}>
-                      {t.pnl}
-                    </td>
-                    <td className="text-gray-500 text-xs">{t.time}</td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </motion.section>
+                    <option value="">Select Plan</option>
+                    {plans.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} • {p.durationDays}d • ${p.minAmount}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-      {/* Risk & Transparency */}
-      <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6"
-      >
-        {[
-          {
-            title: "No Lock-in Period",
-            desc: "Withdraw your capital and profits anytime with zero penalties.",
-            icon: "Unlock",
-          },
-          {
-            title: "Transparent P&L",
-            desc: "Every trade is logged on-chain. Verify performance in real-time.",
-            icon: "Eye",
-          },
-          {
-            title: "Risk Disclosure",
-            desc: "Trading involves risk. Past performance ≠ future results.",
-            icon: "AlertTriangle",
-          },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="bg-[#0F172A]/70 backdrop-blur-sm p-6 rounded-2xl border border-[#1E293B]/50 text-center"
-          >
-            <div className="w-12 h-12 mx-auto mb-3 bg-[#0AEFFF]/20 rounded-full flex items-center justify-center">
-              <span className="text-xl text-[#0AEFFF]">{item.icon}</span>
-            </div>
-            <h3 className="font-semibold text-[#0AEFFF]">{item.title}</h3>
-            <p className="text-sm text-gray-400 mt-2">{item.desc}</p>
-          </div>
-        ))}
-      </motion.section>
+                {/* Bonus Toggle */}
+                <div className="md:col-span-1 flex items-center gap-3">
+                  <label className="text-sm text-gray-300">Use Bonus First</label>
+                  <button
+                    onClick={() => setUseBonusFirst((v) => !v)}
+                    className={`ml-auto relative w-14 h-8 rounded-full transition-all ${
+                      useBonusFirst ? "bg-[#0AEFFF]" : "bg-gray-600"
+                    }`}
+                    aria-pressed={useBonusFirst}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-7 h-7 bg-black rounded-full transition-transform ${
+                        useBonusFirst ? "translate-x-6" : ""
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
 
-      {/* Trust Badges */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="text-center space-y-4"
-      >
-        <p className="text-sm text-gray-500">Trusted by traders worldwide</p>
-        <div className="flex justify-center gap-8 flex-wrap">
-          {["Regulated Broker", "SSL Secured", "Audited Smart Contracts", "24/7 Support"].map((badge) => (
-            <span
-              key={badge}
-              className="px-4 py-2 bg-[#1E293B]/50 border border-[#334155] rounded-full text-xs text-gray-300"
+              {/* Selected Plan Info */}
+              {selectedPlan && (
+                <div className="mt-4 p-4 rounded-xl bg-white/3 border border-white/6 flex items-center justify-between gap-4">
+                  <div>
+                    <div className="text-sm text-gray-300">Selected</div>
+                    <div className="text-lg font-bold text-white">{selectedPlan.name}</div>
+                    <div className="text-xs text-gray-400 mt-1">{selectedPlan.description}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-300">Duration</div>
+                    <div className="text-lg font-bold text-white">{selectedPlan.durationDays} days</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="mt-6 flex flex-wrap gap-3 items-center">
+                <button
+                  onClick={handleInvest}
+                  disabled={submitting || !canInvest}
+                  className={`px-6 py-3 rounded-xl text-black font-bold transition shadow ${
+                    submitting || !canInvest
+                      ? "bg-gray-700 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[#0AEFFF] to-[#7EE7C3] hover:scale-[1.02]"
+                  }`}
+                >
+                  {submitting ? "Processing…" : "Invest Now"}
+                </button>
+
+                {!canInvest && selectedPlan && (
+                  <div className="text-xs text-rose-400 mt-1">
+                    {amount < (selectedPlan?.minAmount ?? 100)
+                      ? `Amount must be at least $${selectedPlan.minAmount}`
+                      : amount > totalAvailable
+                      ? "Insufficient total balance"
+                      : useBonusFirst
+                      ? (() => {
+                          const bonusUsed = Math.min(bonusBalance, amount);
+                          const remaining = Math.max(0, amount - bonusUsed);
+                          return mainBalance < remaining ? "Main balance insufficient to cover remaining after bonus" : "";
+                        })()
+                      : "Main balance insufficient"}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setAmount(100);
+                    setSelectedPlanId(null);
+                  }}
+                  className="px-6 py-3 rounded-xl bg-transparent border border-white/8 text-white hover:bg-white/3 transition"
+                >
+                  Reset
+                </button>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right column: Investments */}
+          <div>
+            <motion.div
+              className="bg-white/5 border border-white/6 rounded-2xl p-4 shadow-lg"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              {badge}
-            </span>
-          ))}
-        </div>
-      </motion.div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">Your Investments</h3>
+                <div className="text-sm text-gray-400">{investments.length} total</div>
+              </div>
 
-      {/* Final CTA */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.7 }}
-        className="text-center"
-      >
-        <p className="text-amber-400 font-medium mb-4">
-          Website launching fully in the coming weeks — secure your spot now!
-        </p>
-        <button className="bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-[#0F172A] font-bold px-10 py-4 rounded-full text-lg hover:scale-110 transition transform duration-300 shadow-xl">
-          Get Early Access
-        </button>
-      </motion.div>
+              {investments.length === 0 ? (
+                <div className="py-8 text-center text-gray-400">
+                  No investments yet — choose a plan to get started.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {investments.map((inv, index) => {
+                    const amount = Number(inv.amount) || 0;
+                    const duration = Number(inv.durationDays) || 0;
+                    const progressFromBackend = Number(inv.progress ?? 0);
+                    const profitLoss = Number(inv.profit_loss ?? 0);
+
+                    const startISO = inv.startDate ?? null;
+                    const endISO = inv.endDate ?? null;
+
+                    const start = startISO ? new Date(startISO) : new Date();
+                    const end = endISO ? new Date(endISO) : new Date(start.getTime() + duration * 86400 * 1000);
+
+                    const now = Date.now();
+                    const totalMs = Math.max(1, end.getTime() - start.getTime());
+                    const elapsedMs = Math.min(Math.max(0, now - start.getTime()), totalMs);
+                    const timePercent = Math.round((elapsedMs / totalMs) * 100);
+
+                    const percent =
+                      !isNaN(progressFromBackend) && progressFromBackend > 0 && progressFromBackend <= 100
+                        ? Math.round(progressFromBackend)
+                        : timePercent;
+
+                    const remainingMs = Math.max(0, end.getTime() - now);
+                    const daysLeft = Math.ceil(remainingMs / 86400000);
+
+                    const key = inv.id != null && !isNaN(Number(inv.id)) ? String(inv.id) : `inv-${index}`;
+
+                    return (
+                      <motion.div
+                        key={key}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white/3 rounded-xl p-3 border border-white/6"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-semibold text-white">{inv.planName}</div>
+                              <div className="text-xs text-gray-300">{duration}d</div>
+                            </div>
+
+                            <div className="mt-1 text-xs text-gray-300">
+                              Amount: <span className="font-medium text-white">${amount.toFixed(2)}</span>
+                            </div>
+
+                            <div className="mt-1 text-xs">
+                              <span className={`font-medium ${profitLoss >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                {profitLoss >= 0 ? "+" : "-"}${Math.abs(profitLoss).toFixed(2)}
+                              </span>
+                              <span className="ml-2 text-gray-400">PnL</span>
+                            </div>
+
+                            <div className="mt-3">
+                              <div className="w-full bg-white/6 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-[#0AEFFF] to-[#7EE7C3]"
+                                  style={{ width: `${clamp(percent)}%` }}
+                                />
+                              </div>
+                              <div className="text-xs text-gray-400 mt-1 flex justify-between">
+                                <span>{clamp(percent)}%</span>
+                                <span>{remainingMs > 0 ? `${daysLeft}d left` : "0d left"}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="w-28 text-right">
+                            <div className="text-xs text-gray-300">Ends</div>
+                            <div className="text-sm font-semibold text-white">{end.toLocaleDateString()}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

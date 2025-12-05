@@ -45,15 +45,18 @@ const Navbar = () => {
           <a href="#" onClick={(e) => {
             e.preventDefault();
             window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}>
+          }} className="flex items-center space-x-3">
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-lg opacity-60 blur-sm group-hover:opacity-90 transition duration-300"></div>
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-xl opacity-50 blur group-hover:opacity-80 transition duration-300"></div>
               <img 
                 src={logoImage} 
                 alt="Seventy7 Kapital Logo" 
-                className="relative h-8 w-10 object-cover rounded-lg ring-1 ring-white/20"
+                className="relative h-11 w-14 object-cover rounded-xl ring-2 ring-white/10 shadow-lg"
               />
             </div>
+            <span className="hidden sm:block text-white font-bold text-lg tracking-wide">
+              <span className="text-[#0AEFFF]">77</span>Kapital
+            </span>
           </a>
         </motion.div>
         

@@ -1,3 +1,4 @@
+// client/src/dashboard/PortfolioPage.tsx
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
@@ -14,304 +15,264 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-import {
-  FaShieldAlt,
-  FaLock,
-  FaChartLine,
-  FaArrowRight,
-} from "react-icons/fa";
+import { FaShieldAlt, FaLock, FaChartLine } from "react-icons/fa";
+import { useAuth } from "@/auth/AuthContext";
 
-/* -------------------------------------------------
-   Static data – keep it simple and readable
-   ------------------------------------------------- */
-const allocation = [
-  { name: "Crypto",       value: 35, color: "#0AEFFF" },
-  { name: "Real Estate", value: 25, color: "#10B981" },
-  { name: "Stocks",       value: 20, color: "#8B5CF6" },
-  { name: "Tech",         value: 15, color: "#F59E0B" },
-  { name: "Cash",         value: 5,  color: "#6B7280" },
-];
-
-const portfolioGrowth = [
-  { month: "Jun", value: 4000 },
-  { month: "Jul", value: 4600 },
-  { month: "Aug", value: 5100 },
-  { month: "Sep", value: 5300 },
-  { month: "Oct", value: 5800 },
-  { month: "Nov", value: 6200 },
-];
-
-const categoryPerformance = [
-  { name: "Crypto",       growth: 15 },
-  { name: "Real Estate", growth: 8  },
-  { name: "Stocks",       growth: 12 },
-  { name: "Tech",         growth: 18 },
-  { name: "Cash",         growth: 3  },
-];
-
-/* -------------------------------------------------
-   Component
-   ------------------------------------------------- */
 export default function PortfolioPage() {
-  const [amount, setAmount] = useState(5000);
-  const [duration, setDuration] = useState("6");
-  const [projectedValue, setProjectedValue] = useState(0);
-  const [totalReturn, setTotalReturn] = useState(0);
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [portfolio, setPortfolio] = useState<any>(null);
+  const [requestAmount, setRequestAmount] = useState("");
+  const [requestStatus, setRequestStatus] = useState<string | null>(null);
 
-  // ---- calculate projected return ---------------------------------
+  /* -------------------------------------------------------
+        FETCH PORTFOLIO — NOW SAFE & COMPATIBLE
+  ------------------------------------------------------- */
   useEffect(() => {
-    const monthlyRate = 0.012;               // 1.2 percent per month
-    const months = Number(duration);
-    const final = amount * (1 + monthlyRate) ** months;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-    setProjectedValue(final);
-    setTotalReturn(final - amount);
-  }, [amount, duration]);
+    async function loadPortfolio() {
+      try {
+        const res = await fetch("/api/portfolio", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  return (
-    <div className="min-h-screen bg-[#0B1120] p-5 sm:p-8 space-y-10 font-sans">
+        const data = await res.json();
 
-      {/* ---------- Header ---------- */}
-      <motion.header
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center space-y-3"
-      >
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#0AEFFF] to-cyan-300 bg-clip-text text-transparent">
-          Managed Portfolio
-        </h1>
-        <p className="text-sm text-gray-400 max-w-2xl mx-auto">
-          AI-optimized, diversified, and actively managed. Min. $1,000.
-        </p>
-      </motion.header>
+        // New backend response shape
+        if (data.success && data.hasPortfolio && data.portfolio) {
+          setPortfolio(data.portfolio);
+        }
+        // else → No portfolio = show request form (perfect)
+      } catch (err) {
+        console.log("Portfolio not active yet");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-      {/* ---------- Key metrics ---------- */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-4xl mx-auto">
-        {[
-          { label: "AUM",        value: "$18.7M" },
-          { label: "Annual Return", value: "14.4%" },
-          { label: "Sharpe",     value: "1.82" },
-          { label: "Drawdown",   value: "-6.2%" },
-        ].map((m, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className="bg-[#1A2332]/50 backdrop-blur-sm border border-[#334155]/30 rounded-xl p-3 text-center"
-          >
-            <div className="text-lg font-bold text-[#0AEFFF]">{m.value}</div>
-            <div className="text-xs text-gray-500">{m.label}</div>
-          </motion.div>
-        ))}
+    loadPortfolio();
+  }, [token]);
+
+  /* -------------------------------------------------------
+        SUBMIT PORTFOLIO REQUEST
+  ------------------------------------------------------- */
+  async function submitRequest() {
+    const amount = Number(requestAmount);
+    if (!amount || amount < 1000) {
+      alert("Minimum amount is $1,000");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/portfolio/request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setRequestStatus("submitted");
+      }
+    } catch (err) {
+      alert("Request failed. Try again.");
+    }
+  }
+
+  /* -------------------------------------------------------
+        LOADING
+  ------------------------------------------------------- */
+  if (loading) {
+    return (
+      <div className="text-center text-gray-400 py-20">
+        Loading portfolio...
       </div>
+    );
+  }
 
-      {/* ---------- Charts + Calculator ---------- */}
-      <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto">
-
-        {/* Growth chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-[#0F172A]/60 backdrop-blur-sm border border-[#1E293B]/40 rounded-xl p-5"
+  /* -------------------------------------------------------
+        NO PORTFOLIO → SHOW REQUEST FORM
+  ------------------------------------------------------- */
+  if (!portfolio) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] p-5 sm:p-8 text-white">
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center text-2xl font-bold text-[#0AEFFF] mb-6"
         >
-          <h3 className="text-sm font-semibold text-[#0AEFFF] mb-3 flex items-center gap-1.5">
-            <FaChartLine className="w-3.5 h-3.5" />
-            Growth (6M)
+          Managed Portfolio
+        </motion.h1>
+
+        <div className="max-w-md mx-auto bg-[#0F172A]/70 p-6 rounded-xl border border-[#1E293B] space-y-4">
+          <h3 className="text-center text-[#0AEFFF] font-semibold">
+            Request Portfolio Management
           </h3>
 
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={portfolioGrowth} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+          {requestStatus === "submitted" ? (
+            <p className="text-center text-green-400">
+              Your request has been submitted. Waiting for admin approval.
+            </p>
+          ) : (
+            <>
+              <input
+                type="number"
+                placeholder="Amount (Min $1,000 USDT)"
+                value={requestAmount}
+                onChange={(e) => setRequestAmount(e.target.value)}
+                className="w-full p-3 rounded bg-[#1E293B] border border-[#334155] text-white focus:outline-none focus:border-[#0AEFFF]"
+              />
+              <button
+                onClick={submitRequest}
+                className="w-full py-3 bg-[#0AEFFF] hover:bg-cyan-400 text-black font-bold rounded-lg transition hover:scale-105"
+              >
+                Submit Request
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* -------------------------------------------------------
+        CHART DATA — FROM REAL BACKEND
+  ------------------------------------------------------- */
+  const allocationData = [
+    { name: "Crypto",       value: portfolio.crypto_percent || 0,       color: "#0AEFFF" },
+    { name: "Equity",       value: portfolio.equity_percent || 0,       color: "#10B981" },
+    { name: "Real Estate", value: portfolio.real_estate_percent || 0, color: "#8B5CF6" },
+    { name: "Commodities", value: portfolio.commodities_percent || 0, color: "#F59E0B" },
+    { name: "Bonds",         value: portfolio.bonds_percent || 0,       color: "#6B7280" },
+  ].filter(a => a.value > 0);
+
+  const growthCurve = Array.from({ length: 6 }).map((_, i) => ({
+    month: `M${i + 1}`,
+    value: portfolio.amount * (1 + (portfolio.performance_percent || 0) / 100) ** (i / 6),
+  }));
+
+  const performanceData = allocationData.map(a => ({
+    name: a.name,
+    growth: portfolio.performance_percent || 0,
+  }));
+
+  /* -------------------------------------------------------
+        PORTFOLIO UI — LIVE DATA
+  ------------------------------------------------------- */
+  return (
+    <div className="min-h-screen bg-[#0B1120] p-6 text-white space-y-10">
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center text-3xl font-bold text-[#0AEFFF]"
+      >
+        Your Managed Portfolio
+      </motion.h1>
+
+      {/* Key Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto">
+        <div className="bg-[#1E293B]/40 p-4 rounded-xl text-center border border-[#334155]/40">
+          <p className="text-gray-400 text-xs">Amount Managed</p>
+          <p className="text-[#0AEFFF] font-bold text-xl">
+            ${Number(portfolio.amount).toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-[#1E293B]/40 p-4 rounded-xl text-center border border-[#334155]/40">
+          <p className="text-gray-400 text-xs">Performance</p>
+          <p className={`font-bold text-xl ${portfolio.performance_percent >= 0 ? "text-green-400" : "text-red-400"}`}>
+            {portfolio.performance_percent >= 0 ? "+" : ""}{portfolio.performance_percent}%
+          </p>
+        </div>
+
+        <div className="bg-[#1E293B]/40 p-4 rounded-xl text-center border border-[#334155]/40 col-span-2 sm:col-span-2">
+          <p className="text-gray-400 text-xs">Last Updated</p>
+          <p className="text-gray-300 text-sm">
+            {portfolio.updated_at}
+          </p>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+        {/* Growth */}
+        <div className="p-5 bg-[#0F172A] rounded-xl border border-[#1E293B]">
+          <h3 className="text-sm font-semibold text-[#0AEFFF] mb-3">Growth Projection</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart data={growthCurve}>
               <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stopColor="#0AEFFF" stopOpacity={0.4} />
+                <linearGradient id="growth" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#0AEFFF" stopOpacity={0.4} />
                   <stop offset="100%" stopColor="#0AEFFF" stopOpacity={0} />
                 </linearGradient>
               </defs>
-
               <CartesianGrid stroke="#334155" strokeDasharray="3 3" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="#64748B" />
-              <YAxis tick={{ fontSize: 11 }} stroke="#64748B" />
-              <Tooltip
-                contentStyle={{ background: "#1E293B", border: "1px solid #334155", borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: "#0AEFFF" }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#0AEFFF"
-                strokeWidth={2}
-                fill="url(#grad)"
-              />
+              <XAxis dataKey="month" stroke="#64748B" />
+              <YAxis stroke="#64748B" />
+              <Tooltip contentStyle={{ background: "#0F172A", border: "1px solid #1E293B" }} />
+              <Area type="monotone" dataKey="value" fill="url(#growth)" stroke="#0AEFFF" />
             </AreaChart>
           </ResponsiveContainer>
-        </motion.div>
+        </div>
 
-        {/* Return forecast calculator */}
-        <motion.div
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-[#0F172A]/60 backdrop-blur-sm border border-[#1E293B]/40 rounded-xl p-5 space-y-3"
-        >
-          <h3 className="text-sm font-semibold text-[#0AEFFF]">Return Forecast</h3>
-
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(Math.max(1000, Number(e.target.value)))}
-            className="w-full px-3 py-2 text-sm bg-[#1E293B]/50 border border-[#334155] rounded-lg text-white focus:outline-none focus:border-[#0AEFFF] transition"
-            placeholder="Amount"
-          />
-
-          <select
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-[#1E293B]/50 border border-[#334155] rounded-lg text-white focus:outline-none focus:border-[#0AEFFF]"
-          >
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="12">1 Year</option>
-          </select>
-
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-[#0AEFFF]/10 p-2 rounded-lg border border-[#0AEFFF]/20">
-              <div className="text-gray-400">Final</div>
-              <div className="font-bold text-[#0AEFFF]">${projectedValue.toFixed(0)}</div>
-            </div>
-            <div className="bg-green-500/10 p-2 rounded-lg border border-green-500/20">
-              <div className="text-gray-400">Profit</div>
-              <div className="font-bold text-green-400">+${totalReturn.toFixed(0)}</div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ---------- Allocation + Performance ---------- */}
-      <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto">
-
-        {/* Pie allocation */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0F172A]/60 backdrop-blur-sm border border-[#1E293B]/40 rounded-xl p-5"
-        >
+        {/* Allocation */}
+        <div className="p-5 bg-[#0F172A] rounded-xl border border-[#1E293B]">
           <h3 className="text-sm font-semibold text-[#0AEFFF] mb-3">Allocation</h3>
-
-          <div className="flex items-center gap-4">
-            <ResponsiveContainer width={120} height={120}>
+          <div className="flex items-center gap-6">
+            <ResponsiveContainer width={130} height={130}>
               <PieChart>
-                <Pie
-                  data={allocation}
-                  innerRadius={35}
-                  outerRadius={50}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {allocation.map((e, i) => (
-                    <Cell key={i} fill={e.color} />
+                <Pie data={allocationData} dataKey="value" innerRadius={35} outerRadius={55}>
+                  {allocationData.map((entry, i) => (
+                    <Cell key={`cell-${i}`} fill={entry.color} />
                   ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-
-            <div className="space-y-1.5 text-xs">
-              {allocation.map((a) => (
-                <div key={a.name} className="flex justify-between items-center">
-                  <span className="flex items-center gap-1.5">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: a.color }}
-                    />
-                    <span className="text-gray-300">{a.name}</span>
+            <div className="space-y-2 text-xs">
+              {allocationData.map((entry) => (
+                <div key={entry.name} className="flex justify-between gap-2 w-40">
+                  <span className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                    {entry.name}
                   </span>
-                  <span className="font-medium">{a.value}%</span>
+                  <span className="text-gray-400">{entry.value}%</span>
                 </div>
               ))}
             </div>
           </div>
-        </motion.div>
-
-        {/* Bar returns */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#0F172A]/60 backdrop-blur-sm border border-[#1E293B]/40 rounded-xl p-5"
-        >
-          <h3 className="text-sm font-semibold text-[#0AEFFF] mb-3">Returns by Asset</h3>
-
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={categoryPerformance} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#64748B" />
-              <YAxis tick={{ fontSize: 10 }} stroke="#64748B" />
-              <Tooltip
-                contentStyle={{ background: "#1E293B", border: "1px solid #334155", borderRadius: 8, fontSize: 11 }}
-              />
-              <Bar dataKey="growth" fill="#0AEFFF" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </motion.div>
+        </div>
       </div>
 
-      {/* ---------- Request form ---------- */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md mx-auto"
-      >
-        <div className="bg-gradient-to-r from-[#0AEFFF]/5 to-cyan-600/5 p-0.5 rounded-xl">
-          <div className="bg-[#0F172A]/80 backdrop-blur-sm rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-[#0AEFFF] text-center">
-              Request Management
-            </h3>
+      {/* Bar Chart */}
+      <div className="max-w-3xl mx-auto p-5 bg-[#0F172A] rounded-xl border border-[#1E293B]">
+        <h3 className="text-sm font-semibold text-[#0AEFFF] mb-3">Returns by Asset</h3>
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={performanceData}>
+            <XAxis dataKey="name" stroke="#64748B" />
+            <YAxis stroke="#64748B" />
+            <Tooltip contentStyle={{ background: "#0F172A", border: "1px solid #1E293B" }} />
+            <Bar dataKey="growth" fill="#0AEFFF" radius={[5, 5, 0, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
 
-            <input
-              type="number"
-              placeholder="Amount (USDT)"
-              className="w-full px-3 py-2 text-sm bg-[#1E293B]/50 border border-[#334155] rounded-lg text-white focus:outline-none focus:border-[#0AEFFF]"
-            />
-
-            <select className="w-full px-3 py-2 text-sm bg-[#1E293B]/50 border border-[#334155] rounded-lg text-white focus:outline-none focus:border-[#0AEFFF]">
-              <option>6 Months</option>
-              <option>1 Year</option>
-              <option>Custom</option>
-            </select>
-
-            <button className="w-full py-2.5 text-sm font-medium bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-[#0F172A] rounded-lg hover:scale-[1.02] transition">
-              Submit
-            </button>
+      {/* Trust Icons */}
+      <div className="grid grid-cols-3 max-w-md mx-auto text-center gap-4">
+        {[FaShieldAlt, FaLock, FaChartLine].map((Icon, i) => (
+          <div key={i} className="space-y-2">
+            <Icon className="text-[#0AEFFF] text-xl mx-auto" />
+            <p className="text-gray-400 text-xs">
+              {i === 0 ? "Secure" : i === 1 ? "Protected" : "Growing"}
+            </p>
           </div>
-        </div>
-      </motion.div>
-
-      {/* ---------- Trust icons ---------- */}
-      <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto text-center">
-        {[
-          { Icon: FaShieldAlt, label: "Insured" },
-          { Icon: FaLock,      label: "Cold Storage" },
-          { Icon: FaChartLine, label: "AI Rebalanced" },
-        ].map(({ Icon, label }, i) => (
-          <motion.div
-            key={i}
-            whileHover={{ y: -2 }}
-            className="space-y-2"
-          >
-            <Icon className="w-5 h-5 mx-auto text-[#0AEFFF]" />
-            <p className="text-xs text-gray-400">{label}</p>
-          </motion.div>
         ))}
       </div>
-
-      {/* ---------- Final CTA ---------- */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="text-center"
-      >
-        <button className="px-6 py-2.5 text-sm font-medium bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-[#0F172A] rounded-full hover:scale-105 transition shadow-lg">
-          Get Started
-        </button>
-      </motion.div>
     </div>
   );
 }
