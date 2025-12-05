@@ -148,17 +148,16 @@ router.patch("/:id/resolve", async (req, res) => {
       .where(and(eq(investments.plan_id, trade.plan_id), eq(investments.status, "active")));
 
     for (const inv of activeInvestments) {
-      const current = Number(inv.amount || 0);
-      const delta = Number((current * pnlPercent) / 100);
+      const originalAmount = Number(inv.amount || 0);
+      const delta = Number((originalAmount * pnlPercent) / 100);
       const roundedDelta = Number(delta.toFixed(2));
 
-      const newAmount = (current + roundedDelta).toFixed(2);
       const newProfit = (Number(inv.profit_loss || 0) + roundedDelta).toFixed(2);
       const newProgress = (Number(inv.progress || 0) + Number(pnlPercent)).toFixed(2);
 
       await db
         .update(investments)
-        .set({ amount: newAmount, profit_loss: newProfit, progress: newProgress })
+        .set({ profit_loss: newProfit, progress: newProgress })
         .where(eq(investments.id, inv.id));
 
       await db.insert(investment_trades).values({
