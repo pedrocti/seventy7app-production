@@ -1,6 +1,6 @@
 run = "npm run dev"
 port = 3000
-modules = ["nodejs-20"]
+modules = ["nodejs-20", "postgresql-16"]
 [nix]
 channel = "stable-22_11"
 packages = ["psmisc", "tree", "nano", "postgresql_11"]
