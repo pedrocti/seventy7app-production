@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import AboutSection from '@/components/AboutSection';
@@ -13,20 +12,8 @@ import { Helmet } from 'react-helmet';
 import FloatingQuickAccess from '@/components/FloatingQuickAccess';
 import CoreOfferingsSection from "@/components/CoreOfferingsSection";
 
-
-
 const Home = () => {
-  const [showStickyCTA, setShowStickyCTA] = useState(false);
   
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowStickyCTA(window.scrollY > 300);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <div style={{ 
       position: 'relative', 
@@ -59,7 +46,7 @@ const Home = () => {
         
         <Footer />
         
-        <StickyCTA visible={showStickyCTA} />
+        <StickyCTA />
         <FloatingQuickAccess />
 
       </div>

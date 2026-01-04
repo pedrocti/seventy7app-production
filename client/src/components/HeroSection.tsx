@@ -5,8 +5,8 @@ import CandlestickBackground from './CandlestickBackground';
 
 const keyPoints = [
   'Lifetime access to expert mentorship',
-  'seventy7kapital academy',
-  'trading materials, resources and expert guidiance',
+  'Seventy7 Kapital Academy',
+  'Trading materials, resources and expert guidance',
   'Portfolio management and stake trading',
 ];
 
@@ -21,23 +21,12 @@ const HeroSection = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToAbout = (e: React.MouseEvent) => {
-    e.preventDefault();
-    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <section
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-grid"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
       id="hero"
     >
-      {/* Gradient orbs */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-0 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7E22CE] opacity-20 blur-[100px]" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 translate-x-1/2 translate-y-1/2 rounded-full bg-[#0AEFFF] opacity-20 blur-[100px]" />
-      </div>
-
-      {/* Candlestick overlay */}
+      {/* Candlestick overlay – kept exactly as before */}
       <CandlestickBackground className="z-1" />
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 md:px-8 md:py-20">
@@ -50,63 +39,54 @@ const HeroSection = () => {
           <h1 className="mb-6 text-4xl font-extrabold leading-tight md:text-6xl">
             <span className="block mb-2">Own Your Financial Journey.</span>
             <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Learn • Trade • Grow •
+              Learn • Trade • Grow
             </span>
           </h1>
-
-          <p className="mx-auto mb-10 max-w-md text-base font-light text-gray-300 md:text-lg">
-            Join the community of smart traders unlocking financial freedom through Knowledge, mentorship, skills and consistent market profits.
+          <p className="mx-auto mb-10 max-w-2xl text-base font-light text-gray-300 md:text-lg leading-relaxed">
+            Join the community of smart traders unlocking financial freedom through knowledge, mentorship, skill-building, and consistent market profits.
           </p>
 
+          {/* Key points – brought back and aligned in two columns on larger screens */}
           <motion.div
-            className="mx-auto mb-10 flex max-w-lg flex-col items-center space-y-3"
+            className="mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3, staggerChildren: 0.1 }}
+            transition={{ delay: 0.4 }}
           >
             {keyPoints.map((point, index) => (
               <motion.div
                 key={point}
-                className="flex w-full items-start space-x-3"
-                initial={{ opacity: 0, x: -10 }}
+                className="flex items-start space-x-3"
+                initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 * index }}
+                transition={{ delay: 0.5 + index * 0.1 }}
               >
                 <IoCheckmarkCircle className="mt-0.5 flex-shrink-0 text-xl text-green-400" />
-                <span className="text-left text-sm text-white md:text-base">{point}</span>
+                <span className="text-left text-base text-white">{point}</span>
               </motion.div>
             ))}
           </motion.div>
 
-          <div className="flex flex-col justify-center gap-4 sm:flex-row md:gap-6">
-            {/* Primary CTA - Telegram bot */}
+          {/* CTAs */}
+          <div className="flex flex-col justify-center gap-6 sm:flex-row">
             <motion.a
-              href="https://t.me/Access77bot"
+              href="/register"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center rounded-full bg-gradient-to-r from-blue-400 to-purple-500 px-6 py-3 font-bold text-white text-base transition-all duration-300 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] md:text-lg"
+              className="flex items-center justify-center rounded-full bg-gradient-to-r from-blue-400 to-purple-500 px-8 py-4 font-bold text-white text-lg shadow-lg transition-all duration-300 hover:shadow-[0_0_25px_rgba(59,130,246,0.6)]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              Launch 77AccessBot
+              Sign up Now
             </motion.a>
 
-            {/* Secondary CTA - Now links to login */}
             <motion.a
-              href="/login"           // ← Changed to your login route
-              className="flex items-center justify-center rounded-full border border-blue-400 px-6 py-3 font-medium text-blue-400 text-base transition-all duration-300 hover:bg-blue-400/10 md:text-lg"
-              onClick={(e) => {
-                // If /login is an internal route → smooth scroll only if it's #about
-                // Otherwise remove this onClick if it's a full page navigation
-                if (e.currentTarget.href.endsWith('#about')) {
-                  e.preventDefault();
-                  scrollToAbout(e);
-                }
-              }}
+              href="/login"
+              className="flex items-center justify-center rounded-full border-2 border-blue-400 px-8 py-4 font-semibold text-blue-400 text-lg transition-all duration-300 hover:bg-blue-400/10 hover:border-blue-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.98 }}
             >
-              Log In Experience
+              Member Login
             </motion.a>
           </div>
         </motion.div>

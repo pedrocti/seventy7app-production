@@ -67,7 +67,7 @@ const offerings = [
     gradient: "from-indigo-600/20 to-purple-700/10",
   },
   {
-    title: "Mentorship",
+    title: "77 Academy & Mentorship",
     subtitle: "Personalized mentorship to elevate your trading mastery.",
     link: "/mentorship",
     type: "radial",
@@ -152,21 +152,17 @@ const Card = ({ item, i }: { item: any; i: number }) => (
     className={`group bg-gradient-to-br ${item.gradient} border border-cyan-400/10 hover:border-cyan-400/40 rounded-2xl p-6 shadow-md hover:shadow-cyan-500/20 transition-transform transform hover:-translate-y-2 relative overflow-hidden`}
   >
     <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/10 blur-2xl rounded-full -z-0"></div>
-
     <div className="relative z-10 flex flex-col justify-between h-full">
       <div className="flex items-start gap-4">
         <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-[#07192f] border border-cyan-400/20">
           <i className={`fas ${item.icon} text-2xl text-[#0AEFFF]`}></i>
         </div>
-
         <div>
           <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
           <p className="text-sm text-gray-300 mb-4">{item.subtitle}</p>
         </div>
       </div>
-
       <div className="w-full h-24">{renderChart(item.type, item.data)}</div>
-
       <div className="mt-4 flex justify-end">
         <Link
           href={item.link}
@@ -182,13 +178,7 @@ const Card = ({ item, i }: { item: any; i: number }) => (
 
 export default function CoreOfferingsSection() {
   return (
-    <section
-      id="core-offerings"
-      className="py-20 lg:py-24 bg-[#0F172A] relative overflow-hidden"
-    >
-      <div className="absolute inset-0 bg-grid opacity-20 pointer-events-none"></div>
-      <div className="absolute -top-32 left-0 w-96 h-96 bg-gradient-to-tr from-[#0AEFFF]/10 to-transparent blur-3xl"></div>
-
+    <section id="offerings" className="py-20 lg:py-24 bg-[#0F172A] relative overflow-hidden">
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -204,7 +194,6 @@ export default function CoreOfferingsSection() {
             Distinctive, premium services — each with interactive insights and quick access to the right destination.
           </p>
         </motion.div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {offerings.map((o, i) => (
             <Card key={o.title} item={o} i={i} />

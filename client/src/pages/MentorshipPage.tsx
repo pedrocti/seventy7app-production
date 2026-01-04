@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Users, BookOpen, Video, Clock, ArrowRight, Star, GraduationCap } from "lucide-react";
+import { Users, Video, Clock, ArrowRight, Star, GraduationCap } from "lucide-react";
 
 const AcademyMentorshipPage = () => {
   const features = [
@@ -27,7 +27,7 @@ const AcademyMentorshipPage = () => {
 
   const successMetrics = [
     { label: "Traders Trained", value: "32+" },
-    { label: "Average Skill Improvement", value: "64%" },
+    { label: "Average Skill Improvement", value: "94%" },
     { label: "Total Sessions Delivered", value: "70+" },
     { label: "Combined Mentors Experience", value: "20+ Years" },
   ];

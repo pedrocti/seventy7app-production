@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoImage from "../assets/logo.jpeg"; 
-import { LogIn } from 'lucide-react';
+import logoImage from "../assets/logo.jpeg";
+import { MessageCircle } from 'lucide-react';  // Changed icon to better match bot/chat
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -21,7 +21,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'About', href: '#about' },
-    { name: 'Services', href: '#services' },
+    { name: 'Services', href: '#offerings' },
     { name: 'Blog', href: '#blog' },
   ];
 
@@ -29,7 +29,10 @@ const Navbar = () => {
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
-    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -41,10 +44,14 @@ const Navbar = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <a href="#" onClick={(e) => {
-            e.preventDefault();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }} className="flex items-center space-x-3">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex items-center space-x-3"
+          >
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-xl opacity-50 blur group-hover:opacity-80 transition duration-300"></div>
               <img
@@ -59,6 +66,7 @@ const Navbar = () => {
           </a>
         </motion.div>
 
+        {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-5">
           {navLinks.map((link, index) => (
             <motion.a
@@ -78,7 +86,9 @@ const Navbar = () => {
             </motion.a>
           ))}
           <motion.a
-            href="/register"
+            href="https://t.me/Access77bot"
+            target="_blank"
+            rel="noopener noreferrer"
             className="neon-button px-5 py-2 rounded-md text-white font-medium flex items-center space-x-2 shadow-lg shadow-[#7E22CE]/20"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -86,11 +96,12 @@ const Navbar = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
           >
-            <LogIn className="w-5 h-5" />
-            <span>Get Started</span>
+            <MessageCircle className="w-5 h-5" />
+            <span>77K Bot</span>
           </motion.a>
         </div>
 
+        {/* Mobile Hamburger */}
         <motion.button
           className="md:hidden text-white focus:outline-none relative z-20"
           onClick={toggleMobileMenu}
@@ -108,6 +119,7 @@ const Navbar = () => {
         </motion.button>
       </nav>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -118,7 +130,6 @@ const Navbar = () => {
             transition={{ duration: 0.2 }}
           >
             <div className="absolute inset-0 backdrop-blur-lg bg-[#0F172A]/95"></div>
-
             <motion.div
               className="relative h-full flex flex-col justify-center items-center p-6"
               initial={{ y: -20, opacity: 0 }}
@@ -144,7 +155,9 @@ const Navbar = () => {
                   </motion.a>
                 ))}
                 <motion.a
-                  href="/register"
+                  href="https://t.me/Access77bot"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="neon-button px-6 py-3 rounded-md text-white font-medium text-center flex items-center space-x-2 mt-4 shadow-lg shadow-[#7E22CE]/20"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -152,8 +165,8 @@ const Navbar = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <LogIn className="w-5 h-5" />
-                  <span>Get Started</span>
+                  <MessageCircle className="w-5 h-5" />
+                  <span>77K Bot</span>
                 </motion.a>
               </div>
             </motion.div>

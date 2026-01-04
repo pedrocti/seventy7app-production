@@ -49,7 +49,7 @@ const InvestPage = () => {
               <ArrowRight className="w-6 h-6" />
             </motion.a>
             <p className="text-gray-400 text-base">
-              Minimum stake: <span className="text-[#0AEFFF] font-semibold">$500</span>
+              Minimum stake: <span className="text-[#0AEFFF] font-semibold">$100</span>
             </p>
           </motion.div>
         </div>
@@ -111,7 +111,7 @@ const InvestPage = () => {
             {
               plan: "Monthly Plan",
               duration: "30 Days",
-              min: "$500",
+              min: "$100",
               desc: "Perfect for testing the waters. Monthly profit withdrawal available.",
               highlight: false
             },

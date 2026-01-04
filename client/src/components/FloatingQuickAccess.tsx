@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { Tooltip } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 
 const FloatingQuickAccess = () => {
   const [open, setOpen] = useState(false);
@@ -20,7 +26,7 @@ const FloatingQuickAccess = () => {
     {
       icon: "fa-signal",
       label: "Signal Community",
-      link: "/Signal", // ✅ fixed to singular
+      link: "/Signal",
     },
     {
       icon: "fa-graduation-cap",
@@ -50,16 +56,25 @@ const FloatingQuickAccess = () => {
                 }}
                 exit={{ opacity: 0, y: 20 }}
               >
-                <Tooltip content={btn.label}>
-                  <Link href={btn.link}>
-                    <a className="flex items-center space-x-2 bg-[#0F172A]/80 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg border border-cyan-500/50 hover:bg-cyan-500/20 transition-all duration-300">
-                      <i className={`fas ${btn.icon} text-cyan-400`}></i>
-                      <span className="hidden sm:inline text-sm font-medium">
-                        {btn.label}
-                      </span>
-                    </a>
-                  </Link>
-                </Tooltip>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href={btn.link}>
+                        <a className="flex items-center space-x-2 bg-[#0F172A]/80 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-lg border border-cyan-500/50 hover:bg-cyan-500/20 transition-all duration-300">
+                          <i className={`fas ${btn.icon} text-cyan-400`}></i>
+                          <span className="hidden sm:inline text-sm font-medium">
+                            {btn.label}
+                          </span>
+                        </a>
+                      </Link>
+                    </TooltipTrigger>
+
+                    <TooltipContent side="left">
+                      {btn.label}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
               </motion.div>
             ))}
           </motion.div>

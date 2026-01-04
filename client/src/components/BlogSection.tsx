@@ -10,19 +10,19 @@ interface BlogPostProps {
   animation: any;
 }
 
-const BlogPostCard = ({ 
-  title, 
-  date, 
-  excerpt, 
-  content, 
-  animation, 
-  onReadMore 
+const BlogPostCard = ({
+  title,
+  date,
+  excerpt,
+  content,
+  animation,
+  onReadMore
 }: BlogPostProps & { onReadMore: () => void }) => {
   return (
-    <motion.div 
+    <motion.div
       variants={animation}
       className="backdrop-blur-md bg-opacity-20 bg-slate-900 rounded-xl overflow-hidden transition-all duration-300 hover:scale-105 group"
-      style={{ 
+      style={{
         boxShadow: '0 0 15px rgba(59, 130, 246, 0.2)',
         border: '1px solid rgba(59, 130, 246, 0.1)'
       }}
@@ -47,20 +47,19 @@ const BlogPostCard = ({
   );
 };
 
-const BlogModal = ({ 
-  isOpen, 
-  onClose, 
-  title, 
-  date, 
-  content 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  title: string; 
-  date: string; 
-  content: string[] 
+const BlogModal = ({
+  isOpen,
+  onClose,
+  title,
+  date,
+  content
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  date: string;
+  content: string[]
 }) => {
-  // Handle the ESC key press to close modal
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();
@@ -70,13 +69,11 @@ const BlogModal = ({
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      // Prevent scrolling when modal is open
       document.body.style.overflow = 'hidden';
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      // Restore scrolling when modal is closed
       document.body.style.overflow = 'auto';
     };
   }, [isOpen, handleKeyDown]);
@@ -84,58 +81,62 @@ const BlogModal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
+        <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Backdrop with starfield */}
           <div className="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-sm"></div>
-          
-          {/* Modal content */}
-          <motion.div 
+
+          <motion.div
             className="relative bg-slate-900 bg-opacity-90 rounded-xl max-w-3xl mx-auto my-8 p-8 w-11/12 max-h-[90vh] overflow-y-auto"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ duration: 0.4 }}
-            style={{ 
+            style={{
               boxShadow: '0 0 30px rgba(59, 130, 246, 0.3)',
               border: '1px solid rgba(129, 140, 248, 0.2)'
             }}
           >
-            {/* Close button */}
-            <button 
+            <button
               onClick={onClose}
               className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl focus:outline-none"
               aria-label="Close modal"
             >
               ×
             </button>
-            
-            {/* Content */}
+
             <div className="mt-4">
               <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white font-['Inter','Poppins',sans-serif]">{title}</h2>
               <p className="text-sm text-gray-400 mb-6 font-['Inter','Poppins',sans-serif]">{date}</p>
-              
+
               <div className="space-y-4 text-gray-200 font-['Inter','Poppins',sans-serif]">
                 {content.map((paragraph, index) => (
                   <p key={index} className="leading-relaxed">{paragraph}</p>
                 ))}
               </div>
-              
-              <div className="mt-8 pt-6 border-t border-gray-700">
+
+              {/* Updated CTA: Register & Login buttons */}
+              <div className="mt-8 pt-6 border-t border-gray-700 flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="https://t.me/Access77bot"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-full text-base transition-all duration-300 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
+                  href="/register"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-400 to-purple-500 text-white font-semibold rounded-full text-base transition-all duration-300 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
                 >
-                  Start with 77AccessBot
-                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                  Register Now
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </a>
+                <a
+                  href="/login"
+                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-blue-400 text-blue-400 font-semibold rounded-full text-base transition-all duration-300 hover:bg-blue-400/10 focus:outline-none"
+                >
+                  Member Login
+                  <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </a>
               </div>
@@ -253,13 +254,10 @@ const BlogSection = () => {
 
   return (
     <section id="blog" className="py-20 relative overflow-hidden">
-      <div className="absolute inset-0 z-0 bg-grid">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#7E22CE] opacity-20 blur-[100px] rounded-full"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-[#0AEFFF] opacity-20 blur-[100px] rounded-full"></div>
-      </div>
-      
+      {/* Removed bg-grid and both glowing orbs (the "dots") */}
+
       <div className="container mx-auto px-4 z-10 relative" ref={ref}>
-        <motion.div 
+        <motion.div
           className="text-center mb-16"
           variants={headerVariants}
           initial="hidden"
@@ -272,15 +270,15 @@ const BlogSection = () => {
             Explore our latest articles to elevate your trading knowledge and financial independence.
           </p>
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
           variants={containerVariants}
           initial="hidden"
           animate={controls}
         >
           {blogPosts.map((post, index) => (
-            <BlogPostCard 
+            <BlogPostCard
               key={index}
               {...post}
               onReadMore={() => handleOpenModal(index)}
@@ -289,7 +287,7 @@ const BlogSection = () => {
         </motion.div>
       </div>
 
-      {/* Modal for displaying full blog post */}
+      {/* Modal with updated Register/Login CTA */}
       {activePostIndex !== null && (
         <BlogModal
           isOpen={activePostIndex !== null}
