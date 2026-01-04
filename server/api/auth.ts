@@ -1,4 +1,4 @@
-// src/api/auth.ts  (backend - Express router)
+// src/api/auth.ts (backend - Express router)
 import { Router } from "express";
 import { db, users } from "../db/connection.js";
 import { eq, and, sql } from "drizzle-orm";
@@ -22,16 +22,16 @@ router.post("/register", async (req, res) => {
 
     // Required fields validation
     if (!firstName?.trim()) return res.status(400).json({ error: "First name is required" });
-    if (!lastName?.trim())  return res.status(400).json({ error: "Last name is required" });
-    if (!username?.trim())  return res.status(400).json({ error: "Username is required" });
-    if (!email?.trim())     return res.status(400).json({ error: "Email is required" });
-    if (!password?.trim())  return res.status(400).json({ error: "Password is required" });
+    if (!lastName?.trim()) return res.status(400).json({ error: "Last name is required" });
+    if (!username?.trim()) return res.status(400).json({ error: "Username is required" });
+    if (!email?.trim()) return res.status(400).json({ error: "Email is required" });
+    if (!password?.trim()) return res.status(400).json({ error: "Password is required" });
 
     // Basic input sanitization / length checks
     if (firstName.trim().length < 2) return res.status(400).json({ error: "First name is too short" });
-    if (lastName.trim().length < 2)  return res.status(400).json({ error: "Last name is too short" });
-    if (username.trim().length < 3)  return res.status(400).json({ error: "Username must be at least 3 characters" });
-    if (password.length < 6)         return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (lastName.trim().length < 2) return res.status(400).json({ error: "Last name is too short" });
+    if (username.trim().length < 3) return res.status(400).json({ error: "Username must be at least 3 characters" });
+    if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,7 +43,6 @@ router.post("/register", async (req, res) => {
       .from(users)
       .where(eq(users.username, username.trim()))
       .limit(1);
-
     if (existingUsername) return res.status(400).json({ error: "Username already exists" });
 
     const [existingEmail] = await db
@@ -51,7 +50,6 @@ router.post("/register", async (req, res) => {
       .from(users)
       .where(eq(users.email, email.trim()))
       .limit(1);
-
     if (existingEmail) return res.status(400).json({ error: "Email is already registered" });
 
     const hash = await bcrypt.hash(password, 10);
@@ -60,14 +58,12 @@ router.post("/register", async (req, res) => {
     // Referral logic
     let referred_by: number | null = null;
     let isReferred = false;
-
     if (ref?.trim()) {
       const [lookup] = await db
         .select({ id: users.id })
         .from(users)
         .where(eq(users.referral_code, ref.trim().toUpperCase()))
         .limit(1);
-
       if (lookup) {
         referred_by = lookup.id;
         isReferred = true;
@@ -78,8 +74,8 @@ router.post("/register", async (req, res) => {
     const [insertedUser] = await db
       .insert(users)
       .values({
-        first_name: firstName.trim(),          // ← added
-        last_name: lastName.trim(),            // ← added
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         username: username.trim(),
         email: email.trim(),
         password_hash: hash,
@@ -98,7 +94,9 @@ router.post("/register", async (req, res) => {
       const bonusAmount = 10.0;
       await db
         .update(users)
-        .set({ bonus_balance: sql`${users.bonus_balance} + ${bonusAmount}` })
+        .set({
+          bonus_balance: sql`${users.bonus_balance} + ${bonusAmount}`,
+        })
         .where(eq(users.id, referred_by));
 
       await db.insert(transactions).values({
@@ -141,13 +139,13 @@ router.post("/register", async (req, res) => {
     res.json({
       success: true,
       message: "Registration successful! Please check your email (including spam) to verify your account.",
-      token,  // optional – frontend can store but can't use until verified
+      token, // optional – frontend can store but can't use until verified
       user: {
         id: insertedUser.id,
         username: insertedUser.username,
         email: insertedUser.email,
-        firstName: insertedUser.first_name,   // ← return to frontend if desired
-        lastName: insertedUser.last_name,     // ← return to frontend if desired
+        firstName: insertedUser.first_name,
+        lastName: insertedUser.last_name,
         role: insertedUser.role,
         referral_code: insertedUser.referral_code,
       },
@@ -215,7 +213,11 @@ router.post("/login", async (req, res) => {
 
     if (!user) return res.status(400).json({ error: "Invalid username or password" });
 
+    console.log("Stored hash for admin:", user.password_hash);
+
     const match = await bcrypt.compare(password, user.password_hash);
+    console.log("Password match result:", match);
+
     if (!match) return res.status(400).json({ error: "Invalid username or password" });
 
     if (!user.email_verified_at) {
@@ -231,8 +233,8 @@ router.post("/login", async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        firstName: user.first_name,    // ← optional: include if you want
-        lastName: user.last_name,      // ← optional: include if you want
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
       },
     });

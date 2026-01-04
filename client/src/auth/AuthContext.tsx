@@ -12,7 +12,7 @@ interface User {
   bonus_balance: string;
   referral_code?: string;
   created_at?: string;
-  email_verified_at?: string | null;  // added for clarity (from your login check)
+  email_verified_at?: string | null;
 }
 
 interface AuthContextType {
@@ -21,7 +21,7 @@ interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;  // ← Added this!
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,8 +36,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
     if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
+      try {
+        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+      } catch (err) {
+        console.error("Failed to parse stored user:", err);
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+      }
     }
     setLoading(false);
   }, []);
@@ -47,8 +53,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await loginApi(username.trim(), password.trim());
-      if (!res.success || !res.token || !res.user) {
-        toast.error(res.error || "Invalid credentials");
+
+      // Debug log – remove after testing
+      console.log("Backend login response:", res);
+
+      if (!res || !res.success) {
+        toast.error(res?.error || "Invalid credentials");
+        return false;
+      }
+
+      if (!res.token || !res.user) {
+        toast.error("Invalid response from server");
         return false;
       }
 
@@ -58,8 +73,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Format balances as strings with 2 decimals (consistent with your User type)
-      const userData = {
+      // Format balances as strings with 2 decimals
+      const userData: User = {
         ...res.user,
         balance: Number(res.user.balance || 0).toFixed(2),
         bonus_balance: Number(res.user.bonus_balance || 0).toFixed(2),
@@ -67,14 +82,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setUser(userData);
       setToken(res.token);
+
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", res.token);
 
       toast.success(`Welcome back, ${userData.username}!`);
+
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed:", err);
-      toast.error("Network error — is backend running?");
+      toast.error(err.message || "Network error — is the backend running?");
       return false;
     } finally {
       setLoading(false);
@@ -86,18 +103,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    toast.success("Logged out");
+    toast.success("Logged out successfully");
   };
 
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        token, 
-        loading, 
-        login, 
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
         logout,
-        setUser   // ← Now exposed!
+        setUser,
       }}
     >
       {children}

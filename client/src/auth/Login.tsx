@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useLocation } from "wouter";
-import { Sparkles, Loader2, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import logo from "@/assets/logo.jpeg"; // ← Your system logo
 
 export default function Login() {
   const { login } = useAuth();
@@ -40,93 +41,103 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background Effects – identical to Register */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(10,239,255,0.08),transparent_70%)]" />
-      <div className="absolute top-20 left-20 w-96 h-96 bg-[#0AEFFF]/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+    <div className="min-h-screen bg-[#0B1120] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 relative overflow-hidden">
+      {/* Subtle background glows */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#0AEFFF]/5 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#7E22CE]/5 rounded-full blur-3xl animate-pulse-slow delay-1000" />
+      </div>
 
-      <div className="relative w-full max-w-md z-10">
-        {/* Back to Home */}
-        <div className="mb-6 text-center">
-          <button
-            type="button"
-            onClick={() => setLocation("/")}
-            className="text-gray-400 hover:text-[#0AEFFF] transition flex items-center justify-center gap-2 mx-auto text-sm font-medium"
-          >
-            ← Back to Homepage
-          </button>
-        </div>
+      {/* Form container */}
+      <div className="relative z-10 w-full max-w-lg">
+        {/* Back link */}
+        <button
+          type="button"
+          onClick={() => setLocation("/")}
+          className="mb-8 text-gray-400 hover:text-[#0AEFFF] transition flex items-center gap-2 text-sm font-medium mx-auto"
+        >
+          ← Back to Homepage
+        </button>
 
-        {/* Glass Card */}
-        <div className="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl p-8 md:p-10">
+        {/* Card */}
+        <div className="bg-[#0F172A]/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8 md:p-10">
           {/* Logo & Title */}
-          <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0AEFFF] to-cyan-400 mb-6 shadow-lg">
-              <Sparkles className="w-9 h-9 text-black" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#0AEFFF] via-cyan-300 to-[#0AEFFF] bg-clip-text text-transparent">
+          <div className="text-center mb-8">
+            <img
+              src={logo}
+              alt="77KAPITAL Logo"
+              className="w-20 h-20 mx-auto mb-6 rounded-full object-cover shadow-lg shadow-cyan-500/30"
+              loading="lazy"
+            />
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] bg-clip-text text-transparent">
               77KAPITAL
             </h1>
             <p className="text-gray-400 mt-3 text-lg">Sign in to your account</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-400 text-center font-medium">
+            <div className="mb-6 p-4 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-center text-sm">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username */}
             <input
               type="text"
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF] focus:ring-4 focus:ring-[#0AEFFF]/20 transition"
+              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
               required
               autoFocus
             />
 
+            {/* Password */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF] focus:ring-4 focus:ring-[#0AEFFF]/20 transition pr-14"
+                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-5 px-8 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black text-xl font-bold rounded-2xl hover:shadow-2xl hover:shadow-[#0AEFFF]/50 transform hover:scale-105 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] text-[#0B1120] font-bold py-5 rounded-2xl hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin" />
                   Signing In...
                 </>
               ) : (
                 <>
+                  <img
+                    src={logo}
+                    alt="77KAPITAL"
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
                   Sign In
-                  <Sparkles className="w-6 h-6" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Register link – cleaned up, reliable navigation */}
-          <div className="text-center mt-8 text-gray-400">
+          {/* Register link */}
+          <p className="text-center mt-8 text-gray-400 text-sm">
             Don’t have an account?{" "}
             <button
               type="button"
@@ -138,11 +149,8 @@ export default function Login() {
             >
               Register here
             </button>
-          </div>
+          </p>
         </div>
-
-        {/* Bottom Glow */}
-        <div className="absolute inset-x-0 -bottom-20 h-40 bg-gradient-to-t from-[#0AEFFF]/20 to-transparent blur-3xl pointer-events-none" />
       </div>
     </div>
   );

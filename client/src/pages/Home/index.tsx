@@ -4,7 +4,6 @@ import AboutSection from '@/components/AboutSection';
 import BlogSection from '@/components/BlogSection';
 import CTASection from '@/components/CTASection';
 import Footer from '@/components/Footer';
-import StickyCTA from '@/components/StickyCTA';
 import ParticleBackground from '@/components/ParticleBackground';
 import TradingVisuals from '@/components/TradingVisuals';
 import MarketImpactVisual from '@/components/MarketImpactVisual';
@@ -45,8 +44,6 @@ const Home = () => {
         </main>
         
         <Footer />
-        
-        <StickyCTA />
         <FloatingQuickAccess />
 
       </div>

@@ -84,27 +84,41 @@ const renderChart = (type: string, data: any) => {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ left: -16, right: 0, top: 6, bottom: 6 }}>
             <XAxis dataKey="name" tick={false} axisLine={false} />
-            <Tooltip wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }} />
+            <Tooltip
+              wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }}
+            />
             <Bar dataKey="value" radius={[6, 6, 0, 0]} fill="#0AEFFF" />
           </BarChart>
         </ResponsiveContainer>
       );
+
     case "line":
       return (
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <XAxis dataKey="name" tick={false} axisLine={false} />
-            <Tooltip wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }} />
-            <Line type="monotone" dataKey="value" stroke="#0AEFFF" strokeWidth={3} dot={false} />
+            <Tooltip
+              wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }}
+            />
+            <Line
+              type="monotone"
+              dataKey="value"
+              stroke="#0AEFFF"
+              strokeWidth={3}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       );
+
     case "area":
       return (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <XAxis dataKey="name" tick={false} axisLine={false} />
-            <Tooltip wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }} />
+            <Tooltip
+              wrapperStyle={{ background: "#0B1324", borderRadius: 8, border: "none" }}
+            />
             <Area
               type="monotone"
               dataKey="value"
@@ -121,6 +135,7 @@ const renderChart = (type: string, data: any) => {
           </AreaChart>
         </ResponsiveContainer>
       );
+
     case "radial":
       return (
         <ResponsiveContainer width="100%" height="100%">
@@ -138,6 +153,7 @@ const renderChart = (type: string, data: any) => {
           </RadialBarChart>
         </ResponsiveContainer>
       );
+
     default:
       return null;
   }
@@ -151,25 +167,27 @@ const Card = ({ item, i }: { item: any; i: number }) => (
     transition={{ delay: 0.08 * i, duration: 0.6 }}
     className={`group bg-gradient-to-br ${item.gradient} border border-cyan-400/10 hover:border-cyan-400/40 rounded-2xl p-6 shadow-md hover:shadow-cyan-500/20 transition-transform transform hover:-translate-y-2 relative overflow-hidden`}
   >
-    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/10 blur-2xl rounded-full -z-0"></div>
+    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/10 blur-2xl rounded-full -z-0" />
     <div className="relative z-10 flex flex-col justify-between h-full">
       <div className="flex items-start gap-4">
         <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-[#07192f] border border-cyan-400/20">
-          <i className={`fas ${item.icon} text-2xl text-[#0AEFFF]`}></i>
+          <i className={`fas ${item.icon} text-2xl text-[#0AEFFF]`} />
         </div>
         <div>
           <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
           <p className="text-sm text-gray-300 mb-4">{item.subtitle}</p>
         </div>
       </div>
+
       <div className="w-full h-24">{renderChart(item.type, item.data)}</div>
+
       <div className="mt-4 flex justify-end">
         <Link
           href={item.link}
           className="inline-flex items-center gap-2 text-sm text-[#0AEFFF] font-medium hover:underline"
         >
           Learn more
-          <i className="fas fa-arrow-right text-sm opacity-80"></i>
+          <i className="fas fa-arrow-right text-sm opacity-80" />
         </Link>
       </div>
     </div>
@@ -178,14 +196,17 @@ const Card = ({ item, i }: { item: any; i: number }) => (
 
 export default function CoreOfferingsSection() {
   return (
-    <section id="offerings" className="py-20 lg:py-24 bg-[#0F172A] relative overflow-hidden">
+    <section
+      id="offerings"
+      className="py-16 lg:py-20 bg-[#0F172A] relative overflow-hidden"
+    >
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-3xl mx-auto mb-14"
+          className="text-center max-w-3xl mx-auto mb-12 lg:mb-14"
         >
           <h2 className="text-3xl md:text-4xl font-grotesk font-bold mb-3">
             Explore Our <span className="gradient-text">Core Offerings</span>
@@ -194,7 +215,8 @@ export default function CoreOfferingsSection() {
             Distinctive, premium services — each with interactive insights and quick access to the right destination.
           </p>
         </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {offerings.map((o, i) => (
             <Card key={o.title} item={o} i={i} />
           ))}
