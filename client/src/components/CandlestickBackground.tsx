@@ -56,7 +56,7 @@ const CandlestickBackground = ({ className = '' }: CandlestickProps) => {
     if (!ctx) return;
     
     // Initialize data first
-    const candlesticks: Candle[] = generateCandlestickData(50);
+    const candlesticks: Candle[] = generateCandlestickData(30);
     let animationFrame: number = 0;
     let offset = 0;
     

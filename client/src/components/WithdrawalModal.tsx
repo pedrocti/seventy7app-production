@@ -72,9 +72,9 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
           className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-3xl p-12 max-w-md w-full border border-green-500/30 shadow-2xl shadow-green-500/20"
         >
           <CheckCircle className="w-24 h-24 text-green-400 mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-center text-white mb-4">Withdrawal Requested!</h2>
+          <h2 className="text-3xl font-bold text-center text-white mb-4">Withdrawal Sent!</h2>
           <p className="text-center text-green-400 text-2xl font-bold">${amountValue.toFixed(2)}</p>
-          <p className="text-center text-gray-300 mt-4 text-lg">Admin will review and process soon.</p>
+          <p className="text-center text-gray-300 mt-4 text-lg">.</p> Confirmation processing
         </motion.div>
       </div>
     );
@@ -155,7 +155,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
               ? "Submitting..."
               : hasInsufficientBalance
               ? "Insufficient Balance"
-              : "Request Withdrawal"}
+              : "Withdraw"}
           </button>
         </div>
       </div>

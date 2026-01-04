@@ -4,25 +4,46 @@ import { db } from "../db/connection";
 import { trades } from "../db/schema";
 import { auth } from "./utils";
 import { eq, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 
-// Only logged-in users can access (no admin required)
 router.use(auth);
 
-// Public endpoint for users to see live + recent trades
 router.get("/", async (_req, res) => {
   try {
-    // Get the current active trade (if any)
-    const activeTrade = await db
-      .select()
+    // Fetch ALL active trades (no limit)
+    const activeTrades = await db
+      .select({
+        id: trades.id,
+        pair: trades.pair,
+        entry_notes: trades.entry_notes,
+        exit_notes: trades.exit_notes,
+        status: trades.status,
+        pnl_percent: trades.pnl_percent,
+        created_at: trades.created_at,
+        resolved_at: trades.resolved_at,
+        direction: trades.direction,
+        entry_price: trades.entry_price,
+      })
       .from(trades)
       .where(eq(trades.status, "active"))
-      .limit(1);
+      .orderBy(desc(trades.created_at)); // newest first
 
-    // Get last 10 closed trades
+    // History: last 10 resolved trades
     const history = await db
-      .select()
+      .select({
+        id: trades.id,
+        pair: trades.pair,
+        entry_notes: trades.entry_notes,
+        exit_notes: trades.exit_notes,
+        status: trades.status,
+        pnl_percent: sql<number>`COALESCE(${trades.pnl_percent}, 0)`.as("pnl_percent"),
+        created_at: trades.created_at,
+        resolved_at: trades.resolved_at,
+        direction: trades.direction,
+        entry_price: trades.entry_price,
+      })
       .from(trades)
       .where(eq(trades.status, "resolved"))
       .orderBy(desc(trades.resolved_at))
@@ -30,12 +51,12 @@ router.get("/", async (_req, res) => {
 
     res.json({
       success: true,
-      active: activeTrade[0] || null,
-      history,
+      active: activeTrades,           
+      history: history || [],
     });
   } catch (err) {
-    console.error("Public trades fetch error:", err);
-    res.status(500).json({ error: "Failed to load trades" });
+    console.error("Trades fetch error:", err);
+    res.status(500).json({ success: false, error: "Failed to load trades" });
   }
 });
 

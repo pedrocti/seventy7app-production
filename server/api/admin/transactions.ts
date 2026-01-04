@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { db } from "../../db/connection.js";
-import { transactions, users, settings } from "../../db/schema.js";
+import { transactions, users } from "../../db/schema.js";
 import { sql, eq } from "drizzle-orm";
-import { auth, adminOnly, addToColumn } from "../utils.js";
+import { auth, adminOnly } from "../utils.js";
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get("/", async (_req, res) => {
       id: row.id,
       username: row.username || "Deleted User",
       type: row.type,
-      amount: ((Number(row.amount ?? 0)) / 100).toFixed(2),
+      amount: Number(row.amount ?? 0).toFixed(2),
       status: row.status,
       created_at: row.created_at,
       details: row.details ?? null,
@@ -43,116 +43,62 @@ router.get("/", async (_req, res) => {
     res.json({ success: true, transactions: formatted });
   } catch (err) {
     console.error("Transaction fetch error:", err);
-    res.status(500).json({ success: false, transactions: [], error: "Server error" });
+    res.status(500).json({ success: false, error: "Server error" });
   }
 });
 
 // ------------------------------------------------------
 // PATCH /api/admin/transactions/:txId/approve
+// ONLY FOR WITHDRAWALS
 // ------------------------------------------------------
 router.patch("/:txId/approve", async (req, res) => {
   const txId = Number(req.params.txId);
-  if (Number.isNaN(txId)) return res.status(400).json({ error: "Invalid txId" });
+  if (Number.isNaN(txId)) {
+    return res.status(400).json({ error: "Invalid txId" });
+  }
 
   try {
-    // 1. Load transaction
-    const [txRow] = await db.select().from(transactions).where(eq(transactions.id, txId));
+    const [tx] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, txId));
 
-    if (!txRow || txRow.status !== "pending") {
-      return res.status(400).json({ error: "Invalid or non-pending transaction" });
+    if (!tx) {
+      return res.status(404).json({ error: "Transaction not found" });
     }
 
-    const depositAmount = Number(txRow.amount ?? 0) / 100;
-
-    // ------------------------------------
-    // DEPOSIT APPROVAL LOGIC
-    // ------------------------------------
-    if (txRow.type === "deposit") {
-      // Count completed deposits
-      const countRes = await db.execute(sql`
-        SELECT COUNT(*)::int AS count
-        FROM transactions
-        WHERE user_id = ${txRow.user_id}
-          AND type = 'deposit'
-          AND status = 'completed'
-      `);
-      const completedDeposits = Number(countRes.rows[0].count);
-      const isFirstDeposit = completedDeposits === 0;
-
-      // Update user balance
-      await db
-        .update(users)
-        .set({ balance: addToColumn(users.balance, depositAmount) })
-        .where(eq(users.id, txRow.user_id));
-
-      // Mark transaction as completed
-      await db
-        .update(transactions)
-        .set({ status: "completed" })
-        .where(eq(transactions.id, txId));
-
-      // Handle referral reward
-      if (isFirstDeposit) {
-        const [user] = await db
-          .select({ referred_by: users.referred_by })
-          .from(users)
-          .where(eq(users.id, txRow.user_id));
-
-        const referrerId = user?.referred_by ?? null;
-
-        if (referrerId) {
-          // Check if referral bonus already exists
-          const existingBonusRes = await db.execute(sql`
-            SELECT COUNT(*)::int AS count
-            FROM transactions
-            WHERE type = 'referral_bonus'
-              AND details->>'source_deposit_id' = ${txId}::text
-          `);
-
-          if (Number(existingBonusRes.rows[0].count) === 0) {
-            const [setting] = await db
-              .select()
-              .from(settings)
-              .where(eq(settings.key, "referral_reward_percent"));
-
-            const percent = setting ? Number(setting.value) : 10;
-            const bonusAmount = depositAmount * (percent / 100);
-
-            // Update referrer bonus balance
-            await db
-              .update(users)
-              .set({ bonus_balance: addToColumn(users.bonus_balance, bonusAmount) })
-              .where(eq(users.id, referrerId));
-
-            // Insert bonus transaction
-            await db.insert(transactions).values({
-              user_id: referrerId,
-              type: "referral_bonus",
-              amount: String(Math.round(bonusAmount * 100)),
-              status: "completed",
-              details: { source_deposit_id: txId },
-            });
-          }
-        }
-      }
+    if (tx.type !== "withdrawal") {
+      return res.status(400).json({ error: "Only withdrawals require approval" });
     }
 
-    // ------------------------------------
-    // NON-DEPOSIT TRANSACTIONS
-    // ------------------------------------
-    if (txRow.type !== "deposit") {
-      await db
-        .update(transactions)
-        .set({ status: "completed" })
-        .where(eq(transactions.id, txId));
+    if (tx.status !== "pending") {
+      return res.status(400).json({ error: "Withdrawal is not pending" });
     }
 
-    return res.json({ success: true, message: "Approved!" });
+    const amount = Number(tx.amount);
+    if (amount <= 0) {
+      return res.status(400).json({ error: "Invalid withdrawal amount" });
+    }
+
+    // Deduct user balance AT APPROVAL TIME
+    await db
+      .update(users)
+      .set({
+        balance: sql`COALESCE(${users.balance}, 0) - ${amount}`,
+      })
+      .where(eq(users.id, tx.user_id));
+
+    // Mark withdrawal as completed
+    await db
+      .update(transactions)
+      .set({ status: "completed" })
+      .where(eq(transactions.id, txId));
+
+    return res.json({ success: true, message: "Withdrawal approved successfully" });
   } catch (err) {
     console.error("Approval error:", err);
-    return res.status(500).json({ error: "Failed to approve transaction" });
+    res.status(500).json({ error: "Failed to approve withdrawal" });
   }
 });
-
 
 export default router;

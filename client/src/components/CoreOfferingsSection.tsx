@@ -58,8 +58,8 @@ const offerings = [
     gradient: "from-blue-600/20 to-indigo-800/10",
   },
   {
-    title: "Free Signal Community",
-    subtitle: "Real-time signals, insights, and market opportunities daily.",
+    title: "Community",
+    subtitle: "Join our active community for real-time market insights, discussions, and shared opportunities.",
     link: "/signal",
     type: "area",
     data: areaData,

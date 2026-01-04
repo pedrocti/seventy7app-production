@@ -58,7 +58,7 @@ const ParticleBackground = () => {
       container.appendChild(renderer.domElement);
       
       // Create candlestick particles, dollar signs, and dollar notes
-      const candlesticksCount = window.innerWidth < 768 ? 80 : 150;
+      const candlesticksCount = window.innerWidth < 768 ? 80 : 120;
       const dollarSignsCount = window.innerWidth < 768 ? 40 : 70;
       const dollarNotesCount = window.innerWidth < 768 ? 25 : 50;
       const totalCount = candlesticksCount + dollarSignsCount + dollarNotesCount;

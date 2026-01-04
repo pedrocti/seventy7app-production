@@ -1,11 +1,8 @@
 // client/src/components/DepositModal.tsx
-import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { Copy, Check, X, CircleCheck } from "lucide-react";
+import { useState } from "react";
+import { X, CreditCard, Coins } from "lucide-react";
 import { useAuth } from "@/auth/AuthContext";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
-
 
 interface DepositModalProps {
   isOpen: boolean;
@@ -14,163 +11,125 @@ interface DepositModalProps {
 
 export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const { token } = useAuth();
-  const [addressInfo, setAddressInfo] = useState<{ address: string; network: string } | null>(null);
   const [amount, setAmount] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [method, setMethod] = useState<"card" | "crypto">("card");
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false); // ← NEW: CONFIRMATION STATE
 
-  useEffect(() => {
-    if (!isOpen || !token) return;
-    fetch("/api/deposit/address", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.address) {
-          setAddressInfo(res.address);
-        } else {
-          toast.error("No active deposit address");
-        }
-      });
-  }, [isOpen, token]);
+  if (!isOpen) return null;
 
-  const copyAddress = () => {
-    if (!addressInfo?.address) return;
-       navigator.clipboard.writeText(addressInfo.address);
-    setCopied(true);
-    toast.success("Address copied!");
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const submitDeposit = async () => {
+  const startDeposit = async () => {
     const numAmount = Number(amount);
-    if (!amount || numAmount <= 0) {
-      toast.error("Enter valid amount");
+    if (!numAmount || numAmount < 100) {
+      toast.error("Minimum deposit is $100");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/deposit", {
+      const res = await fetch("/api/deposits/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount: numAmount }),
+        body: JSON.stringify({ amount: numAmount, method }),
       });
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        setSubmitted(true); // ← SHOW SUCCESS SCREEN
-        toast.success("Deposit Submitted Successfully!");
-
-        // Auto-refresh transactions list
-        window.dispatchEvent(new Event("depositSubmitted"));
-
-        // Auto-close after 3 seconds
-        setTimeout(() => {
-          setAmount("");
-          setSubmitted(false);
-          onClose();
-        }, 3000);
-      } else {
-        toast.error(data.error || "Failed to submit deposit");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Deposit failed");
       }
-    } catch (err) {
-      toast.error("Network error. Try again.");
+
+      // CARD → Redirect to Stripe Checkout
+      if (method === "card" && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+
+      // CRYPTO → NOWPayments invoice URL
+      if (method === "crypto" && data.paymentUrl) {
+        window.open(data.paymentUrl, "_blank", "noopener,noreferrer");
+        toast.success("Opening secure payment page...");
+        onClose();
+        return;
+      }
+
+      throw new Error("Invalid response from server");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to start deposit");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
-  // SUCCESS CONFIRMATION SCREEN
-  if (submitted) {
-    return (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-3xl p-12 max-w-md w-full border border-[#0AEFFF]/30 shadow-2xl shadow-cyan-500/20">
-          <div className="text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 200 }}
-            >
-              <CircleCheck className="w-24 h-24 text-[#0AEFFF] mx-auto mb-6" />
-            </motion.div>
-            <h2 className="text-3xl font-bold text-white mb-4">Deposit Request Sent!</h2>
-            <p className="text-lg text-gray-300 mb-2">
-              Amount: <span className="text-[#0AEFFF] font-bold">${Number(amount).toFixed(2)}</span>
-            </p>
-            <p className="text-gray-400 mb-8">
-              Your deposit is <span className="text-yellow-400 font-bold">Pending Approval</span>
-            </p>
-            <p className="text-sm text-gray-500">
-              Balance will be updated automatically.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0F172A] rounded-2xl p-8 max-w-md w-full border border-[#1E293B]">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Deposit Funds</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+      <div className="bg-[#0F172A] rounded-2xl p-8 max-w-md w-full border border-[#1E293B] shadow-2xl">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-2xl font-bold text-white">Deposit Funds</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white transition"
+          >
             <X size={24} />
           </button>
         </div>
 
-        {addressInfo ? (
-          <>
-            <div className="text-center mb-6">
-              <div className="bg-white p-4 rounded-xl inline-block mb-4">
-                <QRCodeSVG value={addressInfo.address} size={180} />
-              </div>
-              <div className="bg-[#1E293B] p-4 rounded-lg font-mono text-sm break-all mb-2">
-                {addressInfo.address}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-sm mb-4">
-                <span className="text-gray-400">Network:</span>
-                <span className="text-[#0AEFFF] font-semibold">{addressInfo.network}</span>
-              </div>
-              <button
-                onClick={copyAddress}
-                className="flex items-center gap-2 mx-auto text-[#0AEFFF] hover:text-cyan-300"
-              >
-                {copied ? <Check size={18} /> : <Copy size={18} />}
-                {copied ? "Copied!" : "Copy Address"}
-              </button>
-            </div>
+        {/* Payment Method Tabs */}
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <button
+            onClick={() => setMethod("card")}
+            className={`flex items-center justify-center gap-3 py-4 rounded-xl font-semibold transition-all ${
+              method === "card"
+                ? "bg-[#0AEFFF] text-black shadow-lg"
+                : "bg-[#1E293B] text-gray-300 hover:bg-[#334155]"
+            }`}
+          >
+            <CreditCard size={20} />
+            Card
+          </button>
+          <button
+            onClick={() => setMethod("crypto")}
+            className={`flex items-center justify-center gap-3 py-4 rounded-xl font-semibold transition-all ${
+              method === "crypto"
+                ? "bg-[#0AEFFF] text-black shadow-lg"
+                : "bg-[#1E293B] text-gray-300 hover:bg-[#334155]"
+            }`}
+          >
+            <Coins size={20} />
+            Crypto
+          </button>
+        </div>
 
-            <div className="space-y-4">
-              <input
-                type="number"
-                placeholder="Enter amount (for record)"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-[#1E293B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0AEFFF] text-white"
-              />
-              <button
-                onClick={submitDeposit}
-                disabled={loading}
-                className="w-full py-4 bg-[#0AEFFF] text-black font-bold rounded-lg hover:bg-cyan-400 transition disabled:opacity-50"
-              >
-                {loading ? "Submitting..." : "Submit Deposit Request"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="text-center text-yellow-400 text-lg py-12">
-            No active deposit address. Please try again later.
-          </p>
-        )}
+        {/* Amount Input */}
+        <div className="mb-8">
+          <label className="block text-sm text-gray-400 mb-2">Amount (USD)</label>
+          <input
+            type="number"
+            min="10"
+            placeholder="Minimum $10"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full px-5 py-4 bg-[#1E293B] rounded-xl text-white text-lg font-medium focus:outline-none focus:ring-4 focus:ring-[#0AEFFF]/50 transition"
+          />
+        </div>
+
+        {/* Submit Button */}
+        <button
+          onClick={startDeposit}
+          disabled={loading || !amount}
+          className="w-full py-5 bg-[#0AEFFF] text-black text-lg font-bold rounded-xl hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+        >
+          {loading ? "Processing..." : `Pay with ${method === "card" ? "Card" : "Crypto"}`}
+        </button>
+
+        {/* Footer Note */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          Secured by {method === "card" ? "Stripe" : "NOWPayments"} • Instant credit on confirmation
+        </p>
       </div>
     </div>
   );

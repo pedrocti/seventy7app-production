@@ -3,14 +3,16 @@ import { Router } from "express";
 import { db } from "../../../db/connection";
 import { assignment_submissions, users, assignments, courses } from "../../../db/schema";
 import { auth, adminOnly } from "../../utils";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 router.use(auth, adminOnly);
 
 /* ===== LIST ALL SUBMISSIONS ===== */
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
+    const { page = 1, limit = 50 } = req.query;
+
     const submissions = await db.select({
       submission_id: assignment_submissions.id,
       user_id: users.id,
@@ -30,7 +32,9 @@ router.get("/", async (_req, res) => {
       .leftJoin(users, eq(users.id, assignment_submissions.user_id))
       .leftJoin(assignments, eq(assignments.id, assignment_submissions.assignment_id))
       .leftJoin(courses, eq(courses.id, assignments.course_id))
-      .orderBy(assignment_submissions.id);
+      .orderBy(assignment_submissions.id)
+      .limit(Number(limit))
+      .offset((Number(page) - 1) * Number(limit));
 
     res.json({ success: true, submissions });
   } catch (err) {
@@ -44,6 +48,10 @@ router.get("/course/:courseId", async (req, res) => {
   try {
     const courseId = Number(req.params.courseId);
     if (isNaN(courseId)) return res.status(400).json({ success: false, error: "Invalid course ID" });
+
+    // Verify course exists
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
+    if (!course) return res.status(404).json({ success: false, error: "Course not found" });
 
     const submissions = await db.select({
       submission_id: assignment_submissions.id,
@@ -78,11 +86,15 @@ router.patch("/:id/grade", async (req, res) => {
     if (isNaN(submissionId)) return res.status(400).json({ success: false, error: "Invalid submission ID" });
 
     const { grade, feedback } = req.body;
+    if (grade === undefined && feedback === undefined) {
+      return res.status(400).json({ success: false, error: "Nothing to update" });
+    }
+
     const [updated] = await db.update(assignment_submissions)
       .set({
-        grade,
-        feedback,
-        graded_at: new Date(),
+        grade: grade !== undefined ? grade : undefined,
+        feedback: feedback !== undefined ? feedback : undefined,
+        graded_at: grade !== undefined ? new Date() : undefined,
       })
       .where(eq(assignment_submissions.id, submissionId))
       .returning();
@@ -113,4 +125,3 @@ router.delete("/:id", async (req, res) => {
 });
 
 export default router;
-

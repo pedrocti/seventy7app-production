@@ -1,60 +1,209 @@
+// components/MentorshipEvents.tsx
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { Calendar, Clock, MapPin, ExternalLink, Sparkles, Users } from "lucide-react";
 
-interface EventItem {
-  id: string;
+interface Event {
+  id: number;
   title: string;
+  description: string;
   date: string;
   time: string;
   venue: string;
   link: string;
-  description: string;
+  price: string;
 }
 
-export default function MentorshipPage() {
-  const [events, setEvents] = useState<EventItem[]>([]);
+export default function MentorshipEvents() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [purchased, setPurchased] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem("mentorship_events");
-    if (saved) setEvents(JSON.parse(saved));
+    const fetchEvents = async () => {
+      try {
+        const res = await fetch("/api/mentorship/events");
+        const data = await res.json();
+
+        if (data.success) {
+          setEvents(data.events || []);
+          setPurchased(data.purchased || []);
+        } else {
+          toast.error("Failed to load events");
+        }
+      } catch (err) {
+        toast.error("Network error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
   }, []);
 
-  return (
-    <div className="p-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Mentorship Events</h2>
+  const buyEvent = async (eventId: number, price: string) => {
+    const amount = Number(price);
+    const token = localStorage.getItem("token");
 
-      {events.length === 0 && (
-        <p className="text-gray-400">No mentorship events available.</p>
-      )}
+    if (!token) {
+      toast.error("Please log in to purchase");
+      return;
+    }
 
-      <div className="space-y-4">
-        {events.map((ev) => (
-          <div key={ev.id} className="bg-[#0B1628] p-5 rounded-xl border border-[#112037]">
-            <h3 className="text-xl font-bold">{ev.title}</h3>
-            <p className="text-gray-400">
-              {ev.date} • {ev.time}
-            </p>
-            <p className="text-gray-300 mt-1">
-              Venue: {ev.venue}
-            </p>
+    if (amount > 0 && !confirm(`Pay $${amount} from your balance?`)) {
+      return;
+    }
 
-            {ev.link && (
-              <a
-                href={ev.link}
-                target="_blank"
-                className="text-[#0AEFFF] underline block mt-2"
-              >
-                Join Class →
-              </a>
-            )}
+    try {
+      const res = await fetch(`/api/mentorship/buy/${eventId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-            <p className="text-gray-400 mt-2">{ev.description}</p>
+      const data = await res.json();
 
-            <button className="mt-4 px-4 py-2 bg-[#0AEFFF] text-black rounded">
-              Apply to Join
-            </button>
-          </div>
-        ))}
+      if (res.ok && data.success) {
+        // ← THIS IS THE KEY FIX
+        // Works for BOTH new purchase AND "Already purchased"
+        toast.success(data.message || (amount === 0 ? "Access granted!" : "Payment successful!"));
+
+        // Always add to purchased list if not already there
+        setPurchased((prev) => {
+          if (prev.includes(eventId)) return prev;
+          return [...prev, eventId];
+        });
+      } else {
+        toast.error(data.error || "Payment failed");
+      }
+    } catch (err) {
+      toast.error("Network error — please try again");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-[#0F172A] to-black opacity-80" />
+        <motion.div
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="text-2xl text-[#0AEFFF] font-light z-10"
+        >
+          Loading exclusive events...
+        </motion.div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen relative overflow-hidden bg-black">
+      {/* Subtle Futuristic Background */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0AEFFF]/10 via-transparent to-cyan-500/10" />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-[#0AEFFF]/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-400/20 rounded-full blur-3xl" />
+      </div>
+
+      {/* Compact & Vibrant Hero */}
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="relative text-center py-10 px-6"
+      >
+        <Sparkles className="w-10 h-10 text-[#0AEFFF] mx-auto mb-4 animate-pulse" />
+        <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-cyan-300 bg-clip-text text-transparent">
+          Exclusive Mentorship Events
+        </h1>
+        <p className="text-gray-400 mt-3 text-lg">
+          Live • Interactive • Career-Accelerating
+        </p>
+      </motion.header>
+
+      {/* Dense Events Section */}
+      <section className="relative max-w-5xl mx-auto px-6 pb-16">
+        {events.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16"
+          >
+            <Users className="w-20 h-20 text-gray-600 mx-auto mb-6" />
+            <h3 className="text-2xl font-medium text-gray-400">No events right now</h3>
+            <p className="text-gray-500 mt-3">New sessions are added regularly — stay tuned!</p>
+          </motion.div>
+        ) : (
+          <div className="grid gap-6">
+            {events.map((ev, index) => (
+              <motion.div
+                key={ev.id}
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.08 }}
+                className="group relative bg-gradient-to-r from-[#1E293B]/60 to-[#0F172A]/80 backdrop-blur-sm rounded-xl border border-[#334155]/60
+                         shadow-lg hover:shadow-[#0AEFFF]/25 hover:border-[#0AEFFF]/50 transition-all duration-400 p-6"
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-white mb-3">{ev.title}</h3>
+                    <div className="flex flex-wrap gap-4 text-sm text-gray-300 mb-4">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-[#0AEFFF]" />
+                        {new Date(ev.date).toLocaleDateString()}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#0AEFFF]" />
+                        {ev.time}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#0AEFFF]" />
+                        {ev.venue}
+                      </span>
+                    </div>
+                    <p className="text-gray-300">{ev.description || "Exclusive live mentorship with industry leaders."}</p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-[#0AEFFF] mb-4">
+                      {ev.price === "0.00" ? "FREE" : `$${ev.price}`}
+                    </div>
+
+                    {purchased.includes(ev.id) ? (
+                      <a
+                        href={ev.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold rounded-lg
+                                 shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
+                      >
+                        Join Now <ExternalLink className="w-4 h-4" />
+                      </a>
+                    ) : (
+                      <Button
+                        onClick={() => buyEvent(ev.id, ev.price)}
+                        className="px-10 py-3 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold rounded-lg
+                                 shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
+                      >
+                        {ev.price === "0.00" ? "Get Access" : "Buy Now"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Minimal Footer */}
+      <footer className="relative border-t border-[#334155]/30 py-6 text-center text-gray-600 text-sm">
+        © 2025 Your Platform • Transforming Careers Through Mentorship
+      </footer>
     </div>
   );
 }

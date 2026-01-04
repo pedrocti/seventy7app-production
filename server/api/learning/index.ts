@@ -1,5 +1,4 @@
 import { Router } from "express";
-
 import coursesRouter from "./courses";
 import enrollRouter from "./enrollments";
 import lessonsRouter from "./lessons";
@@ -9,9 +8,18 @@ import progressRouter from "./progress";
 import programsRouter from "./programs";
 
 
-
 const router = Router();
 
+/**
+ * Mounted under /learning:
+ * /api/learning/courses
+ * /api/learning/enroll
+ * /api/learning/lessons
+ * /api/learning/assignments
+ * /api/learning/submissions
+ * /api/learning/progress
+ * /api/learning/programs
+ */
 router.use("/courses", coursesRouter);
 router.use("/enroll", enrollRouter);
 router.use("/lessons", lessonsRouter);

@@ -1,96 +1,95 @@
 // server/api/admin/learning/progress.ts
 import { Router } from "express";
-import { db } from "../../../db/connection";
-import { lesson_progress, lessons, courses, enrollments, users } from "../../../db/schema";
-import { auth, adminOnly } from "../../utils";
-import { eq, and } from "drizzle-orm";
+import { db } from "../../../db/connection"; // FIXED: from admin/learning → server/db/connection.ts
+import { lesson_progress, lessons, assignments, assignment_submissions } from "../../../db/schema"; // FIXED: schema in server/db/
+import { eq, and, count } from "drizzle-orm";
+import { auth } from "../../utils"; // FIXED: from admin/learning → server/api/utils.ts
 
 const router = Router();
-router.use(auth);
 
-/* ================== USER COMPLETES LESSON ================== */
-router.post("/complete", async (req, res) => {
+router.post("/complete", auth, async (req: any, res) => {
   try {
-    const userId = (req as any).user.id;
     const { lesson_id } = req.body;
-
+    const userId = req.user.id;
     if (!lesson_id) return res.status(400).json({ success: false, error: "lesson_id is required" });
 
-    // Check if already marked complete
-    const existing = await db.select().from(lesson_progress)
+    const existing = await db
+      .select()
+      .from(lesson_progress)
       .where(and(eq(lesson_progress.user_id, userId), eq(lesson_progress.lesson_id, lesson_id)));
 
-    if (existing.length > 0) return res.status(400).json({ success: false, error: "Lesson already completed" });
+    if (existing.length > 0) {
+      await db
+        .update(lesson_progress)
+        .set({ completed: true, completed_at: new Date() })
+        .where(eq(lesson_progress.id, existing[0].id));
+      return res.json({ success: true, updated: true });
+    }
 
-    // Insert lesson completion
-    const [record] = await db.insert(lesson_progress)
-      .values({ user_id: userId, lesson_id, completed_at: new Date() })
+    const [created] = await db
+      .insert(lesson_progress)
+      .values({ user_id: userId, lesson_id, completed: true, completed_at: new Date() })
       .returning();
 
-    // Update course progress
-    const [lesson] = await db.select().from(lessons).where(eq(lessons.id, lesson_id));
-    if (!lesson) return res.status(404).json({ success: false, error: "Lesson not found" });
-
-    const courseId = lesson.course_id;
-
-    const totalLessons = await db.select().from(lessons).where(eq(lessons.course_id, courseId));
-    const completedLessons = await db.select().from(lesson_progress)
-      .where(and(eq(lesson_progress.user_id, userId), eq(lesson_progress.course_id, courseId)));
-
-    const progressPercent = totalLessons.length > 0 ? (completedLessons.length / totalLessons.length) * 100 : 0;
-
-    // Update enrollments table with course progress
-    await db.update(enrollments)
-      .set({ progress_percent: progressPercent })
-      .where(and(eq(enrollments.user_id, userId), eq(enrollments.course_id, courseId)));
-
-    res.json({ success: true, lesson_progress: record, course_progress_percent: progressPercent });
+    res.json({ success: true, created });
   } catch (err) {
-    console.error("POST /progress/complete error:", err);
-    res.status(500).json({ success: false, error: "Failed to mark lesson as completed" });
+    console.error("POST /complete error:", err);
+    res.status(500).json({ success: false, error: "Failed to update progress" });
   }
 });
 
-/* ================== USER FETCH OWN COURSE PROGRESS ================== */
-router.get("/my/:courseId", async (req, res) => {
+router.get("/:course_id", auth, async (req: any, res) => {
   try {
-    const userId = (req as any).user.id;
-    const courseId = Number(req.params.courseId);
+    const userId = req.user.id;
+    const courseId = Number(req.params.course_id);
     if (isNaN(courseId)) return res.status(400).json({ success: false, error: "Invalid course ID" });
 
-    const totalLessons = await db.select().from(lessons).where(eq(lessons.course_id, courseId));
-    const completedLessons = await db.select().from(lesson_progress)
-      .where(and(eq(lesson_progress.user_id, userId), eq(lesson_progress.course_id, courseId)));
-
-    const progressPercent = totalLessons.length > 0 ? (completedLessons.length / totalLessons.length) * 100 : 0;
-
-    res.json({ success: true, course_id: courseId, progress_percent: progressPercent, completed_lessons: completedLessons });
-  } catch (err) {
-    console.error("GET /progress/my/:courseId error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch course progress" });
-  }
-});
-
-/* ================== ADMIN VIEW USER PROGRESS ================== */
-router.get("/admin/user/:userId", adminOnly, async (req, res) => {
-  try {
-    const userId = Number(req.params.userId);
-    if (isNaN(userId)) return res.status(400).json({ success: false, error: "Invalid user ID" });
-
-    const progressRecords = await db.select({
-      lesson_id: lesson_progress.lesson_id,
-      course_id: lessons.course_id,
-      lesson_title: lessons.title,
-      completed_at: lesson_progress.completed_at,
-    })
+    const completedLessons = await db
+      .select({ lesson_id: lesson_progress.lesson_id, completed_at: lesson_progress.completed_at, title: lessons.title })
       .from(lesson_progress)
       .leftJoin(lessons, eq(lessons.id, lesson_progress.lesson_id))
-      .where(eq(lesson_progress.user_id, userId));
+      .where(and(eq(lesson_progress.user_id, userId), eq(lessons.course_id, courseId), eq(lesson_progress.completed, true)));
 
-    res.json({ success: true, user_id: userId, progress: progressRecords });
-  } catch (err) {
-    console.error("GET /progress/admin/user/:userId error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch user progress" });
+    const totalLessonsResult = await db.select({ count: count() }).from(lessons).where(eq(lessons.course_id, courseId));
+    const totalLessonsCount = totalLessonsResult.length > 0 ? Number(totalLessonsResult[0].count ?? 0) : 0;
+
+    const totalAssignmentsResult = await db.select({ count: count() }).from(assignments).where(eq(assignments.course_id, courseId));
+    const totalAssignmentsCount = totalAssignmentsResult.length > 0 ? Number(totalAssignmentsResult[0].count ?? 0) : 0;
+
+    const gradedAssignments = await db
+      .select({
+        assignment_id: assignments.id,
+        title: assignments.title,
+        grade: assignment_submissions.grade,
+        submitted_at: assignment_submissions.submitted_at,
+      })
+      .from(assignments)
+      .innerJoin(
+        assignment_submissions,
+        and(
+          eq(assignment_submissions.assignment_id, assignments.id),
+          eq(assignment_submissions.user_id, userId),
+          eq(assignment_submissions.status, "graded")
+        )
+      )
+      .where(eq(assignments.course_id, courseId));
+
+    console.log(`DEBUG: Admin progress query ran - found ${gradedAssignments.length} graded assignments`);
+
+    const totalItems = totalLessonsCount + totalAssignmentsCount;
+    const completedItems = completedLessons.length + gradedAssignments.length;
+    const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
+    res.json({
+      success: true,
+      lessons_completed: completedLessons,
+      graded_assignments: gradedAssignments,
+      progress_percent: progressPercent,
+      totals: { total_lessons: totalLessonsCount, total_assignments: totalAssignmentsCount, total_items: totalItems, completed_items: completedItems },
+    });
+  } catch (err: any) {
+    console.error("GET /progress/:course_id error:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch progress", details: err?.message });
   }
 });
 

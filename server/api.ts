@@ -1,3 +1,4 @@
+//server/api.ts
 import { Router, Request, Response, NextFunction } from "express";
 const router = Router();
 
@@ -14,8 +15,9 @@ import plansRoutes from "./api/plans";
 import tradesRouter from "./api/trades";
 import mentorshipRouter from "./api/mentorship";
 import userOverview from "./api/userOverview";
-import learningRouter from "./api/learning";
 
+// ⛔ FIXED HERE — FORCE LOAD THE FOLDER
+import learningRouter from "./api/learning";
 
 // ---------------------------
 // Admin routes
@@ -25,29 +27,24 @@ import adminRoutes from "./api/adminRouter";
 // ---------------------------
 // Attach user-facing routes
 // ---------------------------
-
-// Auth routes
 router.use("/auth", authRoutes);
 
-// User-specific routes (overview first to avoid conflicts)
-router.use("/user/overview", userOverview); // mounted before /user
+router.use("/user/overview", userOverview);
 router.use("/user", userRoutes);
 
-// Investments
-router.use("/investments", investRoutes); // fetch all investments
-router.use("/invest", investRoutes);       // create new investment
-
-// Other user-related routes
-router.use("/deposit", depositRoutes);
+router.use("/investments", investRoutes);
+router.use("/invest", investRoutes);
+router.use("/deposits", depositRoutes);
 router.use("/withdrawal", withdrawalRoutes);
 router.use("/portfolio", portfolioRoutes);
 router.use("/plans", plansRoutes);
 router.use("/trades", tradesRouter);
 router.use("/mentorship", mentorshipRouter);
+
+// ✔ Now this mounts ALL subroutes (courses, lessons, programs…)
 router.use("/learning", learningRouter);
 
-
-// Admin routes
+// Admin
 router.use("/admin", adminRoutes);
 
 // ---------------------------

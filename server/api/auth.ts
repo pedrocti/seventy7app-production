@@ -1,131 +1,229 @@
+// src/api/auth.ts  (backend - Express router)
 import { Router } from "express";
-import { db, users } from "../db/connection.js";  
-import { eq } from "drizzle-orm";
+import { db, users } from "../db/connection.js";
+import { eq, and, sql } from "drizzle-orm";
+import { transactions, email_verification_tokens } from "../db/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { sendEmail } from "../services/email.service";
+import { generateToken, getExpiry } from "../utils/token";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
 console.log("AUTH ROUTES LOADED");
 
-// ===========================================================
+// ==============================
 // REGISTER
-// ===========================================================
+// ==============================
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password, ref } = req.body;
+    const { firstName, lastName, username, email, password, ref } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: "Username and password required" });
-    }
+    // Required fields validation
+    if (!firstName?.trim()) return res.status(400).json({ error: "First name is required" });
+    if (!lastName?.trim())  return res.status(400).json({ error: "Last name is required" });
+    if (!username?.trim())  return res.status(400).json({ error: "Username is required" });
+    if (!email?.trim())     return res.status(400).json({ error: "Email is required" });
+    if (!password?.trim())  return res.status(400).json({ error: "Password is required" });
 
-    // Check duplicate username
-    const existing = await db
+    // Basic input sanitization / length checks
+    if (firstName.trim().length < 2) return res.status(400).json({ error: "First name is too short" });
+    if (lastName.trim().length < 2)  return res.status(400).json({ error: "Last name is too short" });
+    if (username.trim().length < 3)  return res.status(400).json({ error: "Username must be at least 3 characters" });
+    if (password.length < 6)         return res.status(400).json({ error: "Password must be at least 6 characters" });
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) return res.status(400).json({ error: "Invalid email format" });
+
+    // Check uniqueness
+    const [existingUsername] = await db
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(eq(users.username, username.trim()))
       .limit(1);
 
-    if (existing.length > 0) {
-      return res.status(400).json({ error: "Username already exists" });
-    }
+    if (existingUsername) return res.status(400).json({ error: "Username already exists" });
+
+    const [existingEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.trim()))
+      .limit(1);
+
+    if (existingEmail) return res.status(400).json({ error: "Email is already registered" });
 
     const hash = await bcrypt.hash(password, 10);
     const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    // Referral logic
     let referred_by: number | null = null;
+    let isReferred = false;
 
-    if (ref) {
-      const lookup = await db
-        .select()
+    if (ref?.trim()) {
+      const [lookup] = await db
+        .select({ id: users.id })
         .from(users)
-        .where(eq(users.referral_code, ref.toUpperCase()))
+        .where(eq(users.referral_code, ref.trim().toUpperCase()))
         .limit(1);
 
-      if (lookup.length > 0) referred_by = lookup[0].id;
+      if (lookup) {
+        referred_by = lookup.id;
+        isReferred = true;
+      }
     }
 
-    const [user] = await db
+    // Insert new user
+    const [insertedUser] = await db
       .insert(users)
       .values({
-        username,
-        email: email || "",
+        first_name: firstName.trim(),          // ← added
+        last_name: lastName.trim(),            // ← added
+        username: username.trim(),
+        email: email.trim(),
         password_hash: hash,
         role: "client",
-        referral_code: referralCode,
-        referred_by,
         balance: "0.00",
         bonus_balance: "0.00",
+        referral_code: referralCode,
+        referred_by,
       })
       .returning();
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    if (!insertedUser) throw new Error("Failed to create user");
+
+    // Referral bonus to referrer
+    if (isReferred && referred_by) {
+      const bonusAmount = 10.0;
+      await db
+        .update(users)
+        .set({ bonus_balance: sql`${users.bonus_balance} + ${bonusAmount}` })
+        .where(eq(users.id, referred_by));
+
+      await db.insert(transactions).values({
+        reference: `REF-BONUS-${insertedUser.id}-${Date.now()}`,
+        user_id: referred_by,
+        type: "referral_bonus_credit",
+        amount: bonusAmount.toString(),
+        status: "completed",
+        details: { referred_user_id: insertedUser.id, reason: "new_registration" },
+        created_at: new Date(),
+      });
+    }
+
+    // Email verification token
+    const verifyToken = generateToken();
+    await db.insert(email_verification_tokens).values({
+      user_id: insertedUser.id,
+      token: verifyToken,
+      type: "verify",
+      used: false,
+      expires_at: getExpiry(24),
+    });
+
+    // Send verification email
+    await sendEmail({
+      to: insertedUser.email,
+      templateName: "verify_email",
+      variables: {
+        username: insertedUser.username,
+        link: `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`,
+      },
+      userId: insertedUser.id,
+    });
+
+    // Generate JWT (optional immediate token – but login still requires verification)
+    const token = jwt.sign({ id: insertedUser.id, role: insertedUser.role }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.json({
       success: true,
-      token,
+      message: "Registration successful! Please check your email (including spam) to verify your account.",
+      token,  // optional – frontend can store but can't use until verified
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        referral_code: user.referral_code,
-        balance: Number(user.balance).toFixed(2),
-        bonus_balance: Number(user.bonus_balance).toFixed(2),
+        id: insertedUser.id,
+        username: insertedUser.username,
+        email: insertedUser.email,
+        firstName: insertedUser.first_name,   // ← return to frontend if desired
+        lastName: insertedUser.last_name,     // ← return to frontend if desired
+        role: insertedUser.role,
+        referral_code: insertedUser.referral_code,
       },
+      referred: isReferred,
     });
-
   } catch (err) {
     console.error("Register error:", err);
+    res.status(500).json({ error: "Server error during registration" });
+  }
+});
+
+// ==============================
+// VERIFY EMAIL
+// ==============================
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "Token required" });
+
+    const [record] = await db
+      .select()
+      .from(email_verification_tokens)
+      .where(
+        and(
+          eq(email_verification_tokens.token, token),
+          eq(email_verification_tokens.type, "verify"),
+          eq(email_verification_tokens.used, false)
+        )
+      )
+      .limit(1);
+
+    if (!record || record.expires_at < new Date()) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    await db
+      .update(users)
+      .set({ email_verified_at: new Date() })
+      .where(eq(users.id, record.user_id));
+
+    await db
+      .update(email_verification_tokens)
+      .set({ used: true })
+      .where(eq(email_verification_tokens.id, record.id));
+
+    res.json({ success: true, message: "Email verified successfully. You can now log in." });
+  } catch (err) {
+    console.error("Verify email error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ===========================================================
-// LOGIN
-// ===========================================================
+// ==============================
+// LOGIN (only allowed after email verification)
+// ==============================
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: "Missing credentials" });
-    }
-
-    // 🔥 FIX #1 — Clean Drizzle query
-    const rows = await db
+    const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.username, username))
+      .where(eq(users.username, username.trim()))
       .limit(1);
 
-    const user = rows[0];
+    if (!user) return res.status(400).json({ error: "Invalid username or password" });
 
-    // 🔥 FIX #2 — Avoid undefined password_hash issue
-    if (!user || !user.password_hash) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
-
-    // 🔥 FIX #3 — bcrypt compare
     const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(400).json({ error: "Invalid username or password" });
 
-    if (!match) {
-      return res.status(400).json({ error: "Invalid credentials" });
+    if (!user.email_verified_at) {
+      return res.status(403).json({ error: "Please verify your email before logging in" });
     }
 
-    // Create token
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
 
-    // 🔥 FIX #4 — Ensure balances are always numbers
     res.json({
       success: true,
       token,
@@ -133,21 +231,14 @@ router.post("/login", async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
+        firstName: user.first_name,    // ← optional: include if you want
+        lastName: user.last_name,      // ← optional: include if you want
         role: user.role,
-        referral_code: user.referral_code,
-        balance: Number(user.balance ?? 0).toFixed(2),
-        bonus_balance: Number(user.bonus_balance ?? 0).toFixed(2),
       },
     });
-
   } catch (err) {
     console.error("Login error:", err);
-
-    // 🔥 FIX #5 — Prevent frontend JSON error
-    res.status(500).json({
-      success: false,
-      error: "Server error",
-    });
+    res.status(500).json({ error: "Server error" });
   }
 });
 

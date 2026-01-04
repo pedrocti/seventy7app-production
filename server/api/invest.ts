@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { db } from "../db/connection";
-import { users, plans, investments } from "../db/schema";
+import {
+  users,
+  plans,
+  investments,
+  settings,
+  transactions,
+} from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 import { auth } from "./utils";
 
@@ -9,7 +15,7 @@ const router = Router();
 // Apply auth middleware
 router.use(auth);
 
-// Helper: numeric subtraction (keeps existing pattern)
+// Helper: numeric subtraction
 const subFromColumn = (col: any, amt: number) =>
   sql`COALESCE(${col},0)::numeric - ${amt}::numeric`;
 
@@ -21,29 +27,42 @@ router.post("/", async (req, res) => {
   const numAmount = Number(amount);
 
   if (!plan_id || Number.isNaN(numAmount) || numAmount <= 0) {
-    return res.status(400).json({ success: false, error: "Invalid investment data" });
+    return res
+      .status(400)
+      .json({ success: false, error: "Invalid investment data" });
   }
 
   try {
     // Fetch plan
     const [plan] = await db.select().from(plans).where(eq(plans.id, plan_id));
-    if (!plan) return res.status(400).json({ success: false, error: "Plan not found" });
-
-    // Validate min/max
-    if (numAmount < Number(plan.min_amount) || (plan.max_amount && numAmount > Number(plan.max_amount))) {
-      return res.status(400).json({ success: false, error: `Amount must be between ${plan.min_amount} and ${plan.max_amount}` });
+    if (!plan) {
+      return res.status(400).json({ success: false, error: "Plan not found" });
     }
 
-    // Fetch user (fresh)
-    const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
-    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+    // Validate min/max
+    if (
+      numAmount < Number(plan.min_amount) ||
+      (plan.max_amount && numAmount > Number(plan.max_amount))
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: `Amount must be between ${plan.min_amount} and ${plan.max_amount}`,
+      });
+    }
+
+    // Fetch user
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, req.user.id));
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
 
     const mainBalance = Number(user.balance || 0);
     const bonusBalance = Number(user.bonus_balance || 0);
 
-    // ENFORCE BALANCE RULES:
-    // - If use_bonus is false => require mainBalance >= amount
-    // - If use_bonus is true  => use as much bonus as possible, require mainBalance >= remaining
     let fromBonus = 0;
     let fromMain = numAmount;
 
@@ -51,21 +70,23 @@ router.post("/", async (req, res) => {
       fromBonus = Math.min(bonusBalance, numAmount);
       fromMain = Math.max(0, numAmount - fromBonus);
       if (mainBalance < fromMain) {
-        return res.status(400).json({ success: false, error: "Insufficient main balance to cover remaining amount after bonus" });
+        return res.status(400).json({
+          success: false,
+          error:
+            "Insufficient main balance to cover remaining amount after bonus",
+        });
       }
     } else {
-      // not using bonus at all — require main balance to cover full amount
       if (mainBalance < numAmount) {
-        return res.status(400).json({ success: false, error: "Insufficient main balance" });
+        return res
+          .status(400)
+          .json({ success: false, error: "Insufficient main balance" });
       }
-      fromBonus = 0;
-      fromMain = numAmount;
     }
 
     const startAt = new Date();
 
-    // Deduct funds in a transaction-like sequence (single DB operations; drizzle may not support full transaction for your driver)
-    // Update balances
+    // Deduct balances
     await db
       .update(users)
       .set({
@@ -74,22 +95,69 @@ router.post("/", async (req, res) => {
       })
       .where(eq(users.id, req.user.id));
 
-    // Create ACTIVE investment
-    const inserted = await db.insert(investments).values({
-      user_id: req.user.id,
-      plan_id,
-      amount: numAmount.toString(),
-      status: "active",
-      progress: "0.00",
-      profit_loss: "0.00",
-      start_at: startAt,
-      duration_days: plan.duration_days ?? 0,
-    }).returning();
+    // Create investment
+    const inserted = await db
+      .insert(investments)
+      .values({
+        user_id: req.user.id,
+        plan_id,
+        amount: numAmount.toString(),
+        status: "active",
+        progress: "0.00",
+        profit_loss: "0.00",
+        start_at: startAt,
+        duration_days: plan.duration_days ?? 0,
+      })
+      .returning();
 
-    // Fetch updated user balances to return to client
-    const [updatedUser] = await db.select({ balance: users.balance, bonus_balance: users.bonus_balance }).from(users).where(eq(users.id, req.user.id));
+    // --------------------------------------------------
+    // REFERRAL BONUS (FIRST INVESTMENT ONLY)
+    // --------------------------------------------------
+    const existingInvestments = await db
+      .select({ id: investments.id })
+      .from(investments)
+      .where(eq(investments.user_id, req.user.id))
+      .limit(2);
 
-    res.json({
+    const isFirstInvestment = existingInvestments.length === 1;
+
+    if (isFirstInvestment && user.referred_by) {
+      const [setting] = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.key, "referral_reward_percent"));
+
+      const percent = setting ? Number(setting.value) : 10;
+      const bonusAmount = numAmount * (percent / 100);
+
+      // Credit referrer bonus balance
+      await db
+        .update(users)
+        .set({
+          bonus_balance: sql`COALESCE(${users.bonus_balance},0) + ${bonusAmount}`,
+        })
+        .where(eq(users.id, user.referred_by));
+
+      // Log referral transaction
+      await db.insert(transactions).values({
+        user_id: user.referred_by,
+        type: "referral_bonus",
+        amount: String(Math.round(bonusAmount * 100)),
+        status: "completed",
+        details: { source_investment_id: inserted[0].id },
+      });
+    }
+
+    // Fetch updated balances
+    const [updatedUser] = await db
+      .select({
+        balance: users.balance,
+        bonus_balance: users.bonus_balance,
+      })
+      .from(users)
+      .where(eq(users.id, req.user.id));
+
+    return res.json({
       success: true,
       message: "Investment activated",
       investment: inserted[0] || null,
@@ -100,7 +168,9 @@ router.post("/", async (req, res) => {
     });
   } catch (err) {
     console.error("Invest error:", err);
-    res.status(500).json({ success: false, error: "Failed to create investment" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to create investment" });
   }
 });
 
@@ -115,7 +185,7 @@ router.get("/", async (req, res) => {
         amount: investments.amount,
         status: investments.status,
         progress: investments.progress,
-        profit_loss: investments.profit_loss,   // <-- FIXED
+        profit_loss: investments.profit_loss,
         start_at: investments.start_at,
         duration_days: investments.duration_days,
         plan_id: plans.id,
@@ -135,15 +205,16 @@ router.get("/", async (req, res) => {
           ? new Date(start.getTime() + inv.duration_days * 86400000)
           : null;
 
-      return { ...inv, end_at: end };  // <-- FIXED
+      return { ...inv, end_at: end };
     });
 
     res.json({ success: true, investments: investmentsWithEndDate });
   } catch (err) {
     console.error("Fetch investments error:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch investments" });
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch investments" });
   }
 });
-
 
 export default router;

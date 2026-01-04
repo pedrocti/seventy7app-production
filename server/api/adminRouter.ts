@@ -1,30 +1,51 @@
+// routes/admin/index.ts (or wherever your main admin router is)
+
 import { Router } from "express";
+import { auth, adminOnly } from "./utils";
+
 const router = Router();
 
+// GLOBAL ADMIN PROTECTION (CRITICAL)
+router.use(auth, adminOnly);
+
 // Admin sub-routes
+
 import usersRouter from "./admin/users";
 import transactionsRouter from "./admin/transactions";
-import paymentAddressesRouter from "./admin/paymentAddresses";
 import referralSettingsRouter from "./admin/referralSettings";
 import plansRouter from "./admin/plans";
 import statsRouter from "./admin/stats";
 import tradesRouter from "./admin/trades";
 import adminInvestmentsRouter from "./admin/investments";
-//import adminMentorshipRouter from "./admin/mentorship";
 import portfolioRequestsRouter from "./admin/portfolioRequests";
-import adminLearningRouter from "./learning";
+import learningRouter from "./admin/learning";
+import adminProgramsRouter from "./admin/learning/programs";
+import adminEmailRouter from "./admin/email";
+import mentorshipEventsRouter from "./admin/mentorshipEvents";
 
-// Mount sub-routers at their correct namespace
-router.use("/users", usersRouter);                     // /api/admin/users
-router.use("/transactions", transactionsRouter);       // /api/admin/transactions
-router.use("/payment-address", paymentAddressesRouter); // /api/admin/payment-addresses
-router.use("/referral-settings", referralSettingsRouter); // /api/admin/referral-settings
-router.use("/portfolio-requests", portfolioRequestsRouter); // /api/admin/portfolio-requests
-router.use("/plans", plansRouter);                     // /api/admin/plans
-router.use("/stats", statsRouter);                     // /api/admin/stats
+
+import paymentSettingsRouter from "./admin/paymentSettings";
+
+// ---------------------------
+// Learning
+// ---------------------------
+router.use("/learning", learningRouter);
+router.use("/learning/programs", adminProgramsRouter);
+// ---------------------------
+// Core admin routes
+// ---------------------------
+router.use("/users", usersRouter);
+router.use("/transactions", transactionsRouter);
+router.use("/referral-settings", referralSettingsRouter);
+router.use("/portfolio-requests", portfolioRequestsRouter);
+router.use("/plans", plansRouter);
+router.use("/stats", statsRouter);
 router.use("/trades", tradesRouter);
-//router.use("/mentorship", adminMentorshipRouter);// /api/admin/trades
-router.use("/investments", adminInvestmentsRouter);    // /api/admin/investments
-router.use("/learning", adminLearningRouter);
+router.use("/investments", adminInvestmentsRouter);
+router.use("/payment-settings", paymentSettingsRouter); 
+router.use("/mentorship", mentorshipEventsRouter);
+
+// Email
+router.use("/email", adminEmailRouter);
 
 export default router;

@@ -246,6 +246,14 @@ canvas {
     backdrop-filter: blur(8px);
   }
 
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ANIMATIONS */
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4,0,0.6,1) infinite;
@@ -505,4 +513,47 @@ canvas {
     .youtube-container { margin-top: 2rem; margin-bottom: 2rem; }
     .youtube-video { border-radius: 12px; }
   }
+}
+
+/* Root setup - deep space blue base */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0a0e17; /* very deep navy */
+  color: #e0f0ff;
+  overflow-x: hidden;
+}
+
+/* Animated background container */
+.animated-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+
+  /* Smooth deep blue endless gradient flow */
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+  background-size: 300% 300%;
+  animation: gradientDrift 24s ease infinite;
+
+  /* Subtle falling/flowing pathways (like matrix rain but softer & blue) */
+  background-image: 
+    linear-gradient(135deg, transparent 0%, rgba(59, 130, 246, 0.03) 50%, transparent 100%),
+    repeating-linear-gradient(45deg, transparent, transparent 80px, rgba(14, 165, 233, 0.04) 80px, rgba(14, 165, 233, 0.04) 160px);
+  background-size: 200% 200%, 300px 300px;
+  animation: 
+    gradientDrift 24s ease infinite,
+    flowDown 60s linear infinite;
+}
+
+@keyframes gradientDrift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes flowDown {
+  0%   { background-position: 0% 0%, 0% 0%; }
+  100% { background-position: 0% 200%, 0% 300px; }
 }

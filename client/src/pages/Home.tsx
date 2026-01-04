@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import AboutSection from '@/components/AboutSection';
-import ServicesSection from '@/components/ServicesSection';
 import BlogSection from '@/components/BlogSection';
 import CTASection from '@/components/CTASection';
 import Footer from '@/components/Footer';
@@ -52,7 +51,6 @@ const Home = () => {
           <HeroSection />
           <CoreOfferingsSection /> 
           <AboutSection />
-          <ServicesSection />
           <TradingVisuals />
           <MarketImpactVisual />
           <BlogSection />

@@ -1,4 +1,4 @@
-// client/src/components/Sidebar.tsx — BINANCE GOLD ELITE EDITION
+// client/src/components/Sidebar.tsx
 import { Wallet, BarChart3, User, PieChart, Activity, X, ClipboardList } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -8,10 +8,10 @@ interface SidebarProps {
   onNavigate: (key: string) => void;
 }
 
-const GOLD = "#F0B90B";
-const GOLD_SOFT = "#F8D84A";
+const CYAN = "#0AEFFF";
+const CYAN_SOFT = "#4AFFF5";
 const DARK = "#0B0B0B";
-const DARK_2 = "#111";
+const DARK_2 = "#111111";
 
 const Sidebar = ({ collapsed, active, onNavigate }: SidebarProps) => {
   const items = [
@@ -29,7 +29,7 @@ const Sidebar = ({ collapsed, active, onNavigate }: SidebarProps) => {
         "backdrop-blur-md p-4 z-40 fixed md:static h-full transition-all duration-300 border-r",
         collapsed ? "w-16 -left-64 md:left-0" : "w-64 left-0"
       )}
-      style={{ background: DARK + "CC", borderColor: DARK_2 + "80" }}
+      style={{ background: `${DARK}CC`, borderColor: `${DARK_2}80` }}
     >
       {/* Mobile close button */}
       <div className="flex items-center justify-between mb-6 md:hidden">
@@ -40,41 +40,53 @@ const Sidebar = ({ collapsed, active, onNavigate }: SidebarProps) => {
         )}
       </div>
 
-      {/* Brand */}
+      {/* Brand - hide text when collapsed */}
       <div className="flex items-center justify-between mb-6">
         {!collapsed && (
           <div className="text-sm font-bold text-white">
-            77<span style={{ color: GOLD }}>KAPITAL</span>
+            77<span style={{ color: CYAN }}>KAPITAL</span>
           </div>
         )}
       </div>
 
       {/* Navigation */}
       <nav className="space-y-2">
-        {items.map((it) => {
-          const isActive = active === it.key;
+        {items.map((item) => {
+          const isActive = active === item.key;
+
           return (
             <button
-              key={it.key}
-              onClick={() => onNavigate(it.key)}
+              key={item.key}
+              onClick={() => onNavigate(item.key)}
+              title={collapsed ? item.label : undefined}   // ← shows native tooltip on hover when collapsed
               className={clsx(
-                "w-full text-left flex items-center gap-3 p-3 rounded transition",
-                isActive ? "bg-gradient-to-r from-[#F0B90B]/20 to-[#F8D84A]/10" : "hover:bg-[#F0B90B]/10"
+                "group relative w-full text-left flex items-center justify-center md:justify-start gap-3 p-3 rounded transition-all duration-200",
+                collapsed ? "justify-center" : "",
+                isActive
+                  ? "bg-gradient-to-r from-[#0AEFFF]/15 to-[#4AFFF5]/10 border-l-4 border-[#0AEFFF]"
+                  : "hover:bg-[#0AEFFF]/10"
               )}
             >
               <div
-                className="flex-shrink-0"
-                style={{ color: GOLD }}
+                className="flex-shrink-0 transition-colors"
+                style={{ color: isActive ? CYAN : "#888" }}
               >
-                {it.icon}
+                {item.icon}
               </div>
+
+              {/* Label only shown when NOT collapsed */}
               {!collapsed && (
                 <div
-                  className="font-medium"
-                  style={{ color: isActive ? GOLD_SOFT : "#ddd" }}
+                  className="font-medium transition-colors"
+                  style={{ color: isActive ? CYAN_SOFT : "#ddd" }}
                 >
-                  {it.label}
+                  {item.label}
                 </div>
+              )}
+
+              {/* Optional: subtle cyan glow ring on hover when collapsed */}
+              {collapsed && (
+                <div className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity bg-gradient-to-r from-[#0AEFFF]/0 to-[#0AEFFF]/10" />
               )}
             </button>
           );

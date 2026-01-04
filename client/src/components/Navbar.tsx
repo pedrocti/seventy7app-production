@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoImage from '../assets/logo.jpeg';
+import logoImage from "../assets/logo.jpeg"; 
+import { LogIn } from 'lucide-react';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -10,7 +11,6 @@ const Navbar = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 100);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -29,14 +29,13 @@ const Navbar = () => {
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
-    
     document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'backdrop-blur-lg bg-[#0F172A]/80 py-2 shadow-lg shadow-[#7E22CE]/10' : 'py-3'}`}>
       <nav className="container mx-auto px-4 flex justify-between items-center">
-        <motion.div 
+        <motion.div
           className="flex items-center"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -48,9 +47,9 @@ const Navbar = () => {
           }} className="flex items-center space-x-3">
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-xl opacity-50 blur group-hover:opacity-80 transition duration-300"></div>
-              <img 
-                src={logoImage} 
-                alt="Seventy7 Kapital Logo" 
+              <img
+                src={logoImage}
+                alt="77 Kapital Logo"
                 className="relative h-11 w-14 object-cover rounded-xl ring-2 ring-white/10 shadow-lg"
               />
             </div>
@@ -59,10 +58,10 @@ const Navbar = () => {
             </span>
           </a>
         </motion.div>
-        
+
         <div className="hidden md:flex items-center space-x-5">
           {navLinks.map((link, index) => (
-            <motion.a 
+            <motion.a
               key={index}
               href={link.href}
               className="text-white text-sm uppercase tracking-wider font-medium hover:text-[#0AEFFF] transition-all duration-300 relative group"
@@ -78,10 +77,8 @@ const Navbar = () => {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] group-hover:w-full transition-all duration-300"></span>
             </motion.a>
           ))}
-          <motion.a 
-            href="https://t.me/Access77bot"
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.a
+            href="/register"
             className="neon-button px-5 py-2 rounded-md text-white font-medium flex items-center space-x-2 shadow-lg shadow-[#7E22CE]/20"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -89,12 +86,12 @@ const Navbar = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.98 }}
           >
-            <i className="fab fa-telegram"></i>
-            <span>Join Now</span>
+            <LogIn className="w-5 h-5" />
+            <span>Get Started</span>
           </motion.a>
         </div>
-        
-        <motion.button 
+
+        <motion.button
           className="md:hidden text-white focus:outline-none relative z-20"
           onClick={toggleMobileMenu}
           initial={{ opacity: 0, scale: 0.8 }}
@@ -110,10 +107,10 @@ const Navbar = () => {
           </div>
         </motion.button>
       </nav>
-      
+
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             className="md:hidden fixed inset-0 z-10"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -121,8 +118,8 @@ const Navbar = () => {
             transition={{ duration: 0.2 }}
           >
             <div className="absolute inset-0 backdrop-blur-lg bg-[#0F172A]/95"></div>
-            
-            <motion.div 
+
+            <motion.div
               className="relative h-full flex flex-col justify-center items-center p-6"
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -130,7 +127,7 @@ const Navbar = () => {
             >
               <div className="flex flex-col space-y-8 items-center">
                 {navLinks.map((link, index) => (
-                  <motion.a 
+                  <motion.a
                     key={index}
                     href={link.href}
                     className="text-white text-xl font-medium hover:text-[#0AEFFF] transition-all duration-300 relative group overflow-hidden"
@@ -146,10 +143,8 @@ const Navbar = () => {
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] group-hover:w-full transition-all duration-300"></span>
                   </motion.a>
                 ))}
-                <motion.a 
-                  href="https://t.me/Access77bot"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <motion.a
+                  href="/register"
                   className="neon-button px-6 py-3 rounded-md text-white font-medium text-center flex items-center space-x-2 mt-4 shadow-lg shadow-[#7E22CE]/20"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -157,8 +152,8 @@ const Navbar = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <i className="fab fa-telegram"></i>
-                  <span>Join Now</span>
+                  <LogIn className="w-5 h-5" />
+                  <span>Get Started</span>
                 </motion.a>
               </div>
             </motion.div>

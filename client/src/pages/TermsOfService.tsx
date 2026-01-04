@@ -21,41 +21,123 @@ const TermsOfService = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">Terms of Service</h1>
           
           <div className="prose prose-invert max-w-none">
-            <p className="mb-4">Last Updated: May 19, 2025</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">1. Agreement to Terms</h2>
-            <p>By accessing our website at www.seventy7kapital.com, you are agreeing to be bound by these terms of service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws. If you do not agree with any of these terms, you are prohibited from using or accessing this site.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">2. Use License</h2>
-            <p>Permission is granted to temporarily download one copy of the materials on Seventy7 Kapital's website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:</p>
-            <ul className="list-disc pl-5 space-y-2 mt-4">
-              <li>modify or copy the materials;</li>
-              <li>use the materials for any commercial purpose, or for any public display;</li>
-              <li>attempt to decompile or reverse engineer any software contained on Seventy7 Kapital's website;</li>
-              <li>remove any copyright or other proprietary notations from the materials; or</li>
-              <li>transfer the materials to another person or "mirror" the materials on any other server.</li>
+            <p className="mb-6 text-gray-400">Last Updated: January 03, 2026</p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">1. Introduction and Acceptance of Terms</h2>
+            <p>
+              These Terms and Conditions ("Agreement") constitute a legally binding contract between Seventy7 Trading Academy (Company Registration No. 16892948) ("the Company", "we", "us", or "our") and you ("the Client", "you", or "your").
+            </p>
+            <p>
+              <strong>1.1 Eligibility and Age Restriction</strong><br />
+              To use any of our services, including but not limited to investing facilitation, portfolio management, mentorship programmes, educational content, signals, or any other offerings, you must:
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2">
+              <li>Be at least <strong>18 years of age</strong> (or the age of majority in your jurisdiction if higher);</li>
+              <li>Have full legal capacity to enter into binding contracts;</li>
+              <li>Reside in a jurisdiction where access to our services is not prohibited by law;</li>
+              <li>Provide accurate, complete, and current information during registration and onboarding, including proof of age and identity where requested.</li>
             </ul>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">3. Disclaimer</h2>
-            <p>The materials on Seventy7 Kapital's website are provided on an 'as is' basis. Seventy7 Kapital makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">4. Limitations</h2>
-            <p>In no event shall Seventy7 Kapital or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on Seventy7 Kapital's website, even if Seventy7 Kapital or a Seventy7 Kapital authorized representative has been notified orally or in writing of the possibility of such damage.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">5. Accuracy of Materials</h2>
-            <p>The materials appearing on Seventy7 Kapital's website could include technical, typographical, or photographic errors. Seventy7 Kapital does not warrant that any of the materials on its website are accurate, complete or current. Seventy7 Kapital may make changes to the materials contained on its website at any time without notice.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">6. Links</h2>
-            <p>Seventy7 Kapital has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site. The inclusion of any link does not imply endorsement by Seventy7 Kapital of the site. Use of any such linked website is at the user's own risk.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">7. Modifications</h2>
-            <p>Seventy7 Kapital may revise these terms of service for its website at any time without notice. By using this website you are agreeing to be bound by the then current version of these terms of service.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">8. Governing Law</h2>
-            <p>These terms and conditions are governed by and construed in accordance with the laws and you irrevocably submit to the exclusive jurisdiction of the courts in that location.</p>
-            
-            <h2 className="text-xl font-semibold text-white mt-8 mb-4">9. Contact Us</h2>
-            <p>If you have any questions about these Terms of Service, please contact us at support@seventy7hub.com.</p>
+            <p className="mt-4">
+              By accessing or using our services, you represent and warrant that you meet all the above eligibility criteria. If you are under 18 years of age or otherwise ineligible, you are strictly prohibited from using our services, and any attempt to do so constitutes a material breach of this Agreement. The Company reserves the right to suspend or terminate access immediately and without refund if we discover (or reasonably suspect) that you do not meet these requirements.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">2. Nature of Services – Important Disclaimers</h2>
+            <p>
+              The Company provides educational training, structured mentorship, trading guidance, and (where separately agreed) discretionary portfolio management or investment facilitation services. <strong>We are not a regulated financial services provider under the Financial Conduct Authority (FCA) and do not provide regulated investment advice, financial advice, tax advice, or legal advice.</strong>
+            </p>
+            <p>
+              All content, strategies, signals, mentorship sessions, portfolio suggestions, and materials are provided for educational and informational purposes only. Nothing contained in our services constitutes a recommendation, solicitation, or offer to buy or sell any financial instrument, security, or investment.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">3. Risk Disclosure Statement</h2>
+            <p className="font-semibold text-rose-300">
+              Trading, investing, and participating in financial markets involve a <strong>high degree of risk</strong> and are not suitable for all persons. You may lose some, a substantial portion, or <strong>all of your invested capital</strong>.
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2 text-gray-300">
+              <li>Past performance is not indicative of, and does not guarantee, future results.</li>
+              <li>Markets are volatile and can move rapidly against you.</li>
+              <li>Leverage, derivatives, cryptocurrencies, and other instruments can magnify both gains and losses.</li>
+              <li>All trading and investment decisions are made solely by you at your own risk and discretion.</li>
+              <li>The Company makes no representation, warranty, or guarantee regarding profits, returns, performance, or avoidance of loss.</li>
+            </ul>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">4. Investing Services</h2>
+            <p>
+              Where you participate in our investing facilitation services:
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2">
+              <li>Minimum initial deposit: USD $100.</li>
+              <li>Invested capital is locked for a fixed term of 365 days from the date of deposit.</li>
+              <li>Accrued profits may be withdrawn or reinvested every 30 days, subject to verification.</li>
+              <li>Early withdrawal of capital before the 365-day term incurs a 45% penalty on the withdrawn amount and requires 30 days’ prior written notice by email.</li>
+              <li>Any purported early withdrawal without compliance shall be invalid and may result in forfeiture or additional charges.</li>
+            </ul>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">5. Portfolio Management Services</h2>
+            <p>
+              Portfolio management is available only to High Net Worth Individuals and is subject to a separate written agreement specifying capital size, risk parameters, profit-sharing (if any), and other terms. The Company manages such portfolios in good faith but provides no guarantee of performance or return of capital.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">6. Mentorship Services</h2>
+            <p>
+              Mentorship is provided to experienced traders seeking structured guidance. You agree to comply fully with all mentor instructions, trading rules, risk frameworks, and programme requirements. Non-compliance may result in immediate termination without refund or further liability on the part of the Company.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">7. Limitation of Liability</h2>
+            <p>
+              To the maximum extent permitted by law, the Company, its directors, officers, employees, mentors, agents, and affiliates shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, trading losses, business interruption, loss of data, or any other financial or non-financial loss arising from:
+            </p>
+            <ul className="list-disc pl-6 mt-3 space-y-2">
+              <li>Your use of or reliance on any service, content, signal, advice, or material provided;</li>
+              <li>Errors, omissions, delays, or inaccuracies in information;</li>
+              <li>Market movements, third-party actions, or force majeure events;</li>
+              <li>Termination or suspension of your account or services.</li>
+            </ul>
+            <p className="mt-4">
+              In any event, the Company’s total aggregate liability shall not exceed the total fees paid by you to the Company in the twelve (12) months immediately preceding the claim.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">8. Indemnification</h2>
+            <p>
+              You agree to indemnify, defend, and hold harmless the Company and its directors, officers, employees, mentors, agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising out of or in connection with your use of the services, breach of this Agreement, violation of any law, or any act or omission by you.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">9. Termination and Suspension</h2>
+            <p>
+              The Company reserves the right, at its sole discretion and without notice or liability, to suspend or terminate your access to any or all services, including but not limited to cases of breach of this Agreement, provision of false information, unethical conduct, non-compliance with rules, or any other conduct deemed detrimental. No refunds shall be provided in such circumstances.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">10. No Refunds Policy</h2>
+            <p>
+              All payments for services, programmes, mentorship, or deposits are non-refundable except as explicitly stated in this Agreement (e.g. early withdrawal penalty provisions). You acknowledge that services commence immediately upon payment or enrolment.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">11. Data Protection</h2>
+            <p>
+              We process your personal data in accordance with the UK General Data Protection Regulation (UK GDPR), the Data Protection Act 2018, and our Privacy Policy (available on our website). By using our services, you consent to such processing as described therein.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">12. Governing Law and Jurisdiction</h2>
+            <p>
+              This Agreement is governed by and construed in accordance with the laws of England and Wales. You irrevocably submit to the exclusive jurisdiction of the courts of England and Wales for any dispute arising out of or in connection with this Agreement.
+            </p>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">13. Miscellaneous</h2>
+            <ul className="list-disc pl-6 mt-3 space-y-2">
+              <li>This Agreement constitutes the entire understanding between you and the Company and supersedes all prior agreements.</li>
+              <li>No waiver of any breach shall constitute a waiver of any subsequent breach.</li>
+              <li>If any provision is held invalid, the remainder shall continue in full force.</li>
+              <li>We may amend these terms at any time; continued use constitutes acceptance of changes.</li>
+            </ul>
+
+            <h2 className="text-2xl font-bold text-white mt-10 mb-4">14. Contact</h2>
+            <p>
+              For any questions regarding these Terms and Conditions, contact us at support@seventy7hub.com.
+            </p>
+
+            <p className="mt-12 text-center text-gray-400 italic">
+              By engaging with Seventy7 Trading Academy, you confirm that you have read, fully understood, and agree to be legally bound by this Agreement.
+            </p>
           </div>
         </motion.div>
       </div>

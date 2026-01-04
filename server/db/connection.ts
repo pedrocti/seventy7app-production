@@ -2,20 +2,34 @@
 import "dotenv/config";
 import { drizzle, NeonHttpDatabase } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import * as schema from "./schema.js"; // ⚠ Keep .js for ESM at runtime
+import * as schema from "./schema.js"; // ESM-safe import
 
-if (!process.env.DATABASE_URL) {
-  console.error("❌ DATABASE_URL not set in .env");
+// =========================
+// ENV SAFETY
+// =========================
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error("❌ DATABASE_URL not set");
   process.exit(1);
 }
 
-// Create Neon client
-const client = neon(process.env.DATABASE_URL);
+// =========================
+// NEON CLIENT
+// =========================
+const client = neon(DATABASE_URL);
 
-// Initialize Drizzle with schema typing
-export const db: NeonHttpDatabase<typeof schema> = drizzle(client, { schema });
+// =========================
+// DRIZZLE INSTANCE
+// =========================
+export const db: NeonHttpDatabase<typeof schema> = drizzle(client, {
+  schema,
+  logger: process.env.NODE_ENV === "development", // ✅ safe query logging
+});
 
-// Re-export all tables for convenience
+// =========================
+// TABLE EXPORTS (SINGLE SOURCE OF TRUTH)
+// =========================
 export const {
   users,
   plans,
@@ -27,6 +41,17 @@ export const {
   managed_portfolios,
   portfolio_allocations,
   paymentAddresses,
+
+  // learning system
+  learning_programs,
+  courses,
+  lessons,
+  program_enrollments,
 } = schema;
 
-console.log("✅ Connected to Neon + Drizzle!");
+// =========================
+// CONNECTION CONFIRMATION
+// =========================
+if (process.env.NODE_ENV !== "test") {
+  console.log("✅ Connected to Neon + Drizzle");
+}

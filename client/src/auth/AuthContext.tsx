@@ -1,6 +1,7 @@
-// src/auth/AuthContext.tsx 
+// src/auth/AuthContext.tsx
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { toast } from "sonner";
+import { login as loginApi } from "../api";
 
 interface User {
   id: number;
@@ -10,18 +11,18 @@ interface User {
   balance: string;
   bonus_balance: string;
   referral_code?: string;
+  created_at?: string;
+  email_verified_at?: string | null;  // added for clarity (from your login check)
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
-  setToken: React.Dispatch<React.SetStateAction<string | null>>;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>;  // ← Added this!
 }
-
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -45,32 +46,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (data.success && data.token && data.user) {
-        const userData = {
-          ...data.user,
-          balance: Number(data.user.balance || 0).toFixed(2),
-          bonus_balance: Number(data.user.bonus_balance || 0).toFixed(2),
-        };
-
-        setUser(userData);
-        setToken(data.token);
-        localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("token", data.token);
-
-        toast.success("Welcome back, " + userData.username + "!");
-        return true;
-      } else {
-        toast.error(data.error || "Invalid credentials");
+      const res = await loginApi(username.trim(), password.trim());
+      if (!res.success || !res.token || !res.user) {
+        toast.error(res.error || "Invalid credentials");
         return false;
       }
+
+      // Block unverified users
+      if (!res.user.email_verified_at) {
+        toast.error("Please verify your email before logging in.");
+        return false;
+      }
+
+      // Format balances as strings with 2 decimals (consistent with your User type)
+      const userData = {
+        ...res.user,
+        balance: Number(res.user.balance || 0).toFixed(2),
+        bonus_balance: Number(res.user.bonus_balance || 0).toFixed(2),
+      };
+
+      setUser(userData);
+      setToken(res.token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", res.token);
+
+      toast.success(`Welcome back, ${userData.username}!`);
+      return true;
     } catch (err) {
       console.error("Login failed:", err);
       toast.error("Network error — is backend running?");
@@ -89,7 +90,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        token, 
+        loading, 
+        login, 
+        logout,
+        setUser   // ← Now exposed!
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

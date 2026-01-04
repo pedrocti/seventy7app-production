@@ -1,64 +1,149 @@
 import { useEffect, useState } from "react";
 
 interface EventItem {
-  id: string;
+  id: number;              // changed from string → number (matches DB)
   title: string;
-  date: string;
+  date: string;            // we'll format it for input type="date"
   time: string;
   venue: string;
-  link: string;
-  description: string;
+  link?: string | null;
+  description?: string | null;
+  price: string;           // stored as string ("0", "49.99", etc.)
+  is_active: boolean;
+  created_at?: string;
 }
 
 export default function AdminMentorship() {
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [form, setForm] = useState<EventItem>({
-    id: "",
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [form, setForm] = useState<Omit<EventItem, "id" | "is_active" | "created_at">>({
     title: "",
     date: "",
     time: "",
     venue: "",
     link: "",
     description: "",
+    price: "0",
   });
 
-  // Load events from localStorage
+  // Load events from backend
   useEffect(() => {
-    const saved = localStorage.getItem("mentorship_events");
-    if (saved) setEvents(JSON.parse(saved));
+    fetchEvents();
   }, []);
 
-  const saveEvents = (list: EventItem[]) => {
-    localStorage.setItem("mentorship_events", JSON.stringify(list));
-    setEvents(list);
+  const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/mentorship/events", {
+        credentials: "include", // if using session/cookies auth
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to load events");
+
+      // Format date for input type="date"
+      const formattedEvents = data.events.map((ev: any) => {
+        const dateObj = new Date(ev.date);
+        return {
+          ...ev,
+          date: dateObj.toISOString().split("T")[0], // YYYY-MM-DD
+          time: ev.time || dateObj.toTimeString().slice(0, 5), // HH:mm
+        };
+      });
+
+      setEvents(formattedEvents);
+    } catch (err: any) {
+      console.error("Failed to fetch mentorship events:", err);
+      setError(err.message || "Could not load events");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
-    const newEvent = { ...form, id: crypto.randomUUID() };
-    saveEvents([...events, newEvent]);
+    if (!form.title.trim() || !form.date || !form.time || !form.venue.trim()) {
+      setError("Title, date, time and venue are required");
+      return;
+    }
 
-    // Reset form
-    setForm({
-      id: "",
-      title: "",
-      date: "",
-      time: "",
-      venue: "",
-      link: "",
-      description: "",
-    });
+    try {
+      const payload = {
+        ...form,
+        price: form.price.trim() || "0",
+      };
+
+      const res = await fetch("/api/admin/mentorship/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to create event");
+
+      // Refresh list
+      await fetchEvents();
+
+      // Reset form
+      setForm({
+        title: "",
+        date: "",
+        time: "",
+        venue: "",
+        link: "",
+        description: "",
+        price: "0",
+      });
+    } catch (err: any) {
+      setError(err.message || "Failed to create event");
+    }
   };
 
-  const deleteEvent = (id: string) => {
-    saveEvents(events.filter((e) => e.id !== id));
+  const deleteEvent = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this event?")) return;
+
+    try {
+      const res = await fetch(`/api/admin/mentorship/events/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      await fetchEvents();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete event");
+    }
   };
 
   return (
     <div className="space-y-6">
-
       <h3 className="text-2xl font-semibold mb-4">Create Mentorship Event</h3>
+
+      {error && (
+        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
 
       {/* FORM */}
       <form
@@ -66,7 +151,7 @@ export default function AdminMentorship() {
         className="bg-[#0B1628] p-6 rounded-xl border border-[#112037] space-y-5"
       >
         <div className="space-y-2">
-          <label className="text-sm text-gray-300">Event Title</label>
+          <label className="text-sm text-gray-300">Event Title *</label>
           <input
             type="text"
             placeholder="Enter event title"
@@ -79,7 +164,7 @@ export default function AdminMentorship() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-gray-300">Date</label>
+            <label className="text-sm text-gray-300">Date *</label>
             <input
               type="date"
               className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none"
@@ -90,7 +175,7 @@ export default function AdminMentorship() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-300">Time</label>
+            <label className="text-sm text-gray-300">Time *</label>
             <input
               type="time"
               className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none"
@@ -102,10 +187,10 @@ export default function AdminMentorship() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm text-gray-300">Venue</label>
+          <label className="text-sm text-gray-300">Venue / Platform *</label>
           <input
             type="text"
-            placeholder="Physical address or virtual meeting venue"
+            placeholder="Physical address or Zoom / Discord name"
             className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none"
             value={form.venue}
             onChange={(e) => setForm({ ...form, venue: e.target.value })}
@@ -114,14 +199,26 @@ export default function AdminMentorship() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm text-gray-300">Meeting / Class Link</label>
+          <label className="text-sm text-gray-300">Meeting Link (optional)</label>
           <input
-            type="text"
-            placeholder="Zoom / Google Meet / Discord link"
+            type="url"
+            placeholder="https://zoom.us/j/..."
             className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none"
-            value={form.link}
+            value={form.link ?? ""}
             onChange={(e) => setForm({ ...form, link: e.target.value })}
           />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm text-gray-300">Price (USD) – 0 = free</label>
+          <input
+            type="text"
+            placeholder="0 or 49.99"
+            className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+          />
+          <p className="text-xs text-gray-500">Use 0 for free events</p>
         </div>
 
         <div className="space-y-2">
@@ -129,22 +226,26 @@ export default function AdminMentorship() {
           <textarea
             placeholder="Write a brief description of this mentorship event..."
             className="w-full bg-[#071020] p-3 rounded-lg border border-[#14263F] focus:ring-2 focus:ring-[#0AEFFF] outline-none h-32 resize-none"
-            value={form.description}
-            onChange={(e) =>
-              setForm({ ...form, description: e.target.value })
-            }
+            value={form.description ?? ""}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
 
-        <button className="w-full bg-[#0AEFFF] text-black font-semibold py-3 rounded-lg hover:brightness-110 transition">
-          Add Event
+        <button
+          type="submit"
+          className="w-full bg-[#0AEFFF] text-black font-semibold py-3 rounded-lg hover:brightness-110 transition disabled:opacity-50"
+          disabled={loading}
+        >
+          {loading ? "Creating..." : "Add Event"}
         </button>
       </form>
 
       {/* EVENTS LIST */}
       <h3 className="text-xl font-semibold mt-10">Upcoming Events</h3>
 
-      {events.length === 0 && (
+      {loading && <p className="text-gray-400">Loading events...</p>}
+
+      {!loading && events.length === 0 && (
         <p className="text-gray-500">No mentorship events created yet.</p>
       )}
 
@@ -154,27 +255,37 @@ export default function AdminMentorship() {
             key={ev.id}
             className="bg-[#0B1628] p-5 rounded-xl border border-[#112037] space-y-2"
           >
-            <h4 className="font-bold text-lg">{ev.title}</h4>
+            <div className="flex justify-between items-start">
+              <h4 className="font-bold text-lg">{ev.title}</h4>
+              <span
+                className={`text-xs px-2 py-1 rounded-full ${
+                  ev.price === "0" || ev.price === "0.00"
+                    ? "bg-green-900/40 text-green-400"
+                    : "bg-amber-900/40 text-amber-400"
+                }`}
+              >
+                {ev.price === "0" || ev.price === "0.00" ? "Free" : `$${ev.price}`}
+              </span>
+            </div>
 
             <p className="text-gray-400 text-sm">
               {ev.date} • {ev.time}
             </p>
-
             <p className="text-gray-300">Venue: {ev.venue}</p>
 
             {ev.link && (
               <p className="text-[#0AEFFF]">
-                <a href={ev.link} target="_blank" className="underline">
-                  Join Class →
+                <a href={ev.link} target="_blank" rel="noopener noreferrer" className="underline">
+                  Join → 
                 </a>
               </p>
             )}
 
-            <p className="text-gray-400">{ev.description}</p>
+            {ev.description && <p className="text-gray-400 mt-2">{ev.description}</p>}
 
             <button
               onClick={() => deleteEvent(ev.id)}
-              className="text-red-400 hover:underline text-sm mt-2"
+              className="text-red-400 hover:text-red-300 hover:underline text-sm mt-3 block"
             >
               Delete Event
             </button>

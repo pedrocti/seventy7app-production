@@ -17,7 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   /^https:\/\/[a-z0-9-]+\.worf\.replit\.dev(:\d+)?$/, // your Replit dev domain
   "http://localhost:5173", // optional local dev
-];
+  process.env.FRONTEND_URL, // Production domain
+].filter(Boolean) as (string | RegExp)[];
 
 app.use(
   cors({

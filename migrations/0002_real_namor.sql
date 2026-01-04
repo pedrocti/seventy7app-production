@@ -1,0 +1,1 @@
+ALTER TABLE "courses" ALTER COLUMN "program_id" DROP NOT NULL;
