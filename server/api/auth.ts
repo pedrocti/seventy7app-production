@@ -199,6 +199,106 @@ router.post("/verify-email", async (req, res) => {
 });
 
 // ==============================
+// FORGOT PASSWORD / REQUEST RESET
+// ==============================
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email?.trim()) return res.status(400).json({ success: false, error: "Email is required" });
+
+    // Find the user by email
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.trim()))
+      .limit(1);
+
+    if (!user) {
+      // Don't reveal whether email exists for security
+      return res.json({
+        success: true,
+        message: "If an account exists for this email, a password reset link has been sent",
+      });
+    }
+
+    // Generate a password reset token
+    const resetToken = generateToken();
+
+    // Save token to database
+    await db.insert(email_verification_tokens).values({
+      user_id: user.id,
+      token: resetToken,
+      type: "reset",
+      used: false,
+      expires_at: getExpiry(1), // 1 hour expiry
+    });
+
+    // Send password reset email
+    await sendEmail({
+      to: user.email,
+      templateName: "reset_password",
+      variables: {
+        username: user.username,
+        link: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
+      },
+      userId: user.id,
+    });
+
+    res.json({
+      success: true,
+      message: "If an account exists for this email, a password reset link has been sent",
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+// ==============================
+// RESET PASSWORD
+// ==============================
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token) return res.status(400).json({ success: false, error: "Token is required" });
+    if (!newPassword || newPassword.length < 6)
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
+
+    // Find the token record
+    const [record] = await db
+      .select()
+      .from(email_verification_tokens)
+      .where(
+        and(
+          eq(email_verification_tokens.token, token),
+          eq(email_verification_tokens.type, "reset"),
+          eq(email_verification_tokens.used, false)
+        )
+      )
+      .limit(1);
+
+    if (!record || record.expires_at < new Date()) {
+      return res.status(400).json({ success: false, error: "Invalid or expired token" });
+    }
+
+    // Hash the new password
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password
+    await db.update(users).set({ password_hash: hash }).where(eq(users.id, record.user_id));
+
+    // Mark token as used
+    await db.update(email_verification_tokens).set({ used: true }).where(eq(email_verification_tokens.id, record.id));
+
+    res.json({ success: true, message: "Password reset successfully. You can now log in." });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+
+// ==============================
 // LOGIN (only allowed after email verification)
 // ==============================
 router.post("/login", async (req, res) => {
@@ -219,7 +319,6 @@ router.post("/login", async (req, res) => {
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
-    console.log("Login attempt for:", username, "Match:", match, "Verified:", user.email_verified_at);
 
     if (!match) {
       return res.status(400).json({
@@ -228,9 +327,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Temporarily bypass email verification for debugging if needed, 
-    // but better to just fix the admin user in the DB or via script.
-    if (!user.email_verified_at && user.role !== "admin") {
+    if (!user.email_verified_at) {
       return res.status(403).json({
         success: false,
         error: "Please verify your email before logging in",

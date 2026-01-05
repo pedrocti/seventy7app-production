@@ -6,35 +6,77 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg"; // ← Your system logo
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, requestPasswordReset } = useAuth(); // add password reset method
   const [, setLocation] = useLocation();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [emailForReset, setEmailForReset] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState(""); // For success messages
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false); // toggles login / forgot password form
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ----------------------
+  // Login Handler
+  // ----------------------
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setInfo("");
     setLoading(true);
 
     try {
-      const success = await login(username.trim(), password.trim());
-      if (success) {
-        // Redirect based on role (already handled in AuthContext)
+      console.log("→ Frontend sending login request:", { username, password });
+      const response = await login(username.trim(), password.trim());
+      console.log("→ Backend response:", response);
+
+      if (response.success) {
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
           const role = JSON.parse(storedUser).role?.toLowerCase();
           setLocation(role === "admin" ? "/admin" : "/dashboard", { replace: true });
         }
       } else {
-        setError("Invalid credentials or server error");
+        setError(response.error || "Invalid credentials or server error");
       }
     } catch (err: any) {
       setError(err.message || "Connection error. Please try again.");
       console.error("Login error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ----------------------
+  // Password Reset Handler
+  // ----------------------
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+
+    try {
+      if (!emailForReset.trim()) {
+        setError("Please enter your email address");
+        setLoading(false);
+        return;
+      }
+
+      const response = await requestPasswordReset(emailForReset.trim());
+      console.log("→ Password reset response:", response);
+
+      if (response.success) {
+        setInfo("If an account exists for this email, a password reset has been sent.");
+        setEmailForReset("");
+      } else {
+        setError(response.error || "Failed to send password reset email");
+      }
+    } catch (err: any) {
+      console.error("Password reset error:", err);
+      setError(err.message || "Connection error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -72,45 +114,70 @@ export default function Login() {
             <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] bg-clip-text text-transparent">
               77KAPITAL
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">Sign in to your account</p>
+            <p className="text-gray-400 mt-3 text-lg">
+              {resetMode ? "Enter your email to reset password" : "Sign in to your account"}
+            </p>
           </div>
 
-          {error && (
-            <div className="mb-6 p-4 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-center text-sm">
-              {error}
+          {/* Info / Error Messages */}
+          {(error || info) && (
+            <div
+              className={`mb-6 p-4 border rounded-xl text-center text-sm ${
+                error ? "bg-red-500/15 border-red-500/30 text-red-300" : "bg-green-500/15 border-green-500/30 text-green-300"
+              }`}
+            >
+              {error || info}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Username */}
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-              required
-              autoFocus
-            />
-
-            {/* Password */}
-            <div className="relative">
+          {/* Form */}
+          <form
+            onSubmit={resetMode ? handlePasswordReset : handleLogin}
+            className="space-y-6"
+          >
+            {resetMode ? (
+              // ---------------------- Password Reset Form ----------------------
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
+                type="email"
+                placeholder="Email address"
+                value={emailForReset}
+                onChange={(e) => setEmailForReset(e.target.value)}
+                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
+            ) : (
+              <>
+                {/* Username */}
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
+                  required
+                  autoFocus
+                />
+
+                {/* Password */}
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Submit Button */}
             <button
@@ -121,35 +188,54 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Signing In...
+                  {resetMode ? "Sending..." : "Signing In..."}
                 </>
               ) : (
-                <>
-                  <img
-                    src={logo}
-                    alt="77KAPITAL"
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                  Sign In
-                </>
+                resetMode ? "Send Reset Link" : "Sign In"
               )}
             </button>
           </form>
 
-          {/* Register link */}
-          <p className="text-center mt-8 text-gray-400 text-sm">
-            Don’t have an account?{" "}
-            <button
-              type="button"
-              onClick={() => {
-                console.log("→ Navigating to /register");
-                setLocation("/register");
-              }}
-              className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
-            >
-              Register here
-            </button>
+          {/* Switch between login / forgot password */}
+          <p className="text-center mt-6 text-gray-400 text-sm">
+            {resetMode ? (
+              <>
+                Remembered your password?{" "}
+                <button
+                  type="button"
+                  onClick={() => { setResetMode(false); setError(""); setInfo(""); }}
+                  className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
+                >
+                  Login here
+                </button>
+              </>
+            ) : (
+              <>
+                Forgot your password?{" "}
+                <button
+                  type="button"
+                  onClick={() => { setResetMode(true); setError(""); setInfo(""); }}
+                  className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
+                >
+                  Reset here
+                </button>
+              </>
+            )}
           </p>
+
+          {/* Register link */}
+          {!resetMode && (
+            <p className="text-center mt-8 text-gray-400 text-sm">
+              Don’t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setLocation("/register")}
+                className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
+              >
+                Register here
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

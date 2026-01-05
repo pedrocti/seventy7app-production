@@ -1,21 +1,39 @@
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import express from "express";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import apiRouter from "./server/api";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-// Serve static files from client directory
-app.use(express.static(join(__dirname, 'client')));
+// ------------------------
+// Middleware
+// ------------------------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// For client-side routing, serve index.html for all routes
-app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, 'client', 'index.html'));
+// ------------------------
+// API routes
+// ------------------------
+app.use("/api", apiRouter); // all routes under /api
+
+// ------------------------
+// Serve React static files (production)
+// ------------------------
+const clientBuildPath = join(__dirname, "client", "dist");
+app.use(express.static(clientBuildPath));
+
+// Serve index.html for all other routes (client-side routing)
+app.get("*", (req, res) => {
+  res.sendFile(join(clientBuildPath, "index.html"));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Seventy7 Kapital running at http://localhost:${PORT}`);
+// ------------------------
+// Start server
+// ------------------------
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Seventy7 Kapital running on port ${PORT}`);
 });
