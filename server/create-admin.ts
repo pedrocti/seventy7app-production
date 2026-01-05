@@ -31,6 +31,7 @@ async function createAdmin() {
       password_hash: hash,
       role: "admin",
       balance: "1000000.00",
+      email_verified_at: new Date(), // ✅ Mark admin as verified by default
     }).returning();
 
     console.log("Inserted admin:", inserted);

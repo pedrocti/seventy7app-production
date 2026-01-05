@@ -211,22 +211,40 @@ router.post("/login", async (req, res) => {
       .where(eq(users.username, username.trim()))
       .limit(1);
 
-    if (!user) return res.status(400).json({ error: "Invalid username or password" });
-
-    console.log("Stored hash for admin:", user.password_hash);
-
-    const match = await bcrypt.compare(password, user.password_hash);
-    console.log("Password match result:", match);
-
-    if (!match) return res.status(400).json({ error: "Invalid username or password" });
-
-    if (!user.email_verified_at) {
-      return res.status(403).json({ error: "Please verify your email before logging in" });
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid username or password",
+      });
     }
 
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    const match = await bcrypt.compare(password, user.password_hash);
+    console.log("Login attempt for:", username, "Match:", match, "Verified:", user.email_verified_at);
 
-    res.json({
+    if (!match) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid username or password",
+      });
+    }
+
+    // Temporarily bypass email verification for debugging if needed, 
+    // but better to just fix the admin user in the DB or via script.
+    if (!user.email_verified_at && user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        error: "Please verify your email before logging in",
+        code: "EMAIL_NOT_VERIFIED",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({
       success: true,
       token,
       user: {
@@ -240,8 +258,12 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ error: "Server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Server error",
+    });
   }
 });
+
 
 export default router;

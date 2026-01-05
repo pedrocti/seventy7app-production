@@ -16,7 +16,7 @@ export async function login(username: string, password: string) {
     body: JSON.stringify({ username, password }),
   });
 
-  if (!response.success) {
+    if (response.success !== true) {
     return {
       success: false,
       error: response.error || "Login failed. Please check your credentials.",
@@ -57,7 +57,7 @@ export async function register(
     body: JSON.stringify(payload),
   });
 
-  if (!response.success) {
+    if (response.success !== true) {
     return {
       success: false,
       error: response.error || "Registration failed. Please try again.",

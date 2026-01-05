@@ -54,37 +54,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await loginApi(username.trim(), password.trim());
 
-      // Debug log – remove after testing
-      console.log("Backend login response:", res);
+      // Debug: log the FULL raw response
+      console.log("Raw backend login response:", res);
 
-      if (!res || !res.success) {
-        toast.error(res?.error || "Invalid credentials");
+      // Handle possible wrapped response (e.g. { data: { success: true } })
+      const responseData = res.data || res;
+
+      console.log("Processed response data:", responseData);
+      console.log("success value:", responseData?.success);
+
+      if (!responseData || responseData.success !== true) {
+        toast.error(responseData?.error || "Invalid credentials");
         return false;
       }
 
-      if (!res.token || !res.user) {
+      if (!responseData.token || !responseData.user) {
         toast.error("Invalid response from server");
         return false;
       }
 
       // Block unverified users
-      if (!res.user.email_verified_at) {
+      if (!responseData.user.email_verified_at) {
         toast.error("Please verify your email before logging in.");
         return false;
       }
 
       // Format balances as strings with 2 decimals
       const userData: User = {
-        ...res.user,
-        balance: Number(res.user.balance || 0).toFixed(2),
-        bonus_balance: Number(res.user.bonus_balance || 0).toFixed(2),
+        ...responseData.user,
+        balance: Number(responseData.user.balance || 0).toFixed(2),
+        bonus_balance: Number(responseData.user.bonus_balance || 0).toFixed(2),
       };
 
       setUser(userData);
-      setToken(res.token);
+      setToken(responseData.token);
 
       localStorage.setItem("user", JSON.stringify(userData));
-      localStorage.setItem("token", res.token);
+      localStorage.setItem("token", responseData.token);
 
       toast.success(`Welcome back, ${userData.username}!`);
 

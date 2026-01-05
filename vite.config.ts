@@ -1,4 +1,4 @@
-// vite.config.ts — Replit-friendly with client root + proxy to backend
+// vite.config.ts — Replit-friendly, environment-aware, fully proxied
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -7,40 +7,67 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(() => {
-  return {
-    plugins: [react()],
+// -----------------------------
+// Detect environment
+// -----------------------------
+const isProd = process.env.NODE_ENV === "production";
 
-    // keep root pointed at your client folder (your project expects this)
-    root: path.resolve(__dirname, "client"),
+// -----------------------------
+// Backend URL
+// - Dev: local backend (Vite proxy to 0.0.0.0:3000)
+// - Replit public preview: backend needs public URL
+// - Prod: replace with your Hostinger backend URL
+// -----------------------------
+const BACKEND_URL = isProd
+  ? "https://yourproductionbackend.com" // ← replace with Hostinger backend
+  : process.env.REPLIT ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : "http://0.0.0.0:3000";
 
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "client/src"),
-        "@shared": path.resolve(__dirname, "shared"),
-        "@assets": path.resolve(__dirname, "attached_assets"),
+export default defineConfig(() => ({
+  plugins: [react()],
+
+  // Root folder for Vite
+  root: path.resolve(__dirname, "client"),
+
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "client/src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
+    },
+  },
+
+  server: {
+    host: true,
+    port: 5000,
+    strictPort: true, // prevents silent port changes
+    allowedHosts: [".replit.dev", ".repl.co", ".id.repl.co"],
+
+    // -----------------------------
+    // Proxy backend routes
+    // -----------------------------
+    proxy: {
+      "/auth": {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        secure: isProd,
+        ws: true,
+      },
+      "/api": {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        secure: isProd,
+        ws: true,
+      },
+      "/profile": {
+        target: BACKEND_URL,
+        changeOrigin: true,
+        secure: isProd,
       },
     },
+  },
 
-    server: {
-      host: true,
-      port: 5000,
-      allowedHosts: [".replit.dev", ".repl.co", ".id.repl.co"],
-
-      // This target (0.0.0.0:3000) is the one you used earlier that worked on Replit.
-      proxy: {
-        "/api": {
-          target: "http://0.0.0.0:3000",
-          changeOrigin: true,
-          secure: false,
-          ws: true,
-        },
-      },
-    },
-
-    build: {
-      outDir: path.resolve(__dirname, "dist/public"),
-      emptyOutDir: true,
-    },
-  };
-});
+  build: {
+    outDir: path.resolve(__dirname, "dist/public"),
+    emptyOutDir: true,
+  },
+}));
