@@ -28,7 +28,7 @@ const FloatingQuickAccess = () => {
     },
     {
       icon: "fa-signal",
-      label: "Signal Community",
+      label: "Community",
       link: "/signal",
       color: "text-cyan-400",
     },

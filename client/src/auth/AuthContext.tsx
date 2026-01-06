@@ -4,14 +4,10 @@ import { toast } from "sonner";
 import {
   login as loginApi,
   register as registerApi,
-  getProfile as getProfileApi,
   requestPasswordReset as requestPasswordResetApi,
   resetPassword as resetPasswordApi,
 } from "../api/auth";
 
-// ----------------------------
-// User type
-// ----------------------------
 export interface User {
   id: number;
   username: string;
@@ -24,20 +20,15 @@ export interface User {
   email_verified_at?: string | null;
 }
 
-// ----------------------------
-// Standard auth response type
-// ----------------------------
 export interface AuthResponse {
   success: boolean;
   token?: string;
   user?: User;
   error?: string;
   message?: string;
+  code?: string; // backend codes like EMAIL_NOT_VERIFIED
 }
 
-// ----------------------------
-// Context type
-// ----------------------------
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -59,30 +50,45 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ----------------------------
-// Provider
-// ----------------------------
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load from localStorage
+  // ----------------------------
+  // Load user from localStorage on mount
+  // ----------------------------
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     const storedToken = localStorage.getItem("token");
+
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser));
-        setToken(storedToken);
+        const parsedUser: User = JSON.parse(storedUser);
+
+        // Only load if user is verified
+        const isVerified = !!parsedUser.email_verified_at;
+
+        if (isVerified) {
+          setUser(parsedUser);
+          setToken(storedToken);
+        } else {
+          // Remove invalid/blocked users
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
       } catch {
+        // Remove corrupted data
         localStorage.removeItem("user");
         localStorage.removeItem("token");
       }
     }
+
     setLoading(false);
   }, []);
 
+
+  
   // ----------------------------
   // LOGIN
   // ----------------------------
@@ -90,16 +96,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await loginApi(username.trim(), password.trim());
+
       if (!res.success || !res.token || !res.user) {
-        toast.error(res.error || "Login failed. Check credentials or verify email.");
+        toast.error(res.error || "Login failed. Check credentials.");
         return { success: false, error: res.error || "Login failed" };
       }
 
-      if (!res.user.email_verified_at) {
-        toast.error("Please verify your email before logging in.");
-        return { success: false, error: "Email not verified" };
-      }
+      // ------------------------------
+      // Safe verification check
+      // ------------------------------
+      const isVerified = !!res.user.email_verified_at;
 
+      // Save user anyway, even if unverified
       const userData: User = {
         ...res.user,
         balance: Number(res.user.balance || 0).toFixed(2),
@@ -110,6 +118,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(res.token);
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", res.token);
+
+      // Inform user about verification
+      if (!isVerified) {
+        toast.warning(
+          "Your email is not verified. Some features like deposits and investments are disabled. Please verify your email."
+        );
+        return { success: true, token: res.token, user: userData, code: "EMAIL_NOT_VERIFIED" };
+      }
 
       toast.success(`Welcome back, ${userData.username}!`);
       return { success: true, token: res.token, user: userData };
@@ -169,11 +185,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await requestPasswordResetApi(email.trim());
-      if (res.success) {
-        toast.success(res.message || "Password reset email sent!");
-      } else {
-        toast.error(res.error || "Failed to send password reset email");
-      }
+      if (res.success) toast.success(res.message || "Password reset email sent!");
+      else toast.error(res.error || "Failed to send password reset email");
       return res;
     } catch (err: any) {
       console.error("Password reset request error:", err);
@@ -191,11 +204,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await resetPasswordApi(token, newPassword);
-      if (res.success) {
-        toast.success(res.message || "Password reset successful! You can now log in.");
-      } else {
-        toast.error(res.error || "Failed to reset password");
-      }
+      if (res.success) toast.success(res.message || "Password reset successful! You can now log in.");
+      else toast.error(res.error || "Failed to reset password");
       return res;
     } catch (err: any) {
       console.error("Password reset error:", err);
@@ -225,9 +235,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// ----------------------------
-// Hook
-// ----------------------------
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");

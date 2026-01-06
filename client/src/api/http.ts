@@ -6,7 +6,7 @@
 // Dev: use "" → Vite proxy handles /api, /auth
 // Prod: use environment variable or default to "/api"
 export const API_BASE =
-  import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? "" : "/api");
+import.meta.env.VITE_API_BASE || "/api";
 
 // -----------------------------
 // API response type

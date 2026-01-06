@@ -327,7 +327,24 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (!user.email_verified_at) {
+    // -------------------------
+    // DEBUG LOG: inspect email_verified_at
+    // -------------------------
+    console.log("LOGIN CHECK:", {
+      username: user.username,
+      email_verified_at: user.email_verified_at,
+      type: typeof user.email_verified_at,
+    });
+
+    // Convert string timestamps (if returned as string) to Date
+    const emailVerifiedAtDate =
+      user.email_verified_at instanceof Date
+        ? user.email_verified_at
+        : user.email_verified_at
+        ? new Date(user.email_verified_at)
+        : null;
+
+    if (!emailVerifiedAtDate) {
       return res.status(403).json({
         success: false,
         error: "Please verify your email before logging in",
@@ -361,6 +378,7 @@ router.post("/login", async (req, res) => {
     });
   }
 });
+
 
 
 export default router;

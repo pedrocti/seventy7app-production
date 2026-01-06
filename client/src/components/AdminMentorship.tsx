@@ -1,14 +1,16 @@
+// client/src/components/AdminMentorship.tsx
 import { useEffect, useState } from "react";
+import { adminFetch } from "../utils/adminFetch"; // <-- make sure path is correct
 
 interface EventItem {
-  id: number;              // changed from string → number (matches DB)
+  id: number;
   title: string;
-  date: string;            // we'll format it for input type="date"
+  date: string;
   time: string;
   venue: string;
   link?: string | null;
   description?: string | null;
-  price: string;           // stored as string ("0", "49.99", etc.)
+  price: string;
   is_active: boolean;
   created_at?: string;
 }
@@ -28,7 +30,9 @@ export default function AdminMentorship() {
     price: "0",
   });
 
-  // Load events from backend
+  // ----------------------------
+  // Load events on mount
+  // ----------------------------
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -37,24 +41,17 @@ export default function AdminMentorship() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/mentorship/events", {
-        credentials: "include", // if using session/cookies auth
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
+      const res = await adminFetch("/api/admin/mentorship/events");
       const data = await res.json();
+
       if (!data.success) throw new Error(data.error || "Failed to load events");
 
-      // Format date for input type="date"
       const formattedEvents = data.events.map((ev: any) => {
         const dateObj = new Date(ev.date);
         return {
           ...ev,
-          date: dateObj.toISOString().split("T")[0], // YYYY-MM-DD
-          time: ev.time || dateObj.toTimeString().slice(0, 5), // HH:mm
+          date: dateObj.toISOString().split("T")[0],
+          time: ev.time || dateObj.toTimeString().slice(0, 5),
         };
       });
 
@@ -67,6 +64,9 @@ export default function AdminMentorship() {
     }
   };
 
+  // ----------------------------
+  // Create new event
+  // ----------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -82,23 +82,15 @@ export default function AdminMentorship() {
         price: form.price.trim() || "0",
       };
 
-      const res = await fetch("/api/admin/mentorship/events", {
+      const res = await adminFetch("/api/admin/mentorship/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${res.status}`);
-      }
 
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Failed to create event");
 
-      // Refresh list
-      await fetchEvents();
+      await fetchEvents(); // refresh list
 
       // Reset form
       setForm({
@@ -115,26 +107,29 @@ export default function AdminMentorship() {
     }
   };
 
+  // ----------------------------
+  // Delete event
+  // ----------------------------
   const deleteEvent = async (id: number) => {
     if (!confirm("Are you sure you want to delete this event?")) return;
 
     try {
-      const res = await fetch(`/api/admin/mentorship/events/${id}`, {
+      const res = await adminFetch(`/api/admin/mentorship/events/${id}`, {
         method: "DELETE",
-        credentials: "include",
       });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${res.status}`);
-      }
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to delete event");
 
-      await fetchEvents();
+      await fetchEvents(); // refresh list
     } catch (err: any) {
       setError(err.message || "Failed to delete event");
     }
   };
 
+  // ----------------------------
+  // Render
+  // ----------------------------
   return (
     <div className="space-y-6">
       <h3 className="text-2xl font-semibold mb-4">Create Mentorship Event</h3>
@@ -150,6 +145,7 @@ export default function AdminMentorship() {
         onSubmit={handleSubmit}
         className="bg-[#0B1628] p-6 rounded-xl border border-[#112037] space-y-5"
       >
+        {/* Event Title */}
         <div className="space-y-2">
           <label className="text-sm text-gray-300">Event Title *</label>
           <input
@@ -162,6 +158,7 @@ export default function AdminMentorship() {
           />
         </div>
 
+        {/* Date & Time */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm text-gray-300">Date *</label>
@@ -186,6 +183,7 @@ export default function AdminMentorship() {
           </div>
         </div>
 
+        {/* Venue */}
         <div className="space-y-2">
           <label className="text-sm text-gray-300">Venue / Platform *</label>
           <input
@@ -198,6 +196,7 @@ export default function AdminMentorship() {
           />
         </div>
 
+        {/* Link */}
         <div className="space-y-2">
           <label className="text-sm text-gray-300">Meeting Link (optional)</label>
           <input
@@ -209,6 +208,7 @@ export default function AdminMentorship() {
           />
         </div>
 
+        {/* Price */}
         <div className="space-y-2">
           <label className="text-sm text-gray-300">Price (USD) – 0 = free</label>
           <input
@@ -221,6 +221,7 @@ export default function AdminMentorship() {
           <p className="text-xs text-gray-500">Use 0 for free events</p>
         </div>
 
+        {/* Description */}
         <div className="space-y-2">
           <label className="text-sm text-gray-300">Event Description</label>
           <textarea
@@ -276,7 +277,7 @@ export default function AdminMentorship() {
             {ev.link && (
               <p className="text-[#0AEFFF]">
                 <a href={ev.link} target="_blank" rel="noopener noreferrer" className="underline">
-                  Join → 
+                  Join →
                 </a>
               </p>
             )}

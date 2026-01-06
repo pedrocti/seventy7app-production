@@ -32,13 +32,12 @@ export default function Login() {
       const response = await login(username.trim(), password.trim());
       console.log("→ Backend response:", response);
 
-      if (response.success) {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          const role = JSON.parse(storedUser).role?.toLowerCase();
-          setLocation(role === "admin" ? "/admin" : "/dashboard", { replace: true });
-        }
+      if (response.success && response.user) {
+        // Redirect based on role
+        const role = response.user.role?.toLowerCase();
+        setLocation(role === "admin" ? "/admin" : "/dashboard", { replace: true });
       } else {
+        // Error already returned from backend (including email verification)
         setError(response.error || "Invalid credentials or server error");
       }
     } catch (err: any) {
@@ -48,6 +47,8 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+
 
   // ----------------------
   // Password Reset Handler

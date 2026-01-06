@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { db, users } from "./db/connection.js"; // <-- use .js for ESM runtime
+import { db, users } from "./db/connection.js"; 
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 

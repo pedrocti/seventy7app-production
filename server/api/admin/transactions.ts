@@ -1,3 +1,4 @@
+// server/api/admin/transactions.ts
 import { Router } from "express";
 import { db } from "../../db/connection.js";
 import { transactions, users } from "../../db/schema.js";
@@ -11,6 +12,7 @@ router.use(auth, adminOnly);
 
 // ------------------------------------------------------
 // GET /api/admin/transactions
+// Include user wallet address for withdrawals
 // ------------------------------------------------------
 router.get("/", async (_req, res) => {
   try {
@@ -19,6 +21,7 @@ router.get("/", async (_req, res) => {
         t.id,
         t.user_id,
         u.username,
+        u.wallet_address,  -- <-- added wallet
         t.type,
         t.amount,
         t.status,
@@ -32,7 +35,9 @@ router.get("/", async (_req, res) => {
     const rows = result?.rows ?? [];
     const formatted = rows.map((row: any) => ({
       id: row.id,
+      user_id: row.user_id,
       username: row.username || "Deleted User",
+      wallet: row.wallet_address || null, // <-- include wallet
       type: row.type,
       amount: Number(row.amount ?? 0).toFixed(2),
       status: row.status,
