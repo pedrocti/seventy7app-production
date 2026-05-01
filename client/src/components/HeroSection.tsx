@@ -26,7 +26,7 @@ const STRATEGIES: Record<'conservative' | 'balanced' | 'aggressive', StrategyCon
   balanced: {
     low: 0.10, mid: 0.22, high: 0.38,
     label: 'Balanced', sublabel: 'Growth & Stability Mix',
-    color: '#F2B23A', rgb: '242,178,58',
+    color: '#0AEFFF', rgb: '10,239,255',
   },
   aggressive: {
     low: 0.18, mid: 0.42, high: 0.78,

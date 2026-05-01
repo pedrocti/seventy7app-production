@@ -2,6 +2,10 @@ import { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
+const CYAN     = "#0AEFFF";
+const CYAN_MID = "#4AFFF5";
+const CYAN_DIM = (a: number) => `rgba(10,239,255,${a})`;
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.18 } },
@@ -18,7 +22,7 @@ const solutions = [
     title: "Financial Education Programmes",
     body: "Comprehensive programmes covering trading, investing, and financial literacy — designed to help individuals build strong financial foundations and make informed market decisions.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2B23A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
       </svg>
     ),
@@ -28,7 +32,7 @@ const solutions = [
     title: "Stake-to-Earn Solutions",
     body: "A structured opportunity for busy professionals and creatives to put their capital to work — without needing to actively participate in the markets day to day.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2B23A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/>
       </svg>
     ),
@@ -38,7 +42,7 @@ const solutions = [
     title: "Portfolio Management",
     body: "Professional portfolio management services designed for High Net Worth Individuals seeking strategic oversight and long-term investment growth.",
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F2B23A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 10l3 3 4-5 3 3"/>
       </svg>
     ),
@@ -63,16 +67,16 @@ const AboutSection = () => {
       <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(242,178,58,0.04) 0%, transparent 70%)', filter: 'blur(40px)' }}
+          style={{ background: `radial-gradient(circle, ${CYAN_DIM(0.04)} 0%, transparent 70%)`, filter: 'blur(40px)' }}
         />
         <div
           className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(10,239,255,0.025) 0%, transparent 70%)', filter: 'blur(40px)' }}
+          style={{ background: `radial-gradient(circle, ${CYAN_DIM(0.025)} 0%, transparent 70%)`, filter: 'blur(40px)' }}
         />
       </div>
 
       {/* Top divider */}
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(242,178,58,0.15), transparent)' }} />
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${CYAN_DIM(0.18)}, transparent)` }} />
 
       <div className="container mx-auto px-6 lg:px-12 relative z-10" ref={ref}>
 
@@ -83,14 +87,13 @@ const AboutSection = () => {
           animate={controls}
           variants={containerVariants}
         >
-          {/* Eyebrow */}
           <motion.div variants={itemVariants} className="mb-6">
             <span
               className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full"
               style={{
-                background: 'rgba(242,178,58,0.07)',
-                border: '1px solid rgba(242,178,58,0.18)',
-                color: '#F2B23A',
+                background: CYAN_DIM(0.07),
+                border: `1px solid ${CYAN_DIM(0.18)}`,
+                color: CYAN,
                 fontFamily: '"Space Grotesk", sans-serif',
               }}
             >
@@ -105,7 +108,7 @@ const AboutSection = () => {
           >
             About{' '}
             <span style={{
-              background: 'linear-gradient(135deg, #F2B23A 0%, #F9CC6E 50%, #E8960A 100%)',
+              background: `linear-gradient(135deg, ${CYAN} 0%, ${CYAN_MID} 50%, #00C8D4 100%)`,
               WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
               Seventy7 Kapital
@@ -152,27 +155,25 @@ const AboutSection = () => {
                   border: '1px solid rgba(232,237,245,0.06)',
                 }}
                 whileHover={{
-                  borderColor: 'rgba(242,178,58,0.25)',
-                  boxShadow: '0 12px 40px rgba(242,178,58,0.07)',
+                  borderColor: CYAN_DIM(0.25),
+                  boxShadow: `0 12px 40px ${CYAN_DIM(0.07)}`,
                   y: -4,
                 }}
               >
-                {/* Number */}
                 <span
                   className="block text-5xl font-bold leading-none mb-6 select-none"
                   style={{
-                    color: 'rgba(242,178,58,0.08)',
+                    color: CYAN_DIM(0.09),
                     fontFamily: '"Space Grotesk", sans-serif',
                   }}
                 >
                   {sol.number}
                 </span>
 
-                {/* Icon + Title */}
                 <div className="flex items-center gap-3 mb-4">
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'rgba(242,178,58,0.07)', border: '1px solid rgba(242,178,58,0.12)' }}
+                    style={{ background: CYAN_DIM(0.07), border: `1px solid ${CYAN_DIM(0.12)}` }}
                   >
                     {sol.icon}
                   </div>
@@ -188,10 +189,9 @@ const AboutSection = () => {
                   {sol.body}
                 </p>
 
-                {/* Gold bottom accent line on hover */}
                 <div
                   className="absolute bottom-0 left-8 right-8 h-px rounded-full transition-all duration-350 opacity-0 group-hover:opacity-100"
-                  style={{ background: 'linear-gradient(90deg, transparent, rgba(242,178,58,0.3), transparent)' }}
+                  style={{ background: `linear-gradient(90deg, transparent, ${CYAN_DIM(0.30)}, transparent)` }}
                 />
               </motion.div>
             ))}
@@ -210,9 +210,9 @@ const AboutSection = () => {
             <div className="flex items-center gap-3 mb-6">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(242,178,58,0.1)', border: '1px solid rgba(242,178,58,0.2)' }}
+                style={{ background: CYAN_DIM(0.10), border: `1px solid ${CYAN_DIM(0.20)}` }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2B23A" strokeWidth="2" strokeLinecap="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round">
                   <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
                 </svg>
               </div>
@@ -238,9 +238,9 @@ const AboutSection = () => {
             <div className="flex items-center gap-3 mb-6">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(242,178,58,0.1)', border: '1px solid rgba(242,178,58,0.2)' }}
+                style={{ background: CYAN_DIM(0.10), border: `1px solid ${CYAN_DIM(0.20)}` }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F2B23A" strokeWidth="2" strokeLinecap="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="2" strokeLinecap="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                 </svg>
               </div>
@@ -268,14 +268,13 @@ const AboutSection = () => {
             variants={itemVariants}
             className="relative px-8 py-10 rounded-2xl"
             style={{
-              background: 'rgba(242,178,58,0.03)',
-              border: '1px solid rgba(242,178,58,0.1)',
+              background: CYAN_DIM(0.03),
+              border: `1px solid ${CYAN_DIM(0.10)}`,
             }}
           >
-            {/* Quote mark */}
             <span
               className="absolute -top-5 left-1/2 -translate-x-1/2 text-6xl leading-none select-none"
-              style={{ color: 'rgba(242,178,58,0.15)', fontFamily: 'Georgia, serif' }}
+              style={{ color: CYAN_DIM(0.18), fontFamily: 'Georgia, serif' }}
             >
               "
             </span>
@@ -287,11 +286,11 @@ const AboutSection = () => {
             </p>
             <div
               className="mt-6 mx-auto h-px w-16"
-              style={{ background: 'linear-gradient(90deg, transparent, rgba(242,178,58,0.4), transparent)' }}
+              style={{ background: `linear-gradient(90deg, transparent, ${CYAN_DIM(0.40)}, transparent)` }}
             />
             <p
               className="mt-4 text-xs tracking-widest uppercase"
-              style={{ color: 'rgba(242,178,58,0.4)', fontFamily: '"Space Grotesk", sans-serif' }}
+              style={{ color: CYAN_DIM(0.45), fontFamily: '"Space Grotesk", sans-serif' }}
             >
               Seventy7 Kapital
             </p>

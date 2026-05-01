@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
+const CYAN     = "#0AEFFF";
+const CYAN_DIM = (a: number) => `rgba(10,239,255,${a})`;
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -39,8 +42,7 @@ const CTASection = () => {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(242,178,58,0.04) 0%, transparent 70%)",
+          background: `radial-gradient(ellipse 70% 60% at 50% 50%, ${CYAN_DIM(0.04)} 0%, transparent 70%)`,
         }}
       />
 
@@ -57,8 +59,7 @@ const CTASection = () => {
       <div
         className="absolute top-0 left-0 right-0 h-px"
         style={{
-          background:
-            "linear-gradient(90deg, transparent, rgba(242,178,58,0.2), transparent)",
+          background: `linear-gradient(90deg, transparent, ${CYAN_DIM(0.20)}, transparent)`,
         }}
       />
 
@@ -74,9 +75,9 @@ const CTASection = () => {
             <span
               className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full"
               style={{
-                background: "rgba(242,178,58,0.07)",
-                border: "1px solid rgba(242,178,58,0.18)",
-                color: "#F2B23A",
+                background: CYAN_DIM(0.07),
+                border: `1px solid ${CYAN_DIM(0.18)}`,
+                color: CYAN,
                 fontFamily: '"Space Grotesk", sans-serif',
               }}
             >
@@ -93,7 +94,7 @@ const CTASection = () => {
             Build Your{" "}
             <span
               style={{
-                background: "linear-gradient(135deg, #F2B23A 0%, #F9CC6E 50%, #E8960A 100%)",
+                background: `linear-gradient(135deg, ${CYAN} 0%, #4AFFF5 50%, #00C8D4 100%)`,
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 WebkitTextFillColor: "transparent",
@@ -114,7 +115,7 @@ const CTASection = () => {
             and disciplined wealth building. Develop the edge others don't have.
           </motion.p>
 
-          {/* Primary + secondary CTA — consolidated from 3 to 2 */}
+          {/* CTAs */}
           <motion.div
             variants={itemVariants}
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
@@ -125,7 +126,7 @@ const CTASection = () => {
               className="relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm"
               style={{
                 padding: "1.05rem 2.5rem",
-                background: "linear-gradient(135deg, #F2B23A, #E8960A)",
+                background: `linear-gradient(135deg, ${CYAN}, #00C8D4)`,
                 color: "#080C14",
                 fontFamily: '"Space Grotesk", sans-serif',
                 fontWeight: 700,
@@ -133,16 +134,14 @@ const CTASection = () => {
               }}
               whileHover={{
                 scale: 1.04,
-                boxShadow: "0 16px 40px rgba(242,178,58,0.4)",
+                boxShadow: `0 16px 40px ${CYAN_DIM(0.35)}`,
               }}
               whileTap={{ scale: 0.97 }}
             >
-              {/* Shimmer */}
               <span
                 className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity"
                 style={{
-                  background:
-                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
+                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
                 }}
               />
               Start Learning Free
@@ -160,21 +159,20 @@ const CTASection = () => {
               style={{
                 padding: "1.05rem 2.5rem",
                 background: "transparent",
-                border: "1px solid rgba(242,178,58,0.2)",
+                border: `1px solid ${CYAN_DIM(0.20)}`,
                 color: "rgba(232,237,245,0.7)",
                 fontFamily: '"Space Grotesk", sans-serif',
                 fontWeight: 500,
                 minWidth: 200,
               }}
               whileHover={{
-                borderColor: "rgba(242,178,58,0.5)",
-                color: "#F2B23A",
-                backgroundColor: "rgba(242,178,58,0.04)",
+                borderColor: CYAN_DIM(0.50),
+                color: CYAN,
+                backgroundColor: CYAN_DIM(0.04),
                 scale: 1.02,
               }}
               whileTap={{ scale: 0.97 }}
             >
-              {/* Telegram icon */}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
               </svg>
@@ -188,10 +186,7 @@ const CTASection = () => {
             className="flex flex-wrap items-center justify-center gap-6 sm:gap-10"
           >
             {trustItems.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center gap-2"
-              >
+              <div key={item.label} className="flex items-center gap-2">
                 <span className="text-base">{item.icon}</span>
                 <span
                   className="text-xs font-medium"
@@ -203,14 +198,14 @@ const CTASection = () => {
             ))}
           </motion.div>
 
-          {/* Decorative gold line */}
+          {/* Decorative line */}
           <motion.div
             variants={itemVariants}
             className="mt-16 mx-auto"
             style={{
               width: 1,
               height: 48,
-              background: "linear-gradient(to bottom, rgba(242,178,58,0.3), transparent)",
+              background: `linear-gradient(to bottom, ${CYAN_DIM(0.30)}, transparent)`,
               marginLeft: "auto",
               marginRight: "auto",
             }}

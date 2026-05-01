@@ -19,7 +19,7 @@ const Home = () => {
       minHeight: '100vh', 
       fontFamily: 'Inter, sans-serif',
       color: 'white',
-      backgroundColor: '#0F172A',
+      backgroundColor: 'var(--bg)',
       overflowX: 'hidden'
     }}>
       <Helmet>

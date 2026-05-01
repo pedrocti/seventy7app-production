@@ -1,5 +1,8 @@
 import { useLocation } from "wouter";
 
+const CYAN     = "#0AEFFF";
+const CYAN_DIM = (a: number) => `rgba(10,239,255,${a})`;
+
 const socialLinks = [
   {
     name: "Telegram",
@@ -61,27 +64,27 @@ const navColumns = [
   {
     label: "Platform",
     links: [
-      { name: "Dashboard", href: "/dashboard" },
-      { name: "Staking", href: "/invest" },
-      { name: "Portfolio", href: "/portfolio" },
-      { name: "Signals", href: "/signal" },
-      { name: "Learning", href: "/learning" },
+      { name: "Dashboard",  href: "/dashboard" },
+      { name: "Staking",    href: "/invest" },
+      { name: "Portfolio",  href: "/portfolio" },
+      { name: "Signals",    href: "/signal" },
+      { name: "Learning",   href: "/learning" },
     ],
   },
   {
     label: "Company",
     links: [
-      { name: "About", href: "#about" },
-      { name: "Mentorship", href: "/mentorship" },
-      { name: "Blog", href: "#blog" },
+      { name: "About",       href: "#about" },
+      { name: "Mentorship",  href: "/mentorship" },
+      { name: "Blog",        href: "#blog" },
     ],
   },
   {
     label: "Legal",
     links: [
-      { name: "Privacy Policy", href: "/privacy-policy", isRoute: true },
-      { name: "Terms of Service", href: "/terms-of-service", isRoute: true },
-      { name: "Disclaimer", href: "/disclaimer", isRoute: true },
+      { name: "Privacy Policy",    href: "/privacy-policy",    isRoute: true },
+      { name: "Terms of Service",  href: "/terms-of-service",  isRoute: true },
+      { name: "Disclaimer",        href: "/disclaimer",        isRoute: true },
     ],
   },
 ];
@@ -93,17 +96,15 @@ const Footer = () => {
     <footer
       style={{
         background: "#080C14",
-        borderTop: "1px solid rgba(242,178,58,0.08)",
+        borderTop: `1px solid ${CYAN_DIM(0.08)}`,
         fontFamily: '"Inter", sans-serif',
       }}
     >
-      {/* Main footer grid */}
       <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
 
           {/* Brand column */}
           <div className="lg:col-span-2">
-            {/* Logo mark */}
             <div className="mb-5">
               <button
                 type="button"
@@ -112,7 +113,7 @@ const Footer = () => {
               >
                 <span
                   style={{
-                    color: "#F2B23A",
+                    color: CYAN,
                     fontFamily: '"Space Grotesk", sans-serif',
                     fontWeight: 700,
                     fontSize: "1.5rem",
@@ -124,7 +125,7 @@ const Footer = () => {
                 </span>
                 <span
                   style={{
-                    color: "rgba(242,178,58,0.35)",
+                    color: CYAN_DIM(0.35),
                     fontSize: "0.65rem",
                     letterSpacing: "0.15em",
                     textTransform: "uppercase",
@@ -160,14 +161,14 @@ const Footer = () => {
                     color: "rgba(232,237,245,0.4)",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(242,178,58,0.08)";
-                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(242,178,58,0.2)";
-                    (e.currentTarget as HTMLElement).style.color = "#F2B23A";
+                    (e.currentTarget as HTMLElement).style.background  = CYAN_DIM(0.08);
+                    (e.currentTarget as HTMLElement).style.borderColor = CYAN_DIM(0.22);
+                    (e.currentTarget as HTMLElement).style.color       = CYAN;
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "rgba(232,237,245,0.04)";
+                    (e.currentTarget as HTMLElement).style.background  = "rgba(232,237,245,0.04)";
                     (e.currentTarget as HTMLElement).style.borderColor = "rgba(232,237,245,0.07)";
-                    (e.currentTarget as HTMLElement).style.color = "rgba(232,237,245,0.4)";
+                    (e.currentTarget as HTMLElement).style.color       = "rgba(232,237,245,0.4)";
                   }}
                 >
                   {s.icon}
@@ -182,7 +183,7 @@ const Footer = () => {
               <h4
                 className="text-xs font-semibold tracking-widest uppercase mb-5"
                 style={{
-                  color: "#F2B23A",
+                  color: CYAN,
                   fontFamily: '"Space Grotesk", sans-serif',
                 }}
               >
@@ -197,12 +198,8 @@ const Footer = () => {
                         onClick={() => setLocation(link.href)}
                         className="text-sm text-left transition-colors duration-200"
                         style={{ color: "rgba(232,237,245,0.4)" }}
-                        onMouseEnter={(e) =>
-                          ((e.target as HTMLElement).style.color = "#F2B23A")
-                        }
-                        onMouseLeave={(e) =>
-                          ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.4)")
-                        }
+                        onMouseEnter={(e) => ((e.target as HTMLElement).style.color = CYAN)}
+                        onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.4)")}
                       >
                         {link.name}
                       </button>
@@ -211,12 +208,8 @@ const Footer = () => {
                         href={link.href}
                         className="text-sm transition-colors duration-200"
                         style={{ color: "rgba(232,237,245,0.4)" }}
-                        onMouseEnter={(e) =>
-                          ((e.target as HTMLElement).style.color = "#F2B23A")
-                        }
-                        onMouseLeave={(e) =>
-                          ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.4)")
-                        }
+                        onMouseEnter={(e) => ((e.target as HTMLElement).style.color = CYAN)}
+                        onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.4)")}
                       >
                         {link.name}
                       </a>
@@ -238,7 +231,7 @@ const Footer = () => {
             <a
               href="mailto:support@seventy7hub.com"
               style={{ color: "rgba(232,237,245,0.35)" }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#F2B23A")}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = CYAN)}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.35)")}
             >
               support@seventy7hub.com
@@ -246,7 +239,7 @@ const Footer = () => {
             <a
               href="tel:+447887649072"
               style={{ color: "rgba(232,237,245,0.35)" }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#F2B23A")}
+              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = CYAN)}
               onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(232,237,245,0.35)")}
             >
               +44 7887 649072
@@ -255,9 +248,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom bar */}
-        <div
-          className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3"
-        >
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p
             className="text-xs"
             style={{ color: "rgba(232,237,245,0.2)", fontFamily: '"Inter", sans-serif' }}
