@@ -1,334 +1,487 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useState, useRef, useMemo, useCallback, CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CandlestickBackground from './CandlestickBackground';
 
 /* ═══════════════════════════════════════════════════════════
-   MARKET INSTRUMENTS
-   — Crypto: Bybit WebSocket (real-time)
-   — Forex/Gold: Frankfurter + metals-api polling (30s)
+   CAPITAL PROJECTION SIMULATOR
+   Institutional-grade, not hype. Pure simulation.
 ═══════════════════════════════════════════════════════════ */
-interface Instrument {
-  id:       string;
-  sym:      string;
-  label:    string;
-  type:     'crypto' | 'forex' | 'gold';
-  bybit?:   string;   // Bybit symbol e.g. "BTCUSDT"
-  price:    number | null;
-  change:   number | null;
-  prevClose:number | null;
-  spark:    number[];
+
+interface StrategyConfig {
+  low:        number;
+  mid:        number;
+  high:       number;
+  label:      string;
+  sublabel:   string;
+  color:      string;
+  rgb:        string;
 }
 
-const INSTRUMENTS: Instrument[] = [
-  { id:'btc',    sym:'BTC/USD', label:'Bitcoin',    type:'crypto', bybit:'BTCUSDT',  price:null, change:null, prevClose:null, spark:[] },
-  { id:'eth',    sym:'ETH/USD', label:'Ethereum',   type:'crypto', bybit:'ETHUSDT',  price:null, change:null, prevClose:null, spark:[] },
-  { id:'sol',    sym:'SOL/USD', label:'Solana',     type:'crypto', bybit:'SOLUSDT',  price:null, change:null, prevClose:null, spark:[] },
-  { id:'xrp',    sym:'XRP/USD', label:'XRP',        type:'crypto', bybit:'XRPUSDT',  price:null, change:null, prevClose:null, spark:[] },
-  { id:'xau',    sym:'XAU/USD', label:'Gold',       type:'gold',                      price:null, change:null, prevClose:null, spark:[] },
-  { id:'gbpusd', sym:'GBP/USD', label:'Pound',      type:'forex',                     price:null, change:null, prevClose:null, spark:[] },
-  { id:'eurusd', sym:'EUR/USD', label:'Euro',       type:'forex',                     price:null, change:null, prevClose:null, spark:[] },
-  { id:'usdjpy', sym:'USD/JPY', label:'Yen',        type:'forex',                     price:null, change:null, prevClose:null, spark:[] },
-];
+const STRATEGIES: Record<'conservative' | 'balanced' | 'aggressive', StrategyConfig> = {
+  conservative: {
+    low: 0.055, mid: 0.115, high: 0.19,
+    label: 'Conservative', sublabel: 'Capital Preservation Focus',
+    color: '#7aa4e8', rgb: '122,164,232',
+  },
+  balanced: {
+    low: 0.10, mid: 0.22, high: 0.38,
+    label: 'Balanced', sublabel: 'Growth & Stability Mix',
+    color: '#F2B23A', rgb: '242,178,58',
+  },
+  aggressive: {
+    low: 0.18, mid: 0.42, high: 0.78,
+    label: 'Aggressive', sublabel: 'High-Conviction Growth',
+    color: '#3dd68c', rgb: '61,214,140',
+  },
+};
 
-/* ── Format price by instrument type ── */
-function fmt(price: number, type: string): string {
-  if (type === 'forex') return price.toFixed(4);
-  if (type === 'forex' && price > 20) return price.toFixed(2); 
-  if (type === 'gold')   return `$${price.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
-  if (price >= 10000) return `$${price.toLocaleString('en-US', { maximumFractionDigits:0 })}`;
-  if (price >= 1)     return `$${price.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
-  return `$${price.toFixed(4)}`;
+const HORIZONS = [1, 2, 3, 5] as const;
+
+function fmtCap(v: number): string {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
+  if (v >= 100_000)   return `$${Math.round(v / 1000)}K`;
+  if (v >= 1_000)     return `$${Math.round(v).toLocaleString('en-US')}`;
+  return `$${v.toFixed(0)}`;
 }
 
-/* ── Sparkline SVG ── */
-function Sparkline({ data, up }: { data: number[]; up: boolean }) {
-  if (data.length < 2) {
-    return <div style={{ width:64, height:24 }} />;
+function fmtPct(v: number): string {
+  return v >= 0 ? `+${v.toFixed(1)}%` : `${v.toFixed(1)}%`;
+}
+
+/* ── Projection Band Chart ── */
+interface ProjPoint { t: number; low: number; mid: number; high: number; }
+
+function ProjectionChart({
+  points, color, rgb, hoverIdx, onHover, onLeave,
+}: {
+  points:   ProjPoint[];
+  color:    string;
+  rgb:      string;
+  hoverIdx: number | null;
+  onHover:  (idx: number) => void;
+  onLeave:  () => void;
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const N      = points.length - 1;
+
+  const W = 460, H = 160;
+  const PAD = { top: 8, right: 14, bottom: 26, left: 56 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+
+  const allVals = points.flatMap(p => [p.low, p.mid, p.high]);
+  const base    = points[0].low;
+  const maxVal  = Math.max(...allVals);
+  const minVal  = base - (maxVal - base) * 0.08;
+  const range   = maxVal - minVal || 1;
+
+  const toX = (i: number) => PAD.left + (i / N) * cW;
+  const toY = (v: number) => PAD.top  + cH - ((v - minVal) / range) * cH;
+
+  function linePts(key: 'low' | 'mid' | 'high') {
+    return points.map((p, i) =>
+      `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p[key]).toFixed(1)}`
+    ).join(' ');
   }
-  const w = 64, h = 24;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 2) - 1;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  });
-  const line = `M${pts.join(' L')}`;
-  const area = `M0,${h} L${pts.join(' L')} L${w},${h} Z`;
-  const c = up ? '#0ECB81' : '#F6465D';
-  const uid = data[0]?.toFixed(0) ?? '0';
+
+  function bandFill() {
+    const fwd = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.high).toFixed(1)}`).join(' ');
+    const rev = [...points].reverse().map((p, i) =>
+      `L${toX(N - i).toFixed(1)},${toY(p.low).toFixed(1)}`
+    ).join(' ');
+    return `${fwd}${rev}Z`;
+  }
+
+  function innerBandFill() {
+    const fwd = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${toX(i).toFixed(1)},${toY(p.mid).toFixed(1)}`).join(' ');
+    const rev = [...points].reverse().map((p, i) =>
+      `L${toX(N - i).toFixed(1)},${toY(points[N - i].low).toFixed(1)}`
+    ).join(' ');
+    return `${fwd}${rev}Z`;
+  }
+
+  /* Y-axis ticks */
+  const yTicks = [
+    minVal + range * 0.05,
+    minVal + range * 0.35,
+    minVal + range * 0.65,
+    minVal + range * 0.93,
+  ];
+
+  /* X-axis ticks: every year */
+  const maxYrs = N / 12;
+  const xTicks = Array.from({ length: Math.floor(maxYrs) + 1 }, (_, i) => i);
+
+  /* Mouse interaction */
+  const handleMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x   = (e.clientX - rect.left) / rect.width * W;
+    const raw = Math.round(((x - PAD.left) / cW) * N);
+    onHover(Math.max(0, Math.min(N, raw)));
+  }, [N, cW, onHover]);
+
+  const hp = hoverIdx !== null ? points[Math.max(0, Math.min(hoverIdx, N))] : null;
+  const hx = hoverIdx !== null ? toX(Math.max(0, Math.min(hoverIdx, N))) : null;
+
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="lmp-spark">
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      preserveAspectRatio="xMidYMid meet"
+      className="cps-svg"
+      onMouseMove={handleMove}
+      onMouseLeave={onLeave}
+    >
       <defs>
-        <linearGradient id={`sg${uid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={c} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={c} stopOpacity="0"   />
+        <linearGradient id="cps-band-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.03" />
         </linearGradient>
+        <linearGradient id="cps-inner-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.10" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+        <linearGradient id="cps-mid-grad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"   stopColor={color} stopOpacity="0.25" />
+          <stop offset="70%"  stopColor={color} stopOpacity="0.9"  />
+          <stop offset="100%" stopColor={color} stopOpacity="1"    />
+        </linearGradient>
+        <filter id="cps-glow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
       </defs>
-      <path d={area} fill={`url(#sg${uid})`} />
-      <path d={line} fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
+
+      {/* Grid */}
+      {yTicks.map((tick, i) => (
+        <g key={i}>
+          <line
+            x1={PAD.left} y1={toY(tick)}
+            x2={PAD.left + cW} y2={toY(tick)}
+            stroke="rgba(255,255,255,0.04)" strokeWidth="1"
+          />
+          <text
+            x={PAD.left - 5} y={toY(tick) + 3.5}
+            fill="rgba(255,255,255,0.22)" fontSize="8"
+            textAnchor="end" fontFamily="var(--font-mono)"
+          >
+            {fmtCap(tick)}
+          </text>
+        </g>
+      ))}
+
+      {/* X labels */}
+      {xTicks.map(yr => (
+        <text
+          key={yr}
+          x={toX(yr * 12)} y={H - 7}
+          fill="rgba(255,255,255,0.22)" fontSize="8"
+          textAnchor="middle" fontFamily="var(--font-mono)"
+        >
+          {yr === 0 ? 'NOW' : `Y${yr}`}
+        </text>
+      ))}
+
+      {/* Axis baseline */}
+      <line
+        x1={PAD.left} y1={PAD.top + cH}
+        x2={PAD.left + cW} y2={PAD.top + cH}
+        stroke="rgba(255,255,255,0.06)" strokeWidth="1"
+      />
+
+      {/* Outer band fill */}
+      <path d={bandFill()} fill="url(#cps-band-grad)" />
+
+      {/* Inner band fill (low → mid) */}
+      <path d={innerBandFill()} fill="url(#cps-inner-grad)" />
+
+      {/* Upper bound — dashed */}
+      <path d={linePts('high')} fill="none"
+        stroke={color} strokeWidth="1" strokeOpacity="0.30"
+        strokeDasharray="3 4"
+      />
+
+      {/* Lower bound — dashed */}
+      <path d={linePts('low')} fill="none"
+        stroke={color} strokeWidth="1" strokeOpacity="0.30"
+        strokeDasharray="3 4"
+      />
+
+      {/* Mid line — primary, glowing */}
+      <path d={linePts('mid')} fill="none"
+        stroke={color} strokeWidth="1.5" strokeOpacity="0.3"
+        filter="url(#cps-glow)"
+      />
+      <path d={linePts('mid')} fill="none"
+        stroke="url(#cps-mid-grad)" strokeWidth="2"
+        strokeLinecap="round"
+      />
+
+      {/* Terminal endpoints */}
+      <circle cx={toX(N)} cy={toY(points[N].high)} r="2.5"
+        fill={color} fillOpacity="0.5" />
+      <circle cx={toX(N)} cy={toY(points[N].low)} r="2.5"
+        fill={color} fillOpacity="0.5" />
+      <circle cx={toX(N)} cy={toY(points[N].mid)} r="4"
+        fill={color} />
+      <circle cx={toX(N)} cy={toY(points[N].mid)} r="6.5"
+        fill={color} fillOpacity="0.15" />
+
+      {/* Hover crosshair */}
+      {hp && hx !== null && (
+        <g>
+          <line
+            x1={hx} y1={PAD.top}
+            x2={hx} y2={PAD.top + cH}
+            stroke="rgba(255,255,255,0.10)"
+            strokeWidth="1" strokeDasharray="2 3"
+          />
+          <circle cx={hx} cy={toY(hp.high)} r="2.5" fill={color} fillOpacity="0.55" />
+          <circle cx={hx} cy={toY(hp.mid)}  r="3.5" fill={color} />
+          <circle cx={hx} cy={toY(hp.low)}  r="2.5" fill={color} fillOpacity="0.55" />
+
+          {/* Time label above crosshair */}
+          <rect
+            x={hx - 18} y={PAD.top - 1}
+            width="36" height="13"
+            rx="2"
+            fill="rgba(10,15,35,0.85)"
+            stroke={`rgba(${rgb},0.25)`}
+            strokeWidth="1"
+          />
+          <text
+            x={hx} y={PAD.top + 9}
+            fill={color} fontSize="7.5"
+            textAnchor="middle" fontFamily="var(--font-mono)"
+          >
+            {hp.t < 0.1 ? 'NOW' : `Y${hp.t.toFixed(1)}`}
+          </text>
+        </g>
+      )}
     </svg>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════
-   LIVE MARKET PANEL
+   CAPITAL PROJECTION SIMULATOR — main component
 ═══════════════════════════════════════════════════════════ */
-function LiveMarketPanel() {
-  const [instruments, setInstruments] = useState<Instrument[]>(INSTRUMENTS);
-  const [active, setActive]           = useState(0);
-  const [status, setStatus]           = useState<'loading' | 'live' | 'error'>('loading');
-  const wsRef    = useRef<WebSocket | null>(null);
-  const sparks   = useRef<Record<string, number[]>>({});
-  const mounted  = useRef(true);
+function CapitalProjectionSimulator() {
+  const [rawCapital, setRawCapital] = useState(25000);
+  const [displayVal, setDisplayVal] = useState('25,000');
+  const [strategy,   setStrategy]   = useState<'conservative' | 'balanced' | 'aggressive'>('balanced');
+  const [horizon,    setHorizon]     = useState<typeof HORIZONS[number]>(3);
+  const [hoverIdx,   setHoverIdx]    = useState<number | null>(null);
 
-  /* ── Update helper ── */
-  const update = useCallback((id: string, price: number, change: number | null) => {
-    if (!mounted.current) return;
-    // Build sparkline
-    if (!sparks.current[id]) sparks.current[id] = [];
-    sparks.current[id].push(price);
-    if (sparks.current[id].length > 24) sparks.current[id].shift();
+  const s = STRATEGIES[strategy];
+  const N = horizon * 12;
 
-    setInstruments(prev => prev.map(inst =>
-      inst.id !== id ? inst : {
-        ...inst,
-        price,
-        change: change ?? inst.change,
-        spark:  [...sparks.current[id]],
-      }
-    ));
-  }, []);
-
-  /* ── BYBIT WebSocket — crypto pairs ── */
-  useEffect(() => {
-    mounted.current = true;
-    let pingInterval: ReturnType<typeof setInterval>;
-    let reconnectTimeout: ReturnType<typeof setTimeout>;
-
-    function connect() {
-      const ws = new WebSocket('wss://stream.bybit.com/v5/public/spot');
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        // Subscribe to all crypto tickers
-        const cryptoSymbols = INSTRUMENTS
-          .filter(i => i.type === 'crypto')
-          .map(i => `tickers.${i.bybit}`);
-
-        ws.send(JSON.stringify({
-          op:   'subscribe',
-          args: cryptoSymbols,
-        }));
-
-        // Bybit requires ping every 20s
-        pingInterval = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ op: 'ping' }));
-          }
-        }, 20000);
-
-        if (mounted.current) setStatus('live');
+  const points = useMemo<ProjPoint[]>(() =>
+    Array.from({ length: N + 1 }, (_, i) => {
+      const t = i / 12;
+      return {
+        t,
+        low:  rawCapital * Math.pow(1 + s.low,  t),
+        mid:  rawCapital * Math.pow(1 + s.mid,  t),
+        high: rawCapital * Math.pow(1 + s.high, t),
       };
+    }),
+    [rawCapital, s, N]
+  );
 
-      ws.onmessage = (e) => {
-        try {
-          const msg = JSON.parse(e.data);
-          // Ignore pong and subscription confirmations
-          if (msg.op === 'pong' || msg.op === 'subscribe') return;
-          if (!msg.data || !msg.topic) return;
+  const clampedIdx = hoverIdx !== null ? Math.max(0, Math.min(hoverIdx, N)) : null;
+  const activePt   = clampedIdx !== null ? points[clampedIdx] : points[N];
 
-          const d = msg.data;
-          const bybitSym = msg.topic.replace('tickers.', '');
-          const inst = INSTRUMENTS.find(i => i.bybit === bybitSym);
-          if (!inst) return;
+  const pctLow  = (activePt.low  / rawCapital - 1) * 100;
+  const pctMid  = (activePt.mid  / rawCapital - 1) * 100;
+  const pctHigh = (activePt.high / rawCapital - 1) * 100;
 
-          const price  = parseFloat(d.lastPrice);
-          const change = parseFloat(d.price24hPcnt) * 100;
-          if (isNaN(price)) return;
+  /* Capital input handlers */
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    setDisplayVal(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num > 0) setRawCapital(num);
+  }
 
-          update(inst.id, price, change);
-          if (mounted.current) setStatus('live');
-        } catch { /* ignore parse errors */ }
-      };
+  function handleFocus() {
+    setDisplayVal(rawCapital.toString());
+  }
 
-      ws.onerror = () => {
-        if (mounted.current) setStatus('error');
-      };
+  function handleBlur() {
+    const num = parseInt(displayVal.replace(/[^0-9]/g, ''), 10);
+    const clamped = isNaN(num) || num < 100 ? 1000 : Math.min(num, 99_000_000);
+    setRawCapital(clamped);
+    setDisplayVal(clamped.toLocaleString('en-US'));
+  }
 
-      ws.onclose = () => {
-        clearInterval(pingInterval);
-        // Auto-reconnect after 3s
-        if (mounted.current) {
-          setStatus('error');
-          reconnectTimeout = setTimeout(connect, 3000);
-        }
-      };
-    }
-
-    connect();
-
-    return () => {
-      mounted.current = false;
-      clearInterval(pingInterval);
-      clearTimeout(reconnectTimeout);
-      wsRef.current?.close();
-    };
-  }, [update]);
-
-
-  /* ── BACKEND WebSocket — forex + gold + crypto sync ── */
-  useEffect(() => {
-    let reconnectTimeout: ReturnType<typeof setTimeout>;
-
-    function connectBackend() {
-      const ws = new WebSocket(
-        import.meta.env.PROD
-          ? `wss://${window.location.host}`
-          : `ws://localhost:3100`
-      );
-
-      ws.onopen = () => {
-        console.log('[WS] Backend connected');
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          // crypto (optional override)
-          if (data.btc) update('btc', data.btc.price, data.btc.change);
-          if (data.eth) update('eth', data.eth.price, data.eth.change);
-          if (data.sol) update('sol', data.sol.price, data.sol.change);
-          if (data.xrp) update('xrp', data.xrp.price, data.xrp.change);
-
-          // forex
-          if (data.gbpusd) update('gbpusd', data.gbpusd.price, null);
-          if (data.eurusd) update('eurusd', data.eurusd.price, null);
-          if (data.usdjpy) update('usdjpy', data.usdjpy.price, null);
-
-          // gold
-          if (data.xau) update('xau', data.xau.price, null);
-
-        } catch (err) {
-          console.error('[WS] Parse error', err);
-        }
-      };
-
-      ws.onclose = () => {
-        reconnectTimeout = setTimeout(connectBackend, 3000);
-      };
-
-      ws.onerror = () => {
-        ws.close();
-      };
-    }
-
-    connectBackend();
-
-    return () => {
-      clearTimeout(reconnectTimeout);
-    };
-  }, [update]);
-
-  const selected = instruments[active];
-  const up = (selected.change ?? 0) >= 0;
+  const presets = [5_000, 25_000, 100_000, 500_000];
 
   return (
     <motion.div
-      className="lmp-wrap"
-      initial={{ opacity: 0, x: 20 }}
+      className="cps-wrap"
+      initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+      transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
     >
-      {/* Header */}
-      <div className="lmp-header">
-        <div className="lmp-header-left">
-          <span className={`lmp-dot lmp-dot--${status}`} />
-          <span className="lmp-header-label">
-            {status === 'loading' ? 'Connecting…'
-            : status === 'error'   ? 'Reconnecting…'
-            : 'Live Markets'}
-          </span>
+      {/* ── Header ── */}
+      <div className="cps-header">
+        <div className="cps-header-left">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="cps-header-icon-svg">
+            <path d="M6 1L7.5 4.5H11L8.5 7L9.5 11L6 9L2.5 11L3.5 7L1 4.5H4.5L6 1Z"
+              fill="currentColor" fillOpacity="0.7" />
+          </svg>
+          <span className="cps-header-title">Capital Projection Tool</span>
         </div>
-        <span className="lmp-badge">Bybit · ER-API</span>
+        <span className="cps-disclaimer-badge">Simulation · Not Advice</span>
       </div>
 
-      {/* Hero price — selected instrument */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={active}
-          className="lmp-hero"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.25 }}
-        >
-          <div className="lmp-hero-top">
-            <span className="lmp-hero-sym">{selected.sym}</span>
-            <span className="lmp-hero-label">{selected.label}</span>
-            <span className={`lmp-hero-type lmp-hero-type--${selected.type}`}>
-              {selected.type === 'gold' ? 'Metal' : selected.type === 'forex' ? 'Forex' : 'Crypto'}
-            </span>
+      {/* ── Controls ── */}
+      <div className="cps-controls">
+        {/* Capital input */}
+        <div className="cps-input-group">
+          <label className="cps-label">Deployment Capital</label>
+          <div className="cps-input-row">
+            <div className="cps-input-wrap">
+              <span className="cps-currency-sign">$</span>
+              <input
+                className="cps-input"
+                type="text"
+                inputMode="numeric"
+                value={displayVal}
+                onChange={handleInputChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder="25,000"
+              />
+            </div>
+            <div className="cps-presets">
+              {presets.map(p => (
+                <button
+                  key={p}
+                  className={`cps-preset-btn ${rawCapital === p ? 'cps-preset-btn--active' : ''}`}
+                  onClick={() => {
+                    setRawCapital(p);
+                    setDisplayVal(p.toLocaleString('en-US'));
+                  }}
+                >
+                  {p >= 1000 ? `${p / 1000}K` : p}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="lmp-hero-bottom">
-            <span className="lmp-hero-price">
-              {selected.price !== null
-                ? fmt(selected.price, selected.id)
-                : <span className="lmp-loading-bar" />}
-            </span>
-            {selected.change !== null && (
-              <span className={`lmp-hero-chg ${selected.change >= 0 ? 'lmp-up' : 'lmp-dn'}`}>
-                {selected.change >= 0 ? '▲' : '▼'} {Math.abs(selected.change).toFixed(2)}%
-              </span>
-            )}
+        </div>
+
+        {/* Strategy + Horizon */}
+        <div className="cps-selector-grid">
+          <div className="cps-selector-col">
+            <label className="cps-label">Risk Profile</label>
+            <div className="cps-pills">
+              {(['conservative', 'balanced', 'aggressive'] as const).map(k => (
+                <button
+                  key={k}
+                  className={`cps-pill cps-pill--${k} ${strategy === k ? 'cps-pill--active' : ''}`}
+                  onClick={() => setStrategy(k)}
+                >
+                  {k === 'conservative' ? 'Cons.' : k === 'balanced' ? 'Balanced' : 'Aggr.'}
+                </button>
+              ))}
+            </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
+          <div className="cps-selector-col">
+            <label className="cps-label">Horizon</label>
+            <div className="cps-pills">
+              {HORIZONS.map(h => (
+                <button
+                  key={h}
+                  className={`cps-pill cps-pill--horizon ${horizon === h ? 'cps-pill--active cps-pill--horizon-active' : ''}`}
+                  onClick={() => setHorizon(h)}
+                >
+                  {h}Y
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Divider */}
-      <div className="lmp-divider" />
+      {/* ── Band Chart ── */}
+      <div className="cps-chart-area">
+        <ProjectionChart
+          points={points}
+          color={s.color}
+          rgb={s.rgb}
+          hoverIdx={hoverIdx}
+          onHover={setHoverIdx}
+          onLeave={() => setHoverIdx(null)}
+        />
+      </div>
 
-      {/* Instrument rows */}
-      <div className="lmp-rows">
-        {instruments.map((inst, i) => {
-          const iup = (inst.change ?? 0) >= 0;
-          const isActive = i === active;
-          return (
-            <button
-              key={inst.id}
-              className={`lmp-row ${isActive ? 'lmp-row--active' : ''}`}
-              onClick={() => setActive(i)}
+      {/* ── Output bands ── */}
+      <div className="cps-outputs">
+        <div className="cps-out-card cps-out-card--floor">
+          <span className="cps-out-tag">Floor</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={fmtCap(activePt.low)}
+              className="cps-out-val"
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
             >
-              <div className="lmp-row-info">
-                <span className="lmp-row-sym">{inst.sym}</span>
-                <span className="lmp-row-name">{inst.label}</span>
-              </div>
+              {fmtCap(activePt.low)}
+            </motion.span>
+          </AnimatePresence>
+          <span className="cps-out-delta">{fmtPct(pctLow)}</span>
+        </div>
 
-              <Sparkline data={inst.spark} up={iup} />
+        <div className="cps-out-card cps-out-card--mid" style={{ '--s-color': s.color, '--s-rgb': s.rgb } as CSSProperties}>
+          <span className="cps-out-tag cps-out-tag--primary">Expected</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={fmtCap(activePt.mid)}
+              className="cps-out-val cps-out-val--primary"
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {fmtCap(activePt.mid)}
+            </motion.span>
+          </AnimatePresence>
+          <span className="cps-out-delta cps-out-delta--primary">{fmtPct(pctMid)}</span>
+        </div>
 
-              <div className="lmp-row-nums">
-                <span className="lmp-row-price">
-                  {inst.price !== null ? fmt(inst.price, inst.id) : '—'}
-                </span>
-                {inst.change !== null ? (
-                  <span className={`lmp-row-chg ${iup ? 'lmp-up' : 'lmp-dn'}`}>
-                    {iup ? '+' : ''}{inst.change.toFixed(2)}%
-                  </span>
-                ) : (
-                  <span className="lmp-row-chg lmp-muted">—</span>
-                )}
-              </div>
-            </button>
-          );
-        })}
+        <div className="cps-out-card cps-out-card--ceil">
+          <span className="cps-out-tag">Ceiling</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={fmtCap(activePt.high)}
+              className="cps-out-val"
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              {fmtCap(activePt.high)}
+            </motion.span>
+          </AnimatePresence>
+          <span className="cps-out-delta">{fmtPct(pctHigh)}</span>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="lmp-footer">
-        <span className="lmp-footer-text">
-          Crypto · Bybit &nbsp;|&nbsp; Forex &amp; Gold · ER-API
+      {/* ── Footer ── */}
+      <div className="cps-footer">
+        <span className="cps-footer-text">
+          {s.label} · {horizon}Y Horizon · {s.low * 100}–{s.high * 100}% annualised band
+        </span>
+        <span className="cps-footer-text cps-footer-right">
+          {hoverIdx !== null && clampedIdx !== null
+            ? `T+${points[clampedIdx].t.toFixed(1)}yr`
+            : `T+${horizon}yr`
+          }
         </span>
       </div>
     </motion.div>
@@ -412,8 +565,8 @@ export default function HeroSection() {
 
           </motion.div>
 
-          {/* RIGHT — live market panel */}
-          <LiveMarketPanel />
+          {/* RIGHT — capital projection simulator */}
+          <CapitalProjectionSimulator />
 
         </div>
       </div>
