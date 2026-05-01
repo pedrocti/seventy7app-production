@@ -10,6 +10,9 @@ import {
 import { eq, sql } from "drizzle-orm";
 import { auth } from "./utils";
 
+// OPTIONAL: if notifications exist
+import { createNotification } from "../utils/notifications";
+
 const router = Router();
 
 // Apply auth middleware
@@ -23,6 +26,11 @@ const subFromColumn = (col: any, amt: number) =>
 // POST /api/invest
 // --------------------------------------------------
 router.post("/", async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
   const { plan_id, amount, use_bonus } = req.body;
   const numAmount = Number(amount);
 
@@ -54,7 +62,7 @@ router.post("/", async (req, res) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, req.user.id));
+      .where(eq(users.id, userId));
 
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
@@ -69,6 +77,7 @@ router.post("/", async (req, res) => {
     if (use_bonus) {
       fromBonus = Math.min(bonusBalance, numAmount);
       fromMain = Math.max(0, numAmount - fromBonus);
+
       if (mainBalance < fromMain) {
         return res.status(400).json({
           success: false,
@@ -86,29 +95,32 @@ router.post("/", async (req, res) => {
 
     const startAt = new Date();
 
-    // Deduct balances
-    await db
-      .update(users)
-      .set({
-        balance: subFromColumn(users.balance, fromMain),
-        bonus_balance: subFromColumn(users.bonus_balance, fromBonus),
-      })
-      .where(eq(users.id, req.user.id));
+    // Deduct balances + create investment in transaction
+    const [inserted] = await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          balance: subFromColumn(users.balance, fromMain),
+          bonus_balance: subFromColumn(users.bonus_balance, fromBonus),
+        })
+        .where(eq(users.id, userId));
 
-    // Create investment
-    const inserted = await db
-      .insert(investments)
-      .values({
-        user_id: req.user.id,
-        plan_id,
-        amount: numAmount.toString(),
-        status: "active",
-        progress: "0.00",
-        profit_loss: "0.00",
-        start_at: startAt,
-        duration_days: plan.duration_days ?? 0,
-      })
-      .returning();
+      const inv = await tx
+        .insert(investments)
+        .values({
+          user_id: userId,
+          plan_id,
+          amount: numAmount.toString(),
+          status: "active",
+          progress: "0.00",
+          profit_loss: "0.00",
+          start_at: startAt,
+          duration_days: plan.duration_days ?? 0,
+        })
+        .returning();
+
+      return inv;
+    });
 
     // --------------------------------------------------
     // REFERRAL BONUS (FIRST INVESTMENT ONLY)
@@ -116,7 +128,7 @@ router.post("/", async (req, res) => {
     const existingInvestments = await db
       .select({ id: investments.id })
       .from(investments)
-      .where(eq(investments.user_id, req.user.id))
+      .where(eq(investments.user_id, userId))
       .limit(2);
 
     const isFirstInvestment = existingInvestments.length === 1;
@@ -144,8 +156,22 @@ router.post("/", async (req, res) => {
         type: "referral_bonus",
         amount: String(Math.round(bonusAmount * 100)),
         status: "completed",
-        details: { source_investment_id: inserted[0].id },
+        reference: `referral_bonus_${Date.now()}`,
+        details: { source_investment_id: inserted.id },
       });
+    }
+
+    // ---------------------------
+    // NOTIFY USER: INVESTMENT CREATED
+    // ---------------------------
+    try {
+      await createNotification(
+        userId,
+        "Investment Activated",
+        `Your investment of $${numAmount.toLocaleString()} has been activated.`
+      );
+    } catch (err) {
+      console.warn("Notification failed:", err);
     }
 
     // Fetch updated balances
@@ -155,17 +181,18 @@ router.post("/", async (req, res) => {
         bonus_balance: users.bonus_balance,
       })
       .from(users)
-      .where(eq(users.id, req.user.id));
+      .where(eq(users.id, userId));
 
     return res.json({
       success: true,
       message: "Investment activated",
-      investment: inserted[0] || null,
+      investment: inserted || null,
       balances: {
         balance: Number(updatedUser?.balance ?? 0),
         bonus_balance: Number(updatedUser?.bonus_balance ?? 0),
       },
     });
+
   } catch (err) {
     console.error("Invest error:", err);
     return res
@@ -178,6 +205,11 @@ router.post("/", async (req, res) => {
 // GET /api/investments
 // --------------------------------------------------
 router.get("/", async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
   try {
     const rows = await db
       .select({
@@ -196,7 +228,7 @@ router.get("/", async (req, res) => {
       })
       .from(investments)
       .leftJoin(plans, eq(plans.id, investments.plan_id))
-      .where(eq(investments.user_id, req.user.id));
+      .where(eq(investments.user_id, userId));
 
     const investmentsWithEndDate = rows.map((inv) => {
       const start = inv.start_at ? new Date(inv.start_at) : null;

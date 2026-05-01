@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthContext";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
+
 const networks = ["TRC20 (USDT)", "ERC20 (USDT)", "BTC", "ETH", "BNB"];
 
 export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

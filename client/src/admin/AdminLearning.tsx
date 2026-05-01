@@ -6,13 +6,13 @@ import AdminLessonsView from "./learning/AdminLessonsView";
 import AdminLessonDetail from "./learning/AdminLessonDetail";
 import AdminAssignmentManage from "./learning/AdminAssignmentManage";
 
-// Interfaces
 interface Program {
   id: number;
   title: string;
   description: string | null;
   price: string;
   duration_days: number;
+  thumbnail_url?: string | null; 
 }
 
 interface Course {
@@ -31,7 +31,7 @@ interface Lesson {
   external_link: string | null;
   has_assignment: boolean;
   sort_order: number;
-  course_id: number; // ← Critical for AdminAssignmentManage
+  course_id: number; 
 }
 
 export default function AdminLearning() {
@@ -53,6 +53,7 @@ export default function AdminLearning() {
     description: "",
     price: "0",
     duration_days: "30",
+    thumbnail_url: "",
   });
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   const [courseForm, setCourseForm] = useState({ title: "", description: "" });
@@ -151,6 +152,7 @@ export default function AdminLearning() {
           description: programForm.description.trim() || null,
           price: programForm.price,
           duration_days: Number(programForm.duration_days),
+          thumbnail_url: programForm.thumbnail_url?.trim() || null,
         }),
       });
 
@@ -420,6 +422,8 @@ export default function AdminLearning() {
         setSelectedProgram(p);
         loadCourses(p.id);
       }}
+      
     />
   );
+  
 }

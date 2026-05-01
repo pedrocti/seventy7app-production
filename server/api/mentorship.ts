@@ -1,5 +1,5 @@
 // server/api/mentorship.ts
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { db } from "../db/connection";
 import { mentorship_events, mentorship_applications, users } from "../db/schema";
 import { auth, getAdmin, subFromColumn, addToColumn } from "./utils";
@@ -8,7 +8,7 @@ import { eq, desc, and } from "drizzle-orm";
 const router = Router();
 
 /* GET /api/mentorship/events */
-router.get("/events", async (req, res) => {
+router.get("/events", auth, async (req: Request, res: Response) => {
   try {
     const events = await db
       .select({
@@ -27,6 +27,10 @@ router.get("/events", async (req, res) => {
 
     let purchased: number[] = [];
 
+    // -------------------------
+    // OPTIONAL AUTH SUPPORT
+    // -------------------------
+    // If user is logged in, get purchased events
     if (req.user?.id) {
       const purchases = await db
         .select({ event_id: mentorship_applications.event_id })
@@ -50,11 +54,15 @@ router.get("/events", async (req, res) => {
   }
 });
 
-
 /* BUY EVENT */
-router.post("/buy/:id", auth, async (req, res) => {
+router.post("/buy/:id", auth, async (req: Request, res: Response) => {
   const eventId = Number(req.params.id);
-  if (!req.user) return res.status(401).json({ success: false, error: "Unauthorized" });
+
+  // Auth guard
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
   const userId = req.user.id;
 
   if (!Number.isInteger(eventId) || eventId <= 0) {
@@ -68,7 +76,9 @@ router.post("/buy/:id", auth, async (req, res) => {
       .from(mentorship_events)
       .where(eq(mentorship_events.id, eventId));
 
-    if (!event) return res.status(404).json({ success: false, error: "Event not found" });
+    if (!event) {
+      return res.status(404).json({ success: false, error: "Event not found" });
+    }
 
     const price = Number(event.price);
 
@@ -94,7 +104,8 @@ router.post("/buy/:id", auth, async (req, res) => {
 
     // Transaction: deduct user balance, credit admin, grant access
     await db.transaction(async (tx) => {
-      const admin = await getAdmin(tx);
+      // IMPORTANT: use `any` to avoid Drizzle typing mismatch
+      const admin = await getAdmin(tx as any);
 
       // Deduct user balance
       const [user] = await tx
@@ -114,7 +125,12 @@ router.post("/buy/:id", auth, async (req, res) => {
       // Credit admin mentorship balance
       await tx
         .update(users)
-        .set({ admin_mentorship_balance: addToColumn(users.admin_mentorship_balance, price) })
+        .set({
+          admin_mentorship_balance: addToColumn(
+            users.admin_mentorship_balance,
+            price
+          ),
+        })
         .where(eq(users.id, admin.id));
 
       // Grant access
@@ -138,7 +154,10 @@ router.post("/buy/:id", auth, async (req, res) => {
     res.json({ success: true, message: "Payment successful!" });
   } catch (err) {
     console.error("Buy error:", err);
-    res.status(500).json({ success: false, error: (err as Error).message || "Payment failed" });
+    res.status(500).json({
+      success: false,
+      error: (err as Error).message || "Payment failed",
+    });
   }
 });
 

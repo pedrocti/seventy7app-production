@@ -4,8 +4,10 @@ declare module "express-serve-static-core" {
   interface Request {
     user?: {
       id: number;
-      username: string;
       role: string;
+      username?: string; 
+      referral_code?: string;
+      referred_by?: number;
     };
   }
 }

@@ -4,6 +4,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { BookOpen, Trophy, ArrowRight, Calendar } from "lucide-react";
+import { useLocation } from "wouter";
+
 
 // Hardened formatCurrency – never returns "NaN" or invalid string
 const formatCurrency = (value: any): string => {
@@ -27,6 +29,7 @@ function CarouselAutoSlider({
   const [contentWidth, setContentWidth] = useState(0);
 
   const doubledItems = [...items, ...items];
+
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -62,14 +65,15 @@ function CarouselAutoSlider({
             whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {
-              if (item.type === "event" && item.link) {
-                window.open(item.link, "_blank", "noopener,noreferrer");
+              if (item.type === "event") {
+                window.location.href = "/dashboard?tab=mentorship";
               } else if (item.type === "program") {
                 window.location.href = showMarketing
                   ? "/learning/programs"
                   : `/learning/program/${item.id}`;
               }
             }}
+            
             className="
               flex-shrink-0 w-72 
               bg-gradient-to-br from-[#1E293B] to-[#0F172A] 
@@ -145,7 +149,8 @@ function CarouselAutoSlider({
 }
 
 export default function OverviewPage() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
+  const [, setLocation] = useLocation();
   const [overview, setOverview] = useState<any | null>(null);
   const [allPrograms, setAllPrograms] = useState<any[]>([]);
   const [tradesData, setTradesData] = useState<{ active: any | null; history: any[] }>({
@@ -155,24 +160,13 @@ export default function OverviewPage() {
   const [mentorshipEvents, setMentorshipEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [pollMs] = useState(10000);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (!overview?.allocation || overview.allocation.length === 0) return;
+    const i = setInterval(() => setNow(Date.now()), 60_000); // every minute
+    return () => clearInterval(i);
+  }, []);
 
-    const interval = setInterval(() => {
-      setOverview((prev: any) => {
-        if (!prev) return prev;
-        const newAlloc = prev.allocation.map((item: any) => ({
-          ...item,
-          value: item.value * (1 + (Math.random() * 0.1 - 0.05)),
-          profit_percent: (Math.random() * 20 - 10).toFixed(1),
-        }));
-        return { ...prev, allocation: newAlloc };
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [overview?.allocation]);
 
   const fetchOverview = useCallback(async () => {
     if (!token) return;
@@ -212,6 +206,7 @@ export default function OverviewPage() {
       });
       if (!res.ok) return;
       const data = await res.json();
+
       if (data?.success) {
         setTradesData({
           active: Array.isArray(data.active) && data.active.length > 0 ? data.active[0] : null,
@@ -349,7 +344,8 @@ export default function OverviewPage() {
   const recentHistory = history.slice(0, 3);
 
   return (
-    <div className="relative min-h-screen bg-[#0A0E14]">
+          <div className="min-h-screen bg-[#0F172A] text-white">
+
       {/* Glowing cyan border wrapper around main content */}
       <div
         className="
@@ -460,10 +456,11 @@ export default function OverviewPage() {
                           dataKey="value"
                           position="top"
                           formatter={(v: number) => {
-                            const total = Number(totals.portfolio_value ?? 1);
-                            const pct = ((v / total) * 100).toFixed(1);
+                            const total = Math.max(1, Number(totals.portfolio_value ?? 0));
+                            const pct = ((Number(v) / total) * 100).toFixed(1);
                             return `$${formatCurrency(v)} (${pct}%)`;
                           }}
+
                           fill="#EAECEF"
                           fontSize={14}
                           fontWeight="600"
@@ -504,8 +501,10 @@ export default function OverviewPage() {
             {/* Live Trade + Recent History */}
             <div className="rounded-2xl p-5 backdrop-blur-2xl bg-black/10 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10">
               <h3 className="text-sm text-[#848E9C] mb-3">Live Trade & Recent History</h3>
+
+              {/* Active Trade */}
               {activeTrade ? (
-                <div className="relative bg-black/15 p-4 rounded-lg border border-[#0AEFFF]/25 overflow-hidden shadow-inner">
+                <div className="relative bg-black/15 p-4 rounded-lg border border-[#0AEFFF]/25 overflow-hidden shadow-inner mb-6">
                   <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
                     <div className="trade-wave"></div>
                   </div>
@@ -572,8 +571,8 @@ export default function OverviewPage() {
                     No recent trades yet
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {recentHistory.map((t: any) => {
+                  <div className="space-y-3 max-h-[220px] overflow-y-auto">
+                    {recentHistory.slice(0, 2).map((t: any) => { 
                       const percent = Number(t.pnl_percent ?? 0);
                       const formattedPercent = percent.toFixed(2);
                       const isPositive = percent > 0;
@@ -597,8 +596,7 @@ export default function OverviewPage() {
                                 isPositive ? "text-[#0ECB81]" : isNegative ? "text-[#F6465D]" : "text-[#848E9C]"
                               }`}
                             >
-                              {isPositive ? "+" : isNegative ? "-" : ""}
-                              {formattedPercent}%
+                              {isPositive ? "+" : isNegative ? "-" : ""}{formattedPercent}%
                               <span className="ml-2 text-xs font-normal opacity-80">
                                 {isPositive ? "WIN" : isNegative ? "LOSS" : ""}
                               </span>
@@ -630,12 +628,12 @@ export default function OverviewPage() {
               whileHover={{ scale: 1.03 }}
               className="backdrop-blur-2xl bg-black/10 p-6 rounded-2xl border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10"
             >
-              <h4 className="text-sm text-[#848E9C]">Active Investments</h4>
+              <h4 className="text-sm text-[#848E9C]">Active Stakings</h4>
               <p className="text-3xl font-bold text-[#EAECEF] mt-2">
                 {totals.active_investments ?? 0}
               </p>
               <p className="text-xs text-[#848E9C] mt-1">
-                Total invested: ${formatCurrency(totals.total_invested ?? 0)}
+                Active Stake value: ${formatCurrency(totals.portfolio_value ?? 0)}
               </p>
             </motion.div>
             <motion.div
@@ -699,77 +697,91 @@ export default function OverviewPage() {
 
           {/* RECENT INVESTMENTS */}
           <div className="backdrop-blur-2xl bg-black/10 rounded-2xl p-6 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10">
-            <h3 className="text-xl font-bold mb-6 text-[#0AEFFF]">Recent Investments</h3>
+            <h3 className="text-xl font-bold mb-6 text-[#0AEFFF]">Recent Stakes</h3>
+
             {recentInv.length === 0 ? (
-              <p className="text-center text-[#6B7280] py-12">No investments yet</p>
+              <p className="text-center text-[#6B7280] py-12">No Staking yet</p>
             ) : (
               <div className="space-y-4">
                 {recentInv.map((inv: any) => {
                   const now = Date.now();
-                  const start = inv.startAt ? new Date(inv.startAt).getTime() : now;
-                  const end = inv.endAt
-                    ? new Date(inv.endAt).getTime()
-                    : start + (inv.durationDays || 0) * 86400 * 1000;
+
+                  const start = inv.start_at
+                    ? new Date(inv.start_at).getTime()
+                    : inv.created_at
+                      ? new Date(inv.created_at).getTime()
+                      : now;
+
+                  const durationDays = Number(inv.duration_days ?? 30);
+                  const end = start + durationDays * 86400 * 1000;
+
                   const totalMs = Math.max(1, end - start);
                   const elapsedMs = Math.max(0, Math.min(now - start, totalMs));
-                  const percent = Math.round((elapsedMs / totalMs) * 100);
+                  const percent = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
+
+                  const daysLeft = inv.status === "active"
+                    ? Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)))
+                    : 0;
 
                   return (
                     <motion.div
                       key={inv.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(10, 255, 255, 0.15)" }}
+                      whileHover={{
+                        scale: 1.02,
+                        boxShadow: "0 10px 25px rgba(10, 255, 255, 0.15)",
+                      }}
                       transition={{ duration: 0.3 }}
                       className="bg-black/15 rounded-xl p-4 border border-[#0AEFFF]/25 hover:border-[#0AEFFF]/40 transition-colors duration-300"
                     >
+                      {/* Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <div className="text-base font-semibold text-[#EAECEF]">
-                            {inv.planName || "Plan"}
+                            {inv.plan_name || "Plan"}
                           </div>
+
                           <div className="text-sm text-[#848E9C] mt-1">
                             Amount: ${formatCurrency(inv.amount ?? 0)}
                           </div>
+
                           <div className="text-sm mt-1">
                             PnL:{" "}
-                            <span
-                              className={
-                                Number(inv.profit_loss ?? 0) >= 0
-                                  ? "text-[#0ECB81] font-medium"
-                                  : "text-[#F6465D] font-medium"
-                              }
-                            >
+                            <span className={
+                              Number(inv.profit_loss ?? 0) >= 0
+                                ? "text-[#0ECB81] font-medium"
+                                : "text-[#F6465D] font-medium"
+                            }>
                               ${formatCurrency(inv.profit_loss ?? 0)}
                             </span>
                           </div>
                         </div>
+
                         <div className="text-right">
                           <div className="text-xs text-[#848E9C]">Ends</div>
                           <div className="text-sm font-semibold text-[#EAECEF]">
-                            {inv.endAt ? new Date(inv.endAt).toLocaleDateString() : "—"}
+                            {new Date(end).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
+
+                      {/* Progress */}
                       <div className="mt-4">
                         <div className="w-full bg-[#2B3139]/30 rounded-full h-3 overflow-hidden">
                           <motion.div
                             className="h-full bg-gradient-to-r from-[#0AEFFF] to-[#00D4FF]"
                             initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(100, percent)}%` }}
-                            transition={{ duration: 1.2, ease: "easeOut" }}
+                            animate={{ width: `${percent}%` }}
+                            transition={{ duration: 0.6, ease: "easeOut" }}
                           />
                         </div>
+
                         <div className="mt-2 text-xs text-[#848E9C] flex items-center justify-between">
                           <span className="font-medium">{percent}% complete</span>
                           <span>
                             {inv.status === "active"
-                              ? end
-                                ? `${Math.max(
-                                    0,
-                                    Math.ceil((end - now) / (24 * 60 * 60 * 1000))
-                                  )} days left`
-                                : "Ongoing"
+                              ? `${daysLeft} days left`
                               : "Completed"}
                           </span>
                         </div>
@@ -784,26 +796,45 @@ export default function OverviewPage() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-auto z-30 bg-black/25 backdrop-blur-xl border-t border-[#0AEFFF]/15 text-[#94A3B8] text-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-            <span className="font-medium">Trading Academy</span>
-            <div className="flex gap-5">
-              <a href="/about" className="hover:text-[#0AEFFF]/90 transition-colors">About</a>
-              <a href="/contact" className="hover:text-[#0AEFFF]/90 transition-colors">Contact</a>
-              <a href="/help" className="hover:text-[#0AEFFF]/90 transition-colors">Help</a>
-            </div>
+      <footer className="mt-16 border-t border-[#0AEFFF]/20 bg-black/20 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm text-[#848E9C]">
+
+          {/* Brand */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setLocation("/")}
+              className="text-[#0AEFFF] font-semibold text-lg mb-2 hover:underline hover:text-[#7E22CE] transition"
+            >
+              Seventy7Hub
+            </button>
+
+            <p className="text-xs leading-relaxed">
+              Smarter Stakes, learning, and portfolio management all in one platform.
+            </p>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 text-right">
-            <div className="flex gap-5">
-              <a href="#" className="hover:text-[#0AEFFF]/90 transition-colors">Telegram</a>
-              <a href="#" className="hover:text-[#0AEFFF]/90 transition-colors">Discord</a>
-              <a href="#" className="hover:text-[#0AEFFF]/90 transition-colors">X</a>
-            </div>
-            <span className="text-xs opacity-80">
-              © {new Date().getFullYear()} — All rights reserved
-            </span>
+
+          {/* Navigation */}
+          <div className="flex flex-col gap-2">
+            <a href="/dashboard" className="hover:text-[#0AEFFF]">Dashboard</a>
+            <a href="/invest" className="hover:text-[#0AEFFF]">Staking</a>
+            <a href="/portfolio" className="hover:text-[#0AEFFF]">Portfolio Management</a>
           </div>
+
+          {/* Social */}
+          <div className="flex flex-col gap-2">
+            <a href="https://t.me/seventy7hub" target="_blank" rel="noopener noreferrer">Telegram</a>
+            <a href="https://discord.gg/seventy7hub" target="_blank" rel="noopener noreferrer">Discord</a>
+            <a href="https://x.com/seventy7hub" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            <a href="https://www.instagram.com/seventy7trading?igsh=ZmNmNTBtdWJqa3Ax&utm_source=qr" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a href="https://www.facebook.com/share/1AiekpPNc3/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">Facebook</a>
+            <a href="https://www.linkedin.com/company/seventy7-trading-academy" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          </div>
+
+        </div>
+
+        <div className="text-center text-xs text-[#6B7280] pb-6">
+          © {new Date().getFullYear()} Seventy7Hub. All rights reserved.
         </div>
       </footer>
     </div>

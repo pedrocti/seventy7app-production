@@ -8,23 +8,22 @@ import {
   email_settings,
   settings,
 } from "../../db/schema";
-import { eq, isNull, isNotNull, and } from "drizzle-orm";
+import { eq, isNull, isNotNull, and, or } from "drizzle-orm";
 import { sendEmail } from "../../services/email.service";
 import { generateToken, getExpiry } from "../../utils/token";
 import { adminOnly } from "../../middleware/adminOnly";
 
 const router = Router();
 
-// 🔐 Apply admin-only protection to all routes
+// 🔐 Protect all routes
 router.use(adminOnly);
 
 // ===========================================================
-// EMAIL USERS
+// GET USERS
 // ===========================================================
 router.get("/users", async (req, res) => {
   try {
     const status = req.query.status as "verified" | "unverified" | undefined;
-
     const conditions = [];
     if (status === "verified") conditions.push(isNotNull(users.email_verified_at));
     if (status === "unverified") conditions.push(isNull(users.email_verified_at));
@@ -38,6 +37,7 @@ router.get("/users", async (req, res) => {
       users: results.map((u) => ({
         id: u.id,
         username: u.username,
+        first_name: u.first_name,
         email: u.email,
         email_verified_at: u.email_verified_at,
         role: u.role,
@@ -68,13 +68,20 @@ router.post("/resend-verification/:userId", async (req, res) => {
       expires_at: getExpiry(24),
     });
 
+    // ✅ Pass all necessary variables with fallbacks
+    const variables = {
+      first_name: user.first_name || user.username,
+      username: user.username,
+      verification_link: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
+      reset_link: "", // for password reset template
+      site_name: "77KAPITAL",
+      logo_url: "https://seventy7hub.com/logo.png",
+    };
+
     await sendEmail({
       to: user.email,
       templateName: "verify_email",
-      variables: {
-        username: user.username,
-        link: `${process.env.FRONTEND_URL}/verify-email?token=${token}`,
-      },
+      variables,
       userId: user.id,
     });
 
@@ -86,7 +93,7 @@ router.post("/resend-verification/:userId", async (req, res) => {
 });
 
 // ===========================================================
-// REVOKE EMAIL VERIFICATION
+// REVOKE VERIFICATION
 // ===========================================================
 router.post("/revoke-verification/:userId", async (req, res) => {
   try {
@@ -148,28 +155,38 @@ router.delete("/templates/:id", async (req, res) => {
   }
 });
 
-router.post("/templates/test/:id", async (req, res) => {
+// ===========================================================
+// SEND EMAIL (TEST & REAL)
+// ===========================================================
+router.post("/templates/send/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const { to, variables = {} } = req.body;  // ← accept variables from frontend
+    const { to, variables = {} } = req.body;
+
     const [template] = await db.select().from(email_templates).where(eq(email_templates.id, id)).limit(1);
     if (!template) return res.status(404).json({ error: "Template not found" });
+
+    // ✅ Merge default variables with provided ones
+    const emailVariables = {
+      first_name: "Test",
+      username: "Test User",
+      verification_link: "https://your-domain.com/verify?token=test-token",
+      reset_link: "https://your-domain.com/reset?token=test-token",
+      site_name: "77KAPITAL",
+      logo_url: "https://seventy7hub.com/logo.png",
+      ...variables,
+    };
 
     await sendEmail({
       to,
       templateName: template.name,
-      variables: {
-        username: "Test User",
-        verify_link: "https://your-domain.com/verify?token=test-verify-12345",
-        site_name: "77kapital",
-        ...variables,  // merge any custom ones
-      },
+      variables: emailVariables,
     });
 
     res.json({ success: true });
   } catch (err) {
-    console.error("SEND TEST EMAIL ERROR:", err);
-    res.status(500).json({ error: "Failed to send test email" });
+    console.error("SEND EMAIL ERROR:", err);
+    res.status(500).json({ error: "Failed to send email" });
   }
 });
 
@@ -189,19 +206,8 @@ router.get("/smtp", async (_req, res) => {
 router.patch("/smtp", async (req, res) => {
   try {
     const { host, port, username, password, from_name, from_email, encryption } = req.body;
-    // Deactivate old SMTP
     await db.update(email_settings).set({ is_active: false }).where(eq(email_settings.is_active, true));
-    // Insert new
-    await db.insert(email_settings).values({
-      host,
-      port,
-      username,
-      password,
-      from_name,
-      from_email,
-      encryption,
-      is_active: true,
-    });
+    await db.insert(email_settings).values({ host, port, username, password, from_name, from_email, encryption, is_active: true });
     res.json({ success: true });
   } catch (err) {
     console.error("UPDATE SMTP SETTINGS ERROR:", err);
@@ -215,12 +221,10 @@ router.patch("/smtp", async (req, res) => {
 router.get("/payment-settings", async (_req, res) => {
   try {
     const keys = ["stripe_secret_key", "stripe_webhook_secret", "nowpayments_ipn_secret"];
-    const results = await db.select().from(settings).where(keys.map((k) => eq(settings.key, k)));
-
-    // Transform to object
+    const conditions = keys.map((k) => eq(settings.key, k));
+    const results = await db.select().from(settings).where(or(...conditions));
     const map: Record<string, string> = {};
     results.forEach((s) => { map[s.key] = s.value; });
-
     res.json({ success: true, settings: map });
   } catch (err) {
     console.error("LOAD PAYMENT SETTINGS ERROR:", err);
@@ -231,20 +235,12 @@ router.get("/payment-settings", async (_req, res) => {
 router.patch("/payment-settings", async (req, res) => {
   try {
     const { stripe_secret_key, stripe_webhook_secret, nowpayments_ipn_secret } = req.body;
-    const updates: Record<string, string> = {
-      stripe_secret_key,
-      stripe_webhook_secret,
-      nowpayments_ipn_secret,
-    };
+    const updates: Record<string, string> = { stripe_secret_key, stripe_webhook_secret, nowpayments_ipn_secret };
 
     for (const [key, value] of Object.entries(updates)) {
-      // UPSERT: insert or update existing
       const [existing] = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
-      if (existing) {
-        await db.update(settings).set({ value }).where(eq(settings.key, key));
-      } else {
-        await db.insert(settings).values({ key, value });
-      }
+      if (existing) await db.update(settings).set({ value }).where(eq(settings.key, key));
+      else await db.insert(settings).values({ key, value });
     }
 
     res.json({ success: true });

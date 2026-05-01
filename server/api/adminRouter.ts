@@ -22,6 +22,7 @@ import learningRouter from "./admin/learning";
 import adminProgramsRouter from "./admin/learning/programs";
 import adminEmailRouter from "./admin/email";
 import mentorshipEventsRouter from "./admin/mentorshipEvents";
+import statsTrendRouter from "./admin/statsTrend";
 
 
 import paymentSettingsRouter from "./admin/paymentSettings";
@@ -44,6 +45,7 @@ router.use("/trades", tradesRouter);
 router.use("/investments", adminInvestmentsRouter);
 router.use("/payment-settings", paymentSettingsRouter); 
 router.use("/mentorship", mentorshipEventsRouter);
+router.use("/stats/trend", statsTrendRouter);
 
 // Email
 router.use("/email", adminEmailRouter);

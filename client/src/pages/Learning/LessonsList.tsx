@@ -63,7 +63,7 @@ export default function LessonsList({
   }
 
   return (
-    <div className="mb-12">
+    <div className="w-full">
       {/* Header with progress */}
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-2xl font-bold text-white">Course Lessons</h3>
@@ -79,7 +79,7 @@ export default function LessonsList({
         </div>
       </div>
 
-      <ul className="space-y-8">
+      <ul className="divide-y divide-[#0F172A]">
         {lessons.map((lesson) => {
           const isMarking = markingInProgress.includes(lesson.id);
           return (

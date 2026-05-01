@@ -1,180 +1,176 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoImage from "../assets/logo.jpeg";
-import { MessageCircle } from 'lucide-react';  // Changed icon to better match bot/chat
+import logoImage from '../assets/logo.jpeg';
 
-const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const navLinks = [
+  { name: 'About',    href: '#about' },
+  { name: 'Services', href: '#offerings' },
+  { name: 'Insights', href: '#blog' },
+];
+
+export default function Navbar() {
+  const [scrolled,   setScrolled]   = useState(false);
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const fn = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
+  useEffect(() => {
+    setIsLoggedIn(!!localStorage.getItem('token'));
+  }, []);
 
-  const navLinks = [
-    { name: 'About', href: '#about' },
-    { name: 'Services', href: '#offerings' },
-    { name: 'Blog', href: '#blog' },
-  ];
-
-  const handleNavLinkClick = (href: string) => {
-    if (mobileMenuOpen) {
-      setMobileMenuOpen(false);
-    }
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+  const scrollTo = (href: string) => {
+    setMenuOpen(false);
+    document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <header className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'backdrop-blur-lg bg-[#0F172A]/80 py-2 shadow-lg shadow-[#7E22CE]/10' : 'py-3'}`}>
-      <nav className="container mx-auto px-4 flex justify-between items-center">
-        <motion.div
-          className="flex items-center"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="flex items-center space-x-3"
-          >
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-xl opacity-50 blur group-hover:opacity-80 transition duration-300"></div>
-              <img
-                src={logoImage}
-                alt="77 Kapital Logo"
-                className="relative h-11 w-14 object-cover rounded-xl ring-2 ring-white/10 shadow-lg"
-              />
-            </div>
-            <span className="hidden sm:block text-white font-bold text-lg tracking-wide">
-              <span className="text-[#0AEFFF]">77</span>Kapital
-            </span>
-          </a>
-        </motion.div>
+    <header className={`nav-header ${scrolled ? 'nav-header--scrolled' : ''}`}>
 
-        {/* Desktop Menu */}
-        <div className="hidden md:flex items-center space-x-5">
-          {navLinks.map((link, index) => (
+      {/* ── Nav bar ── */}
+      <nav className="nav-bar">
+
+        {/* Logo */}
+        <motion.a
+          href="#"
+          className="nav-logo"
+          onClick={e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          {/* Logo image with gold accent border */}
+          <div className="nav-logo-img-wrap">
+            <img
+              src={logoImage}
+              alt="77Kapital"
+              className="nav-logo-img"
+            />
+          </div>
+
+          {/* Brand name */}
+          <div className="nav-logo-text">
+            <span className="nav-logo-name">
+              <span className="nav-logo-77">77</span>Kapital
+            </span>
+            <span className="nav-logo-sub">Premium Trading</span>
+          </div>
+        </motion.a>
+
+        {/* Desktop links */}
+        <div className="nav-links">
+          {navLinks.map((link, i) => (
             <motion.a
-              key={index}
+              key={link.name}
               href={link.href}
-              className="text-white text-sm uppercase tracking-wider font-medium hover:text-[#0AEFFF] transition-all duration-300 relative group"
-              initial={{ opacity: 0, y: -20 }}
+              className="nav-link"
+              onClick={e => { e.preventDefault(); scrollTo(link.href); }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 * index }}
-              onClick={(e) => {
-                e.preventDefault();
-                handleNavLinkClick(link.href);
-              }}
+              transition={{ delay: 0.08 * i, duration: 0.5 }}
             >
               {link.name}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] group-hover:w-full transition-all duration-300"></span>
+              <motion.span
+                className="nav-link-underline"
+                initial={{ width: 0 }}
+                whileHover={{ width: '100%' }}
+                transition={{ duration: 0.22 }}
+              />
             </motion.a>
           ))}
-          <motion.a
-            href="https://t.me/Access77bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="neon-button px-5 py-2 rounded-md text-white font-medium flex items-center space-x-2 shadow-lg shadow-[#7E22CE]/20"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <MessageCircle className="w-5 h-5" />
-            <span>77K Bot</span>
-          </motion.a>
         </div>
 
-        {/* Mobile Hamburger */}
-        <motion.button
-          className="md:hidden text-white focus:outline-none relative z-20"
-          onClick={toggleMobileMenu}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+        {/* Desktop CTA */}
+        <motion.div
+          className="nav-actions"
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <div className="relative">
-            <div className={`w-6 h-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></div>
-            <div className={`w-6 h-0.5 bg-white rounded-full my-1.5 transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`}></div>
-            <div className={`w-6 h-0.5 bg-gradient-to-r from-[#7E22CE] to-[#0AEFFF] rounded-full transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></div>
-          </div>
-        </motion.button>
+          {!isLoggedIn && (
+            <a href="/login" className="nav-signin">Sign In</a>
+          )}
+          <motion.a
+            href={isLoggedIn ? '/dashboard' : '/register'}
+            className="nav-cta"
+            whileHover={{ background: '#E8C96A' }}
+            whileTap={{ scale: 0.97 }}
+          >
+            {isLoggedIn ? 'Dashboard' : 'Get Access'}
+          </motion.a>
+        </motion.div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="nav-burger"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+        >
+          <span className={`nav-burger-bar nav-burger-bar--top    ${menuOpen ? 'nav-burger-bar--open-top'    : ''}`} />
+          <span className={`nav-burger-bar nav-burger-bar--mid    ${menuOpen ? 'nav-burger-bar--open-mid'    : ''}`} />
+          <span className={`nav-burger-bar nav-burger-bar--bottom ${menuOpen ? 'nav-burger-bar--open-bottom' : ''}`} />
+        </button>
+
       </nav>
 
-      {/* Mobile Menu */}
+      {/* ── Mobile dropdown menu ── */}
       <AnimatePresence>
-        {mobileMenuOpen && (
+        {menuOpen && (
           <motion.div
-            className="md:hidden fixed inset-0 z-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            className="nav-mobile-menu"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="absolute inset-0 backdrop-blur-lg bg-[#0F172A]/95"></div>
-            <motion.div
-              className="relative h-full flex flex-col justify-center items-center p-6"
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
-            >
-              <div className="flex flex-col space-y-8 items-center">
-                {navLinks.map((link, index) => (
+            <div className="nav-mobile-inner">
+
+              {/* Nav links */}
+              <div className="nav-mobile-links">
+                {navLinks.map((link, i) => (
                   <motion.a
-                    key={index}
+                    key={link.name}
                     href={link.href}
-                    className="text-white text-xl font-medium hover:text-[#0AEFFF] transition-all duration-300 relative group overflow-hidden"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + index * 0.1, duration: 0.3 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleNavLinkClick(link.href);
-                    }}
+                    className="nav-mobile-link"
+                    onClick={e => { e.preventDefault(); scrollTo(link.href); }}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 * i, duration: 0.25 }}
                   >
+                    <span className="nav-mobile-link-num">0{i + 1}</span>
                     {link.name}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] group-hover:w-full transition-all duration-300"></span>
                   </motion.a>
                 ))}
-                <motion.a
-                  href="https://t.me/Access77bot"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="neon-button px-6 py-3 rounded-md text-white font-medium text-center flex items-center space-x-2 mt-4 shadow-lg shadow-[#7E22CE]/20"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.3 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  <span>77K Bot</span>
-                </motion.a>
               </div>
-            </motion.div>
+
+              {/* Mobile CTA row */}
+              <div className="nav-mobile-ctas">
+                <a
+                  href="/login"
+                  className="nav-mobile-signin"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Sign In
+                </a>
+                <a
+                  href={isLoggedIn ? '/dashboard' : '/register'}
+                  className="nav-mobile-cta"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {isLoggedIn ? 'Dashboard' : 'Get Access'}
+                </a>
+              </div>
+
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
     </header>
   );
-};
-
-export default Navbar;
+}

@@ -4,6 +4,7 @@ import bodyParser from "body-parser";
 import { db } from "../../../db/connection";
 import { transactions, settings } from "../../../db/schema";
 import { eq } from "drizzle-orm";
+import { processDeposit } from "../../../services/depositProcessor";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.use(
 
 /* =====================================================
    HELPERS
-===================================================== */
+==================================================== */
 async function getIpnSecret(): Promise<string> {
   const [row] = await db
     .select({ value: settings.value })
@@ -38,10 +39,7 @@ function verifySignature(
 ): boolean {
   const parsed = JSON.parse(rawBody);
 
-  const sorted = JSON.stringify(
-    parsed,
-    Object.keys(parsed).sort()
-  );
+  const sorted = JSON.stringify(parsed, Object.keys(parsed).sort());
 
   const hash = crypto
     .createHmac("sha512", secret)
@@ -54,7 +52,7 @@ function verifySignature(
 /* =====================================================
    NOWPAYMENTS IPN
    POST /api/webhooks/nowpayments
-===================================================== */
+==================================================== */
 router.post("/", async (req: any, res) => {
   try {
     const signature = req.headers["x-nowpayments-sig"] as string;
@@ -108,19 +106,14 @@ router.post("/", async (req: any, res) => {
        COMPLETE TRANSACTION (ATOMIC)
     ===================================================== */
     await db.transaction(async (trx) => {
-      await trx
-        .update(transactions)
-        .set({
-          status: "completed",
-          details: {
-            ...(tx.details as Record<string, any>),
-            provider_ref: payment_id,
-          },
-        })
-        .where(eq(transactions.id, tx.id));
-
-      // 💰 CREDIT USER BALANCE HERE (recommended)
-      // await creditBalance(trx, tx.user_id, tx.amount);
+      await processDeposit({
+        trx,
+        userId: tx.user_id,
+        amount: Number(tx.amount),
+        provider: "nowpayments",
+        providerRef: payment_id,
+        transactionId: tx.id,
+      });
     });
 
     return res.json({ received: true });

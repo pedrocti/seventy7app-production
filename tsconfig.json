@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
     "target": "ES2020",
+    "module": "ESNext",
     "moduleResolution": "Node",
+    "jsx": "react-jsx",
     "esModuleInterop": true,
+    "allowJs": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"]
+    },
+    "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true 
+    "noEmit": false,          // <-- must emit for production
+    "outDir": "dist",         // <-- compiled backend JS goes here
+    "sourceMap": true          // optional, helps debugging in production
   },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "include": ["src", "server/**/*.ts", "client/src"]
 }

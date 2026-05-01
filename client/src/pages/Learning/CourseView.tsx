@@ -176,13 +176,9 @@ export default function CourseView({ courseId, onBack }: Props) {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      <button
-        onClick={onBack || (() => window.history.back())}
-        className="px-4 py-2 bg-[#0AEFFF] text-black rounded hover:bg-cyan-300 transition"
-      >
-        ← Back to Courses
-      </button>
+    <div className="w-full px-2 py-2 space-y-6">
+      
+
 
       <h2 className="text-2xl font-bold text-white">{course?.title}</h2>
       {course?.description && (

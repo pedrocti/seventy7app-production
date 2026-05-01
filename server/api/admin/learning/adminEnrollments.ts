@@ -86,6 +86,14 @@
           });
         }
 
+        // 🛡️ Guard against null IDs (fixes TypeScript eq() errors)
+        if (!enrollment.user_id || !enrollment.course_id) {
+          return res.status(400).json({
+            success: false,
+            error: "Enrollment missing user_id or course_id",
+          });
+        }
+
         const lessonsProgress = await db
           .select({
             lesson_id: lessons.id,
@@ -109,14 +117,14 @@
           enrollment,
           lessonsProgress,
         });
-      } catch (err) {
+        } catch (err) {
         console.error("GET /admin/enrollments/:id error:", err);
         res.status(500).json({
           success: false,
           error: "Failed to fetch enrollment details",
         });
-      }
-    });
+        }
+        });
 
     /* =========================
        UPDATE ENROLLMENT

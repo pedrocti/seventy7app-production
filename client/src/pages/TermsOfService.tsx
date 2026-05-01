@@ -43,22 +43,22 @@ const TermsOfService = () => {
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">2. Nature of Services – Important Disclaimers</h2>
             <p>
-              The Company provides educational training, structured mentorship, trading guidance, and (where separately agreed) discretionary portfolio management or investment facilitation services. <strong>We are not a regulated financial services provider under the Financial Conduct Authority (FCA) and do not provide regulated investment advice, financial advice, tax advice, or legal advice.</strong>
+              The Company provides educational training, structured mentorship, trading guidance, and (where separately agreed) discretionary portfolio management or investment facilitation services. <strong>We are a regulated financial services provider under the Financial Conduct Authority (FCA) and we provide regulated investment advice, financial advice and not tax advice or legal advice.</strong>
             </p>
             <p>
-              All content, strategies, signals, mentorship sessions, portfolio suggestions, and materials are provided for educational and informational purposes only. Nothing contained in our services constitutes a recommendation, solicitation, or offer to buy or sell any financial instrument, security, or investment.
+              All content, strategies, signals, mentorship/internship sessions, portfolio Management and materials are provided for educational and investment purposes only. Nothing contained in our services constitutes a recommendation, solicitation, or offer to buy or sell any financial instrument or security.
             </p>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">3. Risk Disclosure Statement</h2>
             <p className="font-semibold text-rose-300">
-              Trading, investing, and participating in financial markets involve a <strong>high degree of risk</strong> and are not suitable for all persons. You may lose some, a substantial portion, or <strong>all of your invested capital</strong>.
+              Trading, investing, and participating in financial markets involve a <strong>high degree of risk</strong> and are not suitable for all persons. You may lose some or a substantial portion <strong>of your invested capital</strong>.
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-2 text-gray-300">
               <li>Past performance is not indicative of, and does not guarantee, future results.</li>
-              <li>Markets are volatile and can move rapidly against you.</li>
+              <li>Markets are volatile and can move rapidly against ROI, Regardless minimum returns of any plan are gurranteed</li>
               <li>Leverage, derivatives, cryptocurrencies, and other instruments can magnify both gains and losses.</li>
-              <li>All trading and investment decisions are made solely by you at your own risk and discretion.</li>
-              <li>The Company makes no representation, warranty, or guarantee regarding profits, returns, performance, or avoidance of loss.</li>
+              <li>All investment decisions are made solely by you at your own risk and discretion.</li>
+              <li>The Company makes trading decisions and entery on your behalf and interest with  representation, warranty, guarantee regarding profits, returns, performance and avoidance of loss.</li>
             </ul>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">4. Investing Services</h2>
@@ -66,29 +66,29 @@ const TermsOfService = () => {
               Where you participate in our investing facilitation services:
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-2">
-              <li>Minimum initial deposit: USD $100.</li>
+              <li>Minimum initial deposit: USD $500.</li>
               <li>Invested capital is locked for a fixed term of 365 days from the date of deposit.</li>
-              <li>Accrued profits may be withdrawn or reinvested every 30 days, subject to verification.</li>
-              <li>Early withdrawal of capital before the 365-day term incurs a 45% penalty on the withdrawn amount and requires 30 days’ prior written notice by email.</li>
-              <li>Any purported early withdrawal without compliance shall be invalid and may result in forfeiture or additional charges.</li>
+              <li>Accrued profits may be withdrawn or reinvested every 30 days.</li>
+              <li>Early withdrawal of capital before the 365-day term incurs a penalty on the withdrawn amount and requires 30 days’ prior written notice by email.</li>
+              <li>Any purported early withdrawal without compliance shall be invalid and may result in additional charges.</li>
             </ul>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">5. Portfolio Management Services</h2>
             <p>
-              Portfolio management is available only to High Net Worth Individuals and is subject to a separate written agreement specifying capital size, risk parameters, profit-sharing (if any), and other terms. The Company manages such portfolios in good faith but provides no guarantee of performance or return of capital.
+              Portfolio management is available only to High Net Worth Individuals and is subject to a separate written agreement specifying capital size, risk parameters, profit-sharing (if any), and other terms. The Company manages such portfolios in good faith and transparent performance and return of capital.
             </p>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">6. Mentorship Services</h2>
             <p>
-              Mentorship is provided to experienced traders seeking structured guidance. You agree to comply fully with all mentor instructions, trading rules, risk frameworks, and programme requirements. Non-compliance may result in immediate termination without refund or further liability on the part of the Company.
+              Mentorship is provided to experienced traders seeking structured guidance. You agree to comply fully with all mentor instructions, trading rules, risk frameworks, and programme requirements. Non-compliance may result in immediate termination or further liability on the part of the Company.
             </p>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">7. Limitation of Liability</h2>
             <p>
-              To the maximum extent permitted by law, the Company, its directors, officers, employees, mentors, agents, and affiliates shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, trading losses, business interruption, loss of data, or any other financial or non-financial loss arising from:
+              To the maximum extent permitted by law, the Company, its directors, officers, employees, mentors, agents, and affiliates shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, trading losses, business interruption, or any other financial or non-financial loss arising from:
             </p>
             <ul className="list-disc pl-6 mt-3 space-y-2">
-              <li>Your use of or reliance on any service, content, signal, advice, or material provided;</li>
+              <li>Your use of or reliance on any service, content, advice, or material provided;</li>
               <li>Errors, omissions, delays, or inaccuracies in information;</li>
               <li>Market movements, third-party actions, or force majeure events;</li>
               <li>Termination or suspension of your account or services.</li>
@@ -104,12 +104,12 @@ const TermsOfService = () => {
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">9. Termination and Suspension</h2>
             <p>
-              The Company reserves the right, at its sole discretion and without notice or liability, to suspend or terminate your access to any or all services, including but not limited to cases of breach of this Agreement, provision of false information, unethical conduct, non-compliance with rules, or any other conduct deemed detrimental. No refunds shall be provided in such circumstances.
+              The Company reserves the right, at its sole discretion and with or without notice or liability, to suspend or terminate your access to any or all services, including but not limited to cases of breach of this Agreement, provision of false information, unethical conduct, non-compliance with rules, or any other conduct deemed detrimental. No refunds shall be provided in such circumstances.
             </p>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">10. No Refunds Policy</h2>
             <p>
-              All payments for services, programmes, mentorship, or deposits are non-refundable except as explicitly stated in this Agreement (e.g. early withdrawal penalty provisions). You acknowledge that services commence immediately upon payment or enrolment.
+              All payments for services like programmes, mentorship/intern, or deposits are non-refundable except as explicitly stated in this Agreement (e.g. early withdrawal penalty provisions). You acknowledge that services commence immediately upon payment or enrolment.
             </p>
 
             <h2 className="text-2xl font-bold text-white mt-10 mb-4">11. Data Protection</h2>

@@ -3,7 +3,6 @@ import {
   pgTable,
   serial,
   text,
-  varchar,
   integer,
   numeric,
   timestamp,
@@ -15,13 +14,13 @@ import {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  email: text("email").default(""),
+  email: text("email").notNull().default(""),
   password_hash: text("password_hash").notNull(),
   role: text("role").notNull().default("client"),
   balance: numeric("balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
   bonus_balance: numeric("bonus_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
   referral_code: text("referral_code").unique(),
-  referred_by: integer("referred_by").references(() => users.id),
+  referred_by: integer("referred_by"),
   first_name: text("first_name"),
   last_name:  text("last_name"), 
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -61,10 +60,16 @@ export const investments = pgTable("investments", {
   status: text("status").notNull().default("active"),
   progress: numeric("progress", { precision: 6, scale: 2 }).notNull().default("0.00"),
   profit_loss: numeric("profit_loss", { precision: 20, scale: 2 }).notNull().default("0.00"),
+  profit_paid: numeric("profit_paid", { precision: 20, scale: 2 })
+    .notNull()
+    .default("0.00"),
+
   start_at: timestamp("start_at", { withTimezone: true }).notNull(),
   duration_days: integer("duration_days").default(0),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  last_profit_payout_at: timestamp("last_profit_payout_at", { withTimezone: true }),
 });
+
 
 /* ========================= PNL LOGS ======================== */
 export const pnl_logs = pgTable("pnl_logs", {
@@ -134,15 +139,6 @@ export const portfolio_allocations = pgTable("portfolio_allocations", {
   percentage: numeric("percentage", { precision: 5, scale: 2 }).notNull(),
 });
 
-/* ====================== PAYMENT ADDRESSES ===================== */
-export const paymentAddresses = pgTable("payment_addresses", {
-  id: serial("id").primaryKey(),
-  network: varchar("network", { length: 50 }).notNull(),
-  address: varchar("address", { length: 255 }).notNull(),
-  is_active: boolean("is_active").default(true),
-  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
 /* ====================== REFERRAL SETTINGS ===================== */
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
@@ -189,6 +185,8 @@ export const learning_programs = pgTable("learning_programs", {
   price: numeric("price", { precision: 20, scale: 2 }).notNull(),
   duration_days: integer("duration_days").notNull().default(30),
   is_active: boolean("is_active").default(true),
+  thumbnail_url: text("thumbnail_url"), 
+
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -423,6 +421,16 @@ export const payment_webhooks = pgTable("payment_webhooks", {
   payload: jsonb("payload").notNull(),
   received_at: timestamp("received_at", { withTimezone: true }).defaultNow(),
 });
+/* ==================Notifications================== */
+// db/schema.ts
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
 
-
-export type PaymentAddress = typeof paymentAddresses.$inferSelect;
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});

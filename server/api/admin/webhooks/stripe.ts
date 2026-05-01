@@ -1,10 +1,11 @@
 // server/api/webhooks/stripe.ts
 import { Router } from "express";
+import express from "express";
 import Stripe from "stripe";
-import { db } from "../../db/connection";
-import { settings, transactions, users } from "../../db/schema";
+import { db } from "../../../db/connection";
+import { settings, transactions } from "../../../db/schema";
 import { eq } from "drizzle-orm";
-import { processDeposit } from "../../services/depositProcessor";
+import { processDeposit } from "../../../services/depositProcessor";
 
 const router = Router();
 
@@ -33,7 +34,9 @@ router.post("/", express.raw({ type: "application/json" }), async (req, res) => 
     const secret = await getStripeSecret();
     if (!secret) throw new Error("Stripe webhook secret not configured");
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", { apiVersion: "2022-11-15" });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+      apiVersion: "2025-12-15.clover",
+    });
 
     // Verify the webhook signature
     const event = stripe.webhooks.constructEvent(req.body, sig, secret);
@@ -56,12 +59,13 @@ router.post("/", express.raw({ type: "application/json" }), async (req, res) => 
         return res.json({ received: true }); // idempotent
       }
 
-      // Call processDeposit safely
+      // Call processDeposit safely with existing reference
       await processDeposit({
         userId: tx.user_id,
         amount: Number(intent.amount) / 100, // Stripe uses cents
         provider: "stripe",
         providerRef: intent.id,
+        existingTxReference: reference,
       });
 
       return res.json({ received: true });

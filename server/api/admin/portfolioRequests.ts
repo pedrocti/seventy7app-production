@@ -9,6 +9,8 @@ import {
 } from "../../db/schema";
 import { eq, sql } from "drizzle-orm";
 
+import { createNotification } from "../../utils/notifications";
+
 const router = Router();
 
 router.use(auth, adminOnly);
@@ -80,6 +82,10 @@ router.patch("/:id/approve", async (req, res) => {
       .from(users)
       .where(eq(users.id, request.user_id));
 
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
     const requestedAmount = Number(request.amount);
     const userBalance = Number(user.balance || 0);
 
@@ -102,9 +108,9 @@ router.patch("/:id/approve", async (req, res) => {
         .values({
           user_id: request.user_id,
           request_id: requestId,
-          total_invested: requestedAmount,
-          current_value: requestedAmount,
-          profit_loss: 0,
+          total_invested: requestedAmount.toString(),
+          current_value: requestedAmount.toString(),
+          profit_loss: "0.00",
           status: "active",
         })
         .returning();
@@ -121,7 +127,7 @@ router.patch("/:id/approve", async (req, res) => {
         await tx.insert(portfolio_allocations).values({
           portfolio_id: portfolio.id,
           asset: a.asset,
-          percentage: a.percentage,
+          percentage: a.percentage.toString(),
         });
       }
 
@@ -134,12 +140,24 @@ router.patch("/:id/approve", async (req, res) => {
         .where(eq(portfolio_requests.id, requestId));
     });
 
+    // -------------------------------
+    // Notify user after approval
+    // -------------------------------
+    await createNotification(
+      request.user_id,
+      "Portfolio Approved",
+      `Your portfolio request of $${requestedAmount.toFixed(
+        2
+      )} has been approved and activated.`
+    );
+
     res.json({ success: true, message: "Portfolio approved & activated!" });
   } catch (err) {
     console.error("Portfolio approval error:", err);
     res.status(500).json({ error: "Failed to approve portfolio" });
   }
 });
+
 
 // =========================
 //   PATCH: Reject Request

@@ -1,4 +1,3 @@
-// vite.config.ts — environment-aware, production-ready, fully proxied
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -7,20 +6,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// -----------------------------
-// Detect environment
-// -----------------------------
 const isProd = process.env.NODE_ENV === "production";
 
-// -----------------------------
-// Backend URL
-// - Dev: local backend (use 127.0.0.1 to avoid IPv6/localhost issues)
-// - Replit: same (Vite proxy handles public URL)
-// - Prod: Hostinger backend URL or same domain if integrated
-// -----------------------------
 const BACKEND_URL = isProd
-  ? "https://yourproductionbackend.com" // ← replace with Hostinger backend
-  : "http://127.0.0.1:3000";           // dev & Replit proxy use IPv4 loopback
+  ? process.env.FRONTEND_BACKEND_URL || "https://yourproductionbackend.com"
+  : "http://127.0.0.1:3100";
+
+const DEV_FRONTEND_PORT = 5100;
 
 export default defineConfig({
   plugins: [react()],
@@ -37,13 +29,12 @@ export default defineConfig({
 
   server: {
     host: true,
-    port: 5000,
+    port: DEV_FRONTEND_PORT,
     strictPort: true,
-    allowedHosts: [".replit.dev", ".repl.co", ".id.repl.co"],
 
-    // -----------------------------
-    // Proxy backend routes
-    // -----------------------------
+    // ✅ FIXED: allowedHosts must be string[] or true
+    allowedHosts: [".replit.dev", ".repl.co", ".id.repl.co"] as string[],
+
     proxy: {
       "/auth": {
         target: BACKEND_URL,
@@ -66,7 +57,7 @@ export default defineConfig({
   },
 
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir: path.resolve(__dirname, "client/dist"),
     emptyOutDir: true,
   },
 });

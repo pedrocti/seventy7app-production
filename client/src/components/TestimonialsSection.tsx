@@ -230,18 +230,37 @@ const BlogSection = () => {
       animation: itemMiddleVariants
     },
     {
-      title: "Scale Your Account with Prop Firm Assist",
-      date: "May 1, 2025",
-      excerpt: "Explore how our specialized prop firm assistance program helps traders secure funded accounts and scale their trading capital.",
+      title: "How Beginners Can Start Investing in Financial Markets",
+      date: "Mar 10, 2026",
+      excerpt: "Explore how you can start investing into as a beginner.",
       content: [
-        "In today's trading landscape, proprietary trading firms offer an unprecedented opportunity to access significant capital without large personal investments. However, passing these evaluations requires specific techniques and approaches that differ from regular trading. Seventy7 Kapital's Prop Firm Assist program is specifically designed to help you secure and manage these funded accounts successfully.",
-        "Our challenge preparation module addresses the unique metrics and requirements of various prop firms. We analyze your current trading approach and help you adapt it to meet specific drawdown limits, profit targets, and time constraints. This tailored approach has resulted in a 78% first-attempt pass rate for our members - significantly higher than the industry average.",
-        "The strategy optimization component involves fine-tuning your execution to maximize profitability while staying within the risk parameters required by prop firms. This includes precision entry and exit techniques, optimal lot sizing, and specialized approaches to managing trades during volatile market conditions.",
-        "Perhaps most valuable is our account evaluation stage assistance, where your dedicated mentor provides real-time guidance during your challenge. This includes daily review sessions, pre-market preparation, and immediate feedback on trade execution. The combination of proven methodologies and personalized support explains why Seventy7 traders typically manage accounts 3-5 times larger than they could access independently."
+        "Entering the world of financial markets can feel overwhelming for beginners, but investing does not have to be complicated. The first step is understanding how markets work and learning the principles that guide successful investors.",
+        "Financial markets include assets such as stocks, currencies, commodities, and cryptocurrencies. Each asset class offers different opportunities and risks, and understanding these differences is essential for building a balanced investment strategy",
+        "Beginners should focus on three key principles: education, risk management, and long-term thinking. Rather than chasing quick profits, successful investors take time to study market behavior and develop disciplined decision-making processes.",
+        "With the right financial education and guidance, anyone can begin their journey in financial markets and gradually build the knowledge needed for long-term wealth creation."
       ],
       animation: itemRightVariants
-    }
+    },
+
+    {
+        title: "5 Financial Literacy Skills Everyone Should Learn Before 30",
+        date: "Mar 10, 2026",
+        excerpt: "Explore the 5 Financial Literacy Skills Everyone Should Learn Before 30",
+        content: [
+          "Financial literacy is one of the most important life skills, yet many people enter adulthood without understanding how money truly works. Learning key financial skills early can significantly improve long-term financial stability and wealth creation.",
+          "The first essential skill is budgeting and money management. Knowing how to track income and expenses helps individuals control spending and build healthy financial habits.",
+          "The second skill is saving and emergency planning, which provides financial security during unexpected situations.",
+          "Third is understanding investing, which allows money to grow over time through financial markets.",
+          "Fourth is debt management, ensuring individuals avoid harmful financial obligations.",
+          "Finally, developing financial discipline and long-term thinking helps people make smarter financial decisions throughout life.", 
+          "Building these financial literacy skills early can create a strong foundation for financial independence and long-term wealth"
+
+        ],
+        animation: itemRightVariants
+      }
   ];
+
+  
 
   const handleOpenModal = (index: number) => {
     setActivePostIndex(index);
@@ -274,14 +293,14 @@ const BlogSection = () => {
         </motion.div>
         
         <motion.div 
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           variants={containerVariants}
           initial="hidden"
           animate={controls}
         >
           {blogPosts.map((post, index) => (
             <BlogPostCard 
-              key={index}
+              key={post.title}
               {...post}
               onReadMore={() => handleOpenModal(index)}
             />

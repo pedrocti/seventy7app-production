@@ -15,11 +15,14 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
   const [method, setMethod] = useState<"card" | "crypto">("card");
   const [loading, setLoading] = useState(false);
 
+  // ✅ SAFE derived values (no side effects)
+  const numericAmount = Number(amount);
+  const isMinAmountValid = numericAmount >= 100;
+
   if (!isOpen) return null;
 
   const startDeposit = async () => {
-    const numAmount = Number(amount);
-    if (!numAmount || numAmount < 100) {
+    if (!isMinAmountValid) {
       toast.error("Minimum deposit is $100");
       return;
     }
@@ -32,7 +35,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount: numAmount, method }),
+        body: JSON.stringify({ amount: numericAmount, method }),
       });
 
       const data = await res.json();
@@ -41,14 +44,13 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
         throw new Error(data.error || "Deposit failed");
       }
 
-      // CARD → Redirect to Stripe Checkout
+      // CARD → Stripe Checkout
       if (method === "card" && data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
         return;
       }
 
-
-      // CRYPTO → NOWPayments invoice URL
+      // CRYPTO → NOWPayments
       if (method === "crypto" && data.paymentUrl) {
         window.open(data.paymentUrl, "_blank", "noopener,noreferrer");
         toast.success("Opening secure payment page...");
@@ -70,10 +72,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-white">Deposit Funds</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition">
             <X size={24} />
           </button>
         </div>
@@ -109,19 +108,29 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           <label className="block text-sm text-gray-400 mb-2">Amount (USD)</label>
           <input
             type="number"
-            min="10"
-            placeholder="Minimum $10"
+            min={100}
+            placeholder="Minimum $100"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-full px-5 py-4 bg-[#1E293B] rounded-xl text-white text-lg font-medium focus:outline-none focus:ring-4 focus:ring-[#0AEFFF]/50 transition"
           />
+
+          {amount && !isMinAmountValid && (
+            <p className="text-sm text-red-400 mt-2">
+              Minimum deposit is $100
+            </p>
+          )}
         </div>
 
         {/* Submit Button */}
         <button
           onClick={startDeposit}
-          disabled={loading || !amount}
-          className="w-full py-5 bg-[#0AEFFF] text-black text-lg font-bold rounded-xl hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+          disabled={loading || !isMinAmountValid}
+          className={`w-full py-5 text-lg font-bold rounded-xl transition shadow-lg ${
+            loading || !isMinAmountValid
+              ? "bg-gray-600 text-gray-300 cursor-not-allowed"
+              : "bg-[#0AEFFF] text-black hover:bg-cyan-400"
+          }`}
         >
           {loading ? "Processing..." : `Pay with ${method === "card" ? "Card" : "Crypto"}`}
         </button>

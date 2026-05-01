@@ -7,26 +7,27 @@ import {
   transactions,
   managed_portfolios,
   portfolio_allocations,
+  notifications,
 } from "../db/schema";
 import { auth } from "./utils";
 import { eq, desc, sql, and } from "drizzle-orm";
 
 const router = Router();
-
 router.use(auth);
 
+// -------------------------
 // GET /api/user/overview
+// -------------------------
 router.get("/", async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ success: false, error: "Unauthorized" });
-    }
+    if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
 
-    // 1) User data
+    // 1) User
     const [u] = await db
       .select({
         id: users.id,
+        username: users.username, // ✅ greeting support
         balance: users.balance,
         bonus_balance: users.bonus_balance,
         referral_code: users.referral_code,
@@ -34,14 +35,12 @@ router.get("/", async (req, res) => {
       .from(users)
       .where(eq(users.id, userId));
 
-    if (!u) {
-      return res.status(404).json({ success: false, error: "User not found" });
-    }
+    if (!u) return res.status(404).json({ success: false, error: "User not found" });
 
-    const userBalance = Number(u.balance ?? 0) || 0;
-    const userBonus = Number(u.bonus_balance ?? 0) || 0;
+    const userBalance = Number(u.balance ?? 0);
+    const userBonus = Number(u.bonus_balance ?? 0);
 
-    // 2) ACTIVE investments (include plan name for grouping)
+    // 2) Active investments
     const activeInv = await db
       .select({
         amount: investments.amount,
@@ -50,81 +49,68 @@ router.get("/", async (req, res) => {
       })
       .from(investments)
       .leftJoin(plans, eq(plans.id, investments.plan_id))
-      .where(
-        and(
-          eq(investments.user_id, userId),
-          eq(investments.status, "active")
-        )
-      );
+    .where(
+      and(
+        eq(investments.user_id, userId),
+        eq(investments.status, "active") 
+      )
+    );
 
-    const activeValue = activeInv.reduce((sum, inv) => {
-      const amt = Number(inv.amount ?? 0) || 0;
-      const prof = Number(inv.profit_loss ?? 0) || 0;
-      return sum + amt + prof;
-    }, 0);
 
-    const totalActiveInvested = activeInv.reduce((sum, inv) => {
-      return sum + Number(inv.amount ?? 0) || 0;
-    }, 0);
+    const activeValue = activeInv.reduce(
+      (sum, i) => sum + Number(i.amount ?? 0) + Number(i.profit_loss ?? 0),
+      0
+    );
 
-    // 3) Total profit from ALL investments
-    const [profitAgg] = await db
+    const totalActiveInvested = activeInv.reduce(
+      (sum, i) => sum + Number(i.amount ?? 0),
+      0
+    );
+
+    // 3) Profit + performance
+    const [investAgg] = await db
       .select({
+        total_invested: sql<number>`COALESCE(SUM(${investments.amount}), 0)`,
         total_profit: sql<number>`COALESCE(SUM(${investments.profit_loss}), 0)`,
       })
       .from(investments)
       .where(eq(investments.user_id, userId));
 
-    const totalProfit = Number(profitAgg?.total_profit ?? 0) || 0;
+    const totalInvested = Number(investAgg?.total_invested ?? 0);
+    const totalProfit = Number(investAgg?.total_profit ?? 0);
 
-    // 4) Active investments count
-    const activeCount = activeInv.length;
+    const performance = totalInvested === 0
+      ? 0
+      : (totalProfit / totalInvested) * 100;
 
-    // 5) Portfolio value
+    // portfolio value = cash + bonus + active investments value
     const portfolio_value = userBalance + userBonus + activeValue;
 
-    // 6) Build full allocation array (only one declaration, type-safe)
+
+    
+    // 4) Allocation
     const allocation: { name: string; value: number; profit_percent: number }[] = [];
 
-    // Cash
-    if (userBalance > 0) {
-      allocation.push({
-        name: "Cash",
-        value: userBalance,
-        profit_percent: 0,
-      });
-    }
+    if (userBalance > 0) allocation.push({ name: "Cash", value: userBalance, profit_percent: 0 });
+    if (userBonus > 0) allocation.push({ name: "Bonus Balance", value: userBonus, profit_percent: 0 });
 
-    // Bonus
-    if (userBonus > 0) {
-      allocation.push({
-        name: "Bonus Balance",
-        value: userBonus,
-        profit_percent: 0,
-      });
-    }
-
-    // Investments grouped by plan name
-    const invAllocMap = new Map<string, number>();
-    activeInv.forEach(inv => {
-      const planName = inv.plan_name || "Unknown Investment";
-      const currentValue = Number(inv.amount ?? 0) + Number(inv.profit_loss ?? 0);
-      invAllocMap.set(planName, (invAllocMap.get(planName) || 0) + currentValue);
+    const invAlloc = new Map<string, number>();
+    activeInv.forEach(i => {
+      const key = i.plan_name || "Investment";
+      invAlloc.set(key, (invAlloc.get(key) || 0) + Number(i.amount ?? 0) + Number(i.profit_loss ?? 0));
     });
 
-    invAllocMap.forEach((value, name) => {
-      if (value > 0) {
-        allocation.push({
-          name,
-          value,
-          profit_percent: totalActiveInvested > 0 
-            ? Number(((value / totalActiveInvested) * 100).toFixed(1)) 
-            : 0,
-        });
-      }
+    invAlloc.forEach((value, name) => {
+      allocation.push({
+        name,
+        value,
+        profit_percent: totalActiveInvested
+          ? Number(((value / totalActiveInvested) * 100).toFixed(1))
+          : 0,
+      });
     });
 
-    // Managed portfolio assets (if exists)
+    // 5) Managed portfolio
     const [portfolio] = await db
       .select()
       .from(managed_portfolios)
@@ -132,131 +118,143 @@ router.get("/", async (req, res) => {
       .limit(1);
 
     if (portfolio) {
-      const allocRows = await db
-        .select({
-          asset: portfolio_allocations.asset,
-          percentage: portfolio_allocations.percentage,
-        })
+      const rows = await db
+        .select()
         .from(portfolio_allocations)
         .where(eq(portfolio_allocations.portfolio_id, portfolio.id));
 
-      const totalPortfolioValue = Number(portfolio.current_value ?? portfolio.total_invested ?? 0);
-      allocRows.forEach(row => {
-        const pct = Number(row.percentage ?? 0) / 100;
-        const assetValue = totalPortfolioValue * pct;
-        if (assetValue > 0) {
+      const totalVal = Number(portfolio.current_value ?? portfolio.total_invested ?? 0);
+
+      rows.forEach(r => {
+        const value = totalVal * (Number(r.percentage ?? 0) / 100);
+        if (value > 0) {
           allocation.push({
-            name: row.asset,
-            value: assetValue,
-            profit_percent: totalPortfolioValue > 0 
-              ? Number(((assetValue / totalPortfolioValue) * 100).toFixed(1)) 
+            name: r.asset,
+            value,
+            profit_percent: totalVal
+              ? Number(((value / totalVal) * 100).toFixed(1))
               : 0,
           });
         }
       });
     }
 
-    // Debug log – remove after testing
-    console.log("Generated allocation:", allocation);
-
-    // 7) Recent transactions
+    // 6) Transactions
     const recentTx = await db
-      .select({
-        id: transactions.id,
-        type: transactions.type,
-        amount: transactions.amount,
-        status: transactions.status,
-        created_at: transactions.created_at,
-        details: transactions.details,
-      })
+      .select()
       .from(transactions)
       .where(eq(transactions.user_id, userId))
       .orderBy(desc(transactions.id))
       .limit(5);
 
-    const formattedTx = recentTx.map((t) => {
-      const amount = Number(t.amount ?? 0) || 0;
-      return {
-        ...t,
-        amount: Number(amount.toFixed(2)),
-        details: t.details || null,
-      };
-    });
+    const notificationsList = await db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.user_id, userId)) 
+    .orderBy(desc(notifications.created_at))
+    .limit(10);
 
     // 8) Recent investments
     const invRows = await db
-      .select({
-        id: investments.id,
-        amount: investments.amount,
-        profit_loss: investments.profit_loss,
-        progress: investments.progress,
-        status: investments.status,
-        start_at: investments.start_at,
-        duration_days: investments.duration_days,
-        plan_id: investments.plan_id,
-        plan_name: plans.name,
-        plan_duration_days: plans.duration_days,
-      })
-      .from(investments)
-      .leftJoin(plans, eq(plans.id, investments.plan_id))
-      .where(eq(investments.user_id, userId))
-      .orderBy(desc(investments.id))
-      .limit(6);
+    .select({
+      id: investments.id,
+      amount: investments.amount,
+      profit_loss: investments.profit_loss,
+      progress: investments.progress,
+      status: investments.status,
+      start_at: investments.start_at,
+      duration_days: investments.duration_days,
+      plan_name: plans.name,
+    })
+    .from(investments)
+    .leftJoin(plans, eq(plans.id, investments.plan_id))
+    .where(eq(investments.user_id, userId))
+    .orderBy(desc(investments.id))
+    .limit(6);
 
-    const formattedInv = invRows.map((r) => {
-      const amt = Number(r.amount ?? 0) || 0;
-      const pl = Number(r.profit_loss ?? 0) || 0;
-      const prog = Number(r.progress ?? 0) || 0;
-      const dur = Number(r.duration_days ?? r.plan_duration_days ?? 0) || 0;
-      const start = r.start_at ? new Date(r.start_at) : null;
-      const endAt = start && dur ? new Date(start.getTime() + dur * 86400000) : null;
+    // Compute timeline fields
+    const now = Date.now();
+
+    const computedInv = invRows.map(inv => {
+      const start = new Date(inv.start_at).getTime();
+
+      const durationDays = Number(inv.duration_days ?? 30);
+      const end = start + durationDays * 86400 * 1000;
+
+      const totalMs = Math.max(1, end - start);
+      const elapsedMs = Math.max(0, Math.min(now - start, totalMs));
+      const progressPercent = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
+
+      const daysLeft = Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)));
+
+      const isCompleted = now >= end;
+
       return {
-        id: r.id,
-        planId: r.plan_id,
-        planName: r.plan_name || "Plan",
-        amount: amt,
-        profit_loss: pl,
-        progress: prog,
-        status: r.status,
-        startAt: start,
-        durationDays: dur,
-        endAt,
+        ...inv,
+        endAt: new Date(end).toISOString(),
+        progressPercent,
+        daysLeft,
+        isCompleted,
       };
     });
 
-    // 9) Managed portfolio check
-    let hasPortfolio = false;
-    try {
-      const [portfolio] = await db
-        .select()
-        .from(managed_portfolios)
-        .where(eq(managed_portfolios.user_id, userId))
-        .limit(1);
-      hasPortfolio = Boolean(portfolio);
-    } catch {}
+    // 9) Portfolio existence
+    const hasPortfolio = Boolean(portfolio);
 
     res.json({
       success: true,
       user: {
         id: u.id,
-        balance: Number(userBalance.toFixed(2)),
-        bonus_balance: Number(userBonus.toFixed(2)),
-        referral_code: u.referral_code || null,
+        username: u.username || "User",
+        balance: userBalance.toFixed(2),
+        bonus_balance: userBonus.toFixed(2),
+        referral_code: u.referral_code ?? "",
       },
       totals: {
-        total_invested: Number(totalActiveInvested.toFixed(2)),
-        total_profit: Number(totalProfit.toFixed(2)),
-        portfolio_value: Number(portfolio_value.toFixed(2)),
-        active_investments: activeCount,
+        total_profit: totalProfit.toFixed(2),
+        total_invested: totalInvested.toFixed(2),
+        portfolio_value: portfolio_value.toFixed(2),
+        active_investments: activeInv.length,
+        performance: `${performance.toFixed(2)}%`,
       },
-      allocation,  // ← now included in response!
-      recent_transactions: formattedTx,
-      recent_investments: formattedInv,
+      allocation,
+      notifications: notificationsList,
+      recent_transactions: recentTx,
+      recent_investments: computedInv,
       hasPortfolio,
     });
+
   } catch (err) {
-    console.error("Overview fetch error:", err);
+    console.error("Overview error:", err);
     res.status(500).json({ success: false, error: "Failed to fetch overview" });
+  }
+});
+
+// -------------------------
+// PATCH /api/user/notifications/:id/read
+// -------------------------
+router.patch("/notifications/:id/read", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const notifId = Number(req.params.id);
+    if (!userId || Number.isNaN(notifId)) {
+      return res.status(400).json({ error: "Invalid request" });
+    }
+
+    await db
+    .update(notifications)
+    .set({ read: true })
+    .where(
+      and(
+        eq(notifications.id, notifId),
+        eq(notifications.user_id, userId) 
+      )
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Notification update error:", err);
+    res.status(500).json({ success: false });
   }
 });
 

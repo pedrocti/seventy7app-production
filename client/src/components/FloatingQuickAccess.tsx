@@ -16,7 +16,7 @@ const FloatingQuickAccess = () => {
   const quickAccessButtons = [
     {
       icon: "fa-coins",
-      label: "Invest & Earn",
+      label: "Stake to Earn",
       link: "/invest",
       color: "text-cyan-400",
     },
@@ -34,7 +34,7 @@ const FloatingQuickAccess = () => {
     },
     {
       icon: "fa-graduation-cap",
-      label: "Mentorship",
+      label: "Academy",
       link: "/mentorship",
       color: "text-cyan-400",
     },
@@ -42,7 +42,7 @@ const FloatingQuickAccess = () => {
     {
       icon: <MessageCircle className="w-5 h-5" />,
       label: "speak with an advisor",
-      href: "https://wa.me/2349030831907",
+      href: "https://wa.me/+447887649072",
       isExternal: true,
       color: "text-green-400",
     },

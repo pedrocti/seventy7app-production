@@ -1,16 +1,16 @@
 // client/src/components/AdminTransactions.tsx
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { API_BASE } from "@/api";   
+import { API_BASE } from "@/api";
 
 interface Transaction {
   id: number;
   user_id: number;
   username: string;
   wallet?: string | null;
-  type: string;       // 'deposit' | 'withdrawal'
-  amount: string;     // formatted as string with 2 decimals
-  status: string;     // 'pending' | 'completed' | etc.
+  type: string;
+  amount: string;
+  status: string;
   created_at: string;
   details?: string | null;
 }
@@ -51,10 +51,29 @@ export default function AdminTransactions() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      fetchTransactions(); // Refresh list
+      fetchTransactions();
     } catch (err: any) {
       console.error("Approval error:", err);
       setError(err?.message || "Failed to approve transaction");
+    }
+  };
+
+  // ✅ NEW: Reject transaction
+  const rejectTransaction = async (id: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No auth token found");
+
+      await axios.patch(
+        `${API_BASE}/admin/transactions/${id}/reject`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      fetchTransactions();
+    } catch (err: any) {
+      console.error("Reject error:", err);
+      setError(err?.message || "Failed to reject transaction");
     }
   };
 
@@ -112,14 +131,25 @@ export default function AdminTransactions() {
               }`}>
                 {tx.status}
               </td>
-              <td className="p-2">
+
+              <td className="p-2 flex gap-2">
                 {tx.type === "withdrawal" && tx.status === "pending" && (
-                  <button
-                    className="px-3 py-1 bg-[#0AEFFF] text-black rounded hover:brightness-110 transition text-sm"
-                    onClick={() => approveTransaction(tx.id)}
-                  >
-                    Approve
-                  </button>
+                  <>
+                    <button
+                      className="px-3 py-1 bg-[#0AEFFF] text-black rounded hover:brightness-110 transition text-sm"
+                      onClick={() => approveTransaction(tx.id)}
+                    >
+                      Approve
+                    </button>
+
+                    {/* ✅ NEW */}
+                    <button
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:brightness-110 transition text-sm"
+                      onClick={() => rejectTransaction(tx.id)}
+                    >
+                      Reject
+                    </button>
+                  </>
                 )}
               </td>
             </tr>

@@ -5,41 +5,123 @@ import {
   managed_portfolios,
   portfolio_allocations,
   portfolio_requests,
+  users,
 } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { auth } from "./utils";
+
+// OPTIONAL: if notifications exist
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
 /* =========================
    POST /portfolio/request
 =========================== */
-router.post("/portfolio/request", auth, async (req, res) => {
+router.post("/request", auth, async (req, res) => {
   try {
-    const { amount } = req.body;
-
-    if (!amount || Number(amount) < 1000) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Minimum amount is $1000" });
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
     }
 
-    const result = await db
-      .insert(portfolio_requests)
-      .values({
-        user_id: req.user.id, // ✔ now valid
-        amount,
-        duration: "30", // default duration
-        status: "pending",
-      })
-      .returning();
+    const { amount } = req.body;
+    const numericAmount = Number(amount);
 
-    return res.json({ success: true, request: result[0] });
+    // Validate amount
+    if (!numericAmount || numericAmount < 50000) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimum amount is $50,000",
+      });
+    }
+
+    // Check for existing pending request
+    const [existingRequest] = await db
+      .select({ id: portfolio_requests.id })
+      .from(portfolio_requests)
+      .where(
+        and(
+          eq(portfolio_requests.user_id, userId),
+          eq(portfolio_requests.status, "pending")
+        )
+      )
+      .limit(1);
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "You already have a pending portfolio request",
+      });
+    }
+
+    // Get user balance
+    const [user] = await db
+      .select({ balance: users.balance })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (Number(user.balance) < numericAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance",
+      });
+    }
+
+    // Transaction: deduct + create request
+    const request = await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({
+          balance: sql`${users.balance} - ${numericAmount}`,
+        })
+        .where(eq(users.id, userId));
+
+      const [inserted] = await tx
+        .insert(portfolio_requests)
+        .values({
+          user_id: userId,
+          amount: numericAmount.toString(), // correct type for numeric
+          duration: "30",
+          status: "pending",
+        })
+        .returning();
+
+      return inserted;
+    });
+
+    // Optional notification
+    try {
+      await createNotification(
+        userId,
+        "Portfolio Request Submitted",
+        `Your portfolio management request for $${numericAmount.toLocaleString()} has been submitted and is pending approval.`
+      );
+    } catch (err) {
+      console.warn("Notification failed:", err);
+    }
+
+    return res.json({
+      success: true,
+      request,
+    });
   } catch (err) {
     console.error("Portfolio request error:", err);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 });
 
@@ -48,10 +130,18 @@ router.post("/portfolio/request", auth, async (req, res) => {
 =========================== */
 router.get("/", auth, async (req, res) => {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
     const [portfolio] = await db
       .select()
       .from(managed_portfolios)
-      .where(eq(managed_portfolios.user_id, req.user.id))
+      .where(eq(managed_portfolios.user_id, userId))
       .limit(1);
 
     if (!portfolio) {

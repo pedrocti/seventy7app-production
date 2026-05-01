@@ -104,7 +104,7 @@ export default function Register() {
             <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] bg-clip-text text-transparent">
               77KAPITAL
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">Create your trading future</p>
+            <p className="text-gray-400 mt-3 text-lg">Begin your Financial Mastery</p>
           </div>
 
           {/* Referral banner */}

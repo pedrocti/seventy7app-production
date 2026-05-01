@@ -23,11 +23,8 @@ export default function LearningRouter() {
             <ProgramView
               id={Number(params.programId)}
               onBack={() => window.history.back()}
-              // FIXED: Removed window.location.href — now handled by state navigation in Learning.tsx
-              // If you want wouter deep linking later, add route /learning/program/:programId/courses below
               onViewCourses={() => {
                 console.log("View courses requested for program", params.programId);
-                // Optionally: trigger state change or do nothing if using internal state navigation
               }}
             />
           );
@@ -42,7 +39,6 @@ export default function LearningRouter() {
             <ProgramView
               id={Number(params.programId)}
               onBack={() => window.history.back()}
-              // FIXED: Removed window.location.href
               onViewCourses={() => {
                 console.log("View courses requested for program (plural)", params.programId);
               }}
@@ -55,7 +51,25 @@ export default function LearningRouter() {
       <Route path="/learning/program/:programId/courses">
         {(params: any) => {
           if (!params?.programId) return null;
-          return <CoursesList programId={Number(params.programId)} />;
+          return (
+            <CoursesList
+              programId={Number(params.programId)}
+              onBack={() => window.history.back()}
+            />
+          );
+        }}
+      </Route>
+
+      {/* Backwards compatibility (plural) */}
+      <Route path="/learning/programs/:programId/courses">
+        {(params: any) => {
+          if (!params?.programId) return null;
+          return (
+            <CoursesList
+              programId={Number(params.programId)}
+              onBack={() => window.history.back()}
+            />
+          );
         }}
       </Route>
 

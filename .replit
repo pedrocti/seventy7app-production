@@ -1,13 +1,17 @@
 run = "npm run dev"
 port = 3000
-modules = ["nodejs-20", "postgresql-16"]
+modules = ["nodejs-20", "postgresql-16", "python-3.11"]
 [nix]
 channel = "stable-22_11"
-packages = ["psmisc", "tree", "nano", "postgresql_11"]
+packages = ["nano", "postgresql_11", "psmisc", "tree"]
 
 [[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 3100
+externalPort = 5173
 
 [[ports]]
 localPort = 4983

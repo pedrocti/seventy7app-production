@@ -1,229 +1,302 @@
-import { motion } from "framer-motion";
-import { Users, Video, Clock, ArrowRight, Star, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  GraduationCap,
+  Briefcase,
+  ArrowRight,
+  Star,
+} from "lucide-react";
 
 const AcademyMentorshipPage = () => {
-  const features = [
-    {
-      title: "Seventy7 Academy Curriculum",
-      icon: <GraduationCap className="w-8 h-8" />,
-      description: "Comprehensive, structured education covering technical analysis, fundamental strategies, risk management, and trading psychology."
-    },
-    {
-      title: "Live Market Sessions",
-      icon: <Video className="w-8 h-8" />,
-      description: "Real-time market breakdowns and trade execution walkthroughs led by experienced professional traders."
-    },
-    {
-      title: "Expert Mentorship",
-      icon: <Users className="w-8 h-8" />,
-      description: "Personalized one-on-one guidance, strategy reviews, and feedback tailored to your individual progress and goals."
-    },
-    {
-      title: "Learn at Your Own Pace",
-      icon: <Clock className="w-8 h-8" />,
-      description: "Flexible access to recorded materials, live sessions, and mentorship — designed to fit your schedule and learning style."
-    },
-  ];
+  const [activeTab, setActiveTab] = useState<"academy" | "internship">("academy");
 
-  const successMetrics = [
-    { label: "Traders Trained", value: "32+" },
-    { label: "Average Skill Improvement", value: "94%" },
-    { label: "Total Sessions Delivered", value: "70+" },
-    { label: "Combined Mentors Experience", value: "20+ Years" },
-  ];
-
-  const testimonials = [
-    {
-      name: "Marcus T.",
-      text: "The combination of academy structure and personal mentorship has transformed my trading. I finally understand the markets deeply.",
-      rating: 5
-    },
-    {
-      name: "Elena R.",
-      text: "Best investment in my trading career. The curriculum is world-class, and the mentors genuinely care about your growth.",
-      rating: 5
-    },
-    {
-      name: "David P.",
-      text: "From beginner to consistent trader — Seventy7 Academy and mentorship gave me the knowledge, discipline, and confidence I needed.",
-      rating: 5
-    },
-  ];
+  
 
   return (
     <main className="bg-[#0B1120] text-white min-h-screen overflow-hidden">
-      {/* Hero Section */}
+      {/* ================= HERO ================= */}
       <section className="relative py-24 lg:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/90 via-[#0B1120]/70 to-[#0B1120] z-10" />
         <img
           src="https://images.stockcake.com/public/3/b/4/3b4309ca-f1d9-46e3-8a1c-eacbaca1fc51_large/market-success-rising-stockcake.jpg"
-          alt="Professional trader analyzing markets"
+          alt="Financial education"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="relative z-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center">
+        <div className="relative z-20 max-w-7xl mx-auto px-6 text-center">
           <motion.h1
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight"
+            className="text-5xl lg:text-7xl font-extrabold mb-6"
           >
-            Seventy7 Academy<br />
-            <span className="text-[#0AEFFF] bg-clip-text text-transparent bg-gradient-to-r from-[#0AEFFF] to-cyan-300">
-              & Expert Mentorship
+            Seventy7 Academy
+            <br />
+            <span className="text-[#0AEFFF]">
+              Education Before Profit
             </span>
           </motion.h1>
+
           <motion.p
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed"
+            transition={{ delay: 0.3 }}
+            className="text-xl text-gray-300 max-w-4xl mx-auto"
           >
-            Freedom Through Knowledge. Education Before Profit.<br />
-            Master financial markets with a proven academy curriculum and personalized mentorship from professional traders dedicated to your independent success.
+            A structured financial literacy accelerator designed to develop independent traders and money managers
+            with a supervised internship pathway for real-world application.
           </motion.p>
-          <motion.a
-            href="/register" // Updated to registration page
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-            className="inline-flex items-center gap-3 bg-gradient-to-r from-[#0AEFFF] to-[#2563EB] text-[#0B1120] font-bold px-10 py-5 rounded-full shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all text-lg"
+        </div>
+      </section>
+
+      {/* ================= TABS ================= */}
+      <section className="max-w-7xl mx-auto px-6 -mt-12 relative z-20">
+        <div className="flex justify-center gap-4 mb-12">
+          <button
+            onClick={() => setActiveTab("academy")}
+            className={`px-8 py-4 rounded-full font-semibold transition-all ${
+              activeTab === "academy"
+                ? "bg-[#0AEFFF] text-[#0B1120]"
+                : "bg-[#111B2E] text-gray-400 hover:text-white"
+            }`}
           >
-            Register for Academy & Mentorship
-            <ArrowRight className="w-6 h-6" />
-          </motion.a>
-        </div>
-      </section>
+            Seventy7 Academy
+          </button>
 
-      {/* Success Metrics */}
-      <section className="py-20 bg-[#0F172A]/50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {successMetrics.map((metric, idx) => (
+          <button
+            onClick={() => setActiveTab("internship")}
+            className={`px-8 py-4 rounded-full font-semibold transition-all ${
+              activeTab === "internship"
+                ? "bg-[#0AEFFF] text-[#0B1120]"
+                : "bg-[#111B2E] text-gray-400 hover:text-white"
+            }`}
+          >
+            Internship Programme
+          </button>
+        </div>
+
+        {/* ================= TAB CONTENT ================= */}
+        <AnimatePresence mode="wait">
+          {activeTab === "academy" && (
             <motion.div
-              key={idx}
+              key="academy"
               initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: idx * 0.15 }}
-              viewport={{ once: true }}
-              className="text-center"
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.5 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-10 border border-[#0AEFFF]/20"
             >
-              <h3 className="text-4xl lg:text-5xl font-extrabold text-[#0AEFFF] mb-3">{metric.value}</h3>
-              <p className="text-gray-400 text-sm lg:text-base">{metric.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Core Features */}
-      <section className="py-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-            Your Complete Path to <span className="text-[#0AEFFF]">Trading Mastery</span>
-          </h2>
-          <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-            Combining world-class education with hands-on, personalized mentorship — designed for traders who want real skill and lasting independence.
-          </p>
-        </motion.div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {features.map((feature, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: idx * 0.15 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -10, scale: 1.03 }}
-              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 text-center border border-[#0AEFFF]/20 hover:border-[#0AEFFF]/60 hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-300"
-            >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0AEFFF]/20 text-[#0AEFFF] mb-6">
-                {feature.icon}
+              <div className="flex items-center gap-4 mb-6">
+                <GraduationCap className="w-10 h-10 text-[#0AEFFF]" />
+                <h2 className="text-3xl font-bold">Seventy7 Academy (12 Months)</h2>
               </div>
-              <h3 className="text-xl font-bold mb-4">{feature.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{feature.description}</p>
+
+              <p className="text-gray-300 mb-6 leading-relaxed">
+                Seventy7 Academy is a structured one-year diploma programme designed to address a critical gap in modern
+                education — practical financial literacy. Built on institutional frameworks and curated by professionals
+                from industry and academia, the programme prioritizes education before profit and freedom through
+                knowledge.
+              </p>
+
+              <ul className="space-y-4 text-gray-300 mb-8">
+                <li><strong>Beginner Level (4 Months):</strong> Foundations of financial literacy, market mechanics, and risk discipline.</li>
+                <li><strong>Intermediate Level (4 Months):</strong> Applied analysis, strategy development, and controlled market exposure.</li>
+                <li><strong>Professional Level (4 Months):</strong> Advanced execution, portfolio thinking, and independent decision-making.</li>
+              </ul>
+
+              <p className="text-gray-400 text-sm mb-8">
+                Graduates of the Academy may progress into a supervised Internship Programme to apply what they’ve
+                learned under professional guidance.
+              </p>
+
+              <a
+                href="/register"
+                className="inline-flex items-center gap-3 bg-[#0AEFFF] text-[#0B1120] font-bold px-8 py-4 rounded-full"
+              >
+                Apply for Academy
+                <ArrowRight />
+              </a>
+
+              <p className="text-xs text-gray-500 mt-4">Enrollment subject to approval.</p>
             </motion.div>
-          ))}
-        </div>
+          )}
+
+          {activeTab === "internship" && (
+            <motion.div
+              key="internship"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -30 }}
+              transition={{ duration: 0.5 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-10 border border-[#0AEFFF]/20"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <Briefcase className="w-10 h-10 text-[#0AEFFF]" />
+                <h2 className="text-3xl font-bold">Internship Programme</h2>
+              </div>
+
+              <p className="text-gray-300 mb-6 leading-relaxed">
+                The Internship Programme is a selective, experience-driven pathway designed for traders who want to
+                refine execution through structured training and supervised market exposure.
+              </p>
+
+              <ul className="space-y-4 text-gray-300 mb-8">
+                <li>Capital audit assessment to evaluate risk behaviour</li>
+                <li>Risk engineering frameworks for downside control</li>
+                <li>System development aligned with individual trading styles</li>
+                <li>Dedicated facilitator providing feedback and accountability</li>
+              </ul>
+
+              <p className="text-gray-400 text-sm mb-8">
+                This programme is educational in nature and does not constitute employment, investment advice, or a
+                guarantee of outcomes.
+              </p>
+
+              <a
+                href="/register"
+                className="inline-flex items-center gap-3 bg-[#0AEFFF] text-[#0B1120] font-bold px-8 py-4 rounded-full"
+              >
+                Apply for Internship
+                <ArrowRight />
+              </a>
+
+              <p className="text-xs text-gray-500 mt-4">Admission subject to review and approval.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-gradient-to-br from-[#0AEFFF]/5 via-transparent to-[#2563EB]/5">
-        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
+      {/* ================= PROGRAMME STANDARDS ================= */}
+      <section className="py-24 bg-gradient-to-br from-[#0AEFFF]/5 via-transparent to-[#2563EB]/5">
+        <div className="max-w-7xl mx-auto px-6">
           <motion.h2
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
             className="text-4xl lg:text-5xl font-bold text-center mb-16"
           >
-            Success Stories from Our Traders
+            Programme Standards & Expectations
           </motion.h2>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {testimonials.map((t, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: idx * 0.2 }}
-                whileHover={{ scale: 1.05 }}
-                className="bg-[#111B2E]/70 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20 hover:border-[#0AEFFF]/50 transition-all"
-              >
-                <div className="flex mb-4">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-200 italic mb-6">"{t.text}"</p>
-                <h4 className="text-[#0AEFFF] font-bold">- {t.name}</h4>
-              </motion.div>
-            ))}
+            {/* Card 1 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Financial Education First
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                We prioritize structured financial education covering trading, investing, and financial
+                literacy. Our goal is to build understanding before capital deployment.
+              </p>
+            </motion.div>
+
+            {/* Card 2 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Quality Over Shortcuts
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                We do not promote signals, guarantees, or speculative shortcuts. Participants are
+                expected to develop real financial knowledge and decision-making skills.
+              </p>
+            </motion.div>
+
+            {/* Card 3 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Real Market Understanding
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Our programmes focus on real financial market principles, investment thinking, and risk
+                awareness rather than theoretical simulations.
+              </p>
+            </motion.div>
+
+            {/* Card 4 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Discipline & Accountability
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Successful wealth building requires discipline, patience, and responsible financial
+                behaviour. Participants are expected to maintain these standards.
+              </p>
+            </motion.div>
+
+            {/* Card 5 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Strategic Capital Participation
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Through solutions like Stake-to-Earn and structured investment opportunities, individuals
+                can participate in financial markets responsibly.
+              </p>
+            </motion.div>
+
+            {/* Card 6 */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
+            >
+              <h3 className="text-xl font-bold mb-4 text-[#0AEFFF]">
+                Long-Term Wealth Building
+              </h3>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Our focus is not short-term speculation but developing the mindset and frameworks
+                required for sustainable financial growth.
+              </p>
+            </motion.div>
           </div>
         </div>
       </section>
+      {/* Footer */}
+      <footer className="mt-16 border-t border-[#0AEFFF]/20 bg-black/20 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm text-[#848E9C]">
 
-      {/* Final CTA */}
-      <section className="py-24 text-center relative overflow-hidden">
-        <div className="max-w-5xl mx-auto px-6">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-4xl lg:text-6xl font-extrabold mb-6"
-          >
-            Build Skill. Gain Confidence.<br />
-            <span className="text-[#0AEFFF]">Become an Independent Trader.</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-xl text-gray-300 mb-10 max-w-3xl mx-auto"
-          >
-            Join Seventy7 Academy & Mentorship today — where real education meets real results.
-          </motion.p>
-          <motion.a
-            href="/register" // Updated to registration page
-            whileHover={{ scale: 1.1, boxShadow: "0 0 40px rgba(10,239,255,0.5)" }}
-            className="inline-flex items-center gap-4 bg-gradient-to-r from-[#0AEFFF] to-[#2563EB] text-[#0B1120] font-bold px-12 py-6 rounded-full text-xl shadow-2xl transition-all"
-          >
-            Register Now & Start Learning
-            <ArrowRight className="w-8 h-8" />
-          </motion.a>
+          {/* Brand */}
+          <div>
+            <h4 className="text-[#0AEFFF] font-semibold text-lg mb-2">Seventy7Hub</h4>
+            <p className="text-xs leading-relaxed">
+              Smarter Stakes, learning, and portfolio management all in one platform.
+            </p>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex flex-col gap-2">
+            <a href="/dashboard" className="hover:text-[#0AEFFF]">Dashboard</a>
+            <a href="/invest" className="hover:text-[#0AEFFF]">Staking</a>
+            <a href="/portfolio" className="hover:text-[#0AEFFF]">Portfolio Management</a>
+          </div>
+
+          {/* Social */}
+          <div className="flex flex-col gap-2">
+            <a href="https://t.me/seventy7hub" target="_blank" rel="noopener noreferrer">Telegram</a>
+            <a href="https://discord.gg/seventy7hub" target="_blank" rel="noopener noreferrer">Discord</a>
+            <a href="https://x.com/seventy7hub" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
+            <a href="https://www.instagram.com/seventy7trading?igsh=ZmNmNTBtdWJqa3Ax&utm_source=qr" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a href="https://www.facebook.com/share/1AiekpPNc3/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">Facebook</a>
+            <a href="https://www.linkedin.com/company/seventy7-trading-academy" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          </div>
+
         </div>
-      </section>
 
-      {/* Professional Footer */}
-      <footer className="relative py-12 border-t border-[#0AEFFF]/20">
-        <img
-          src="https://thumbs.dreamstime.com/b/abstract-blue-glowing-wave-background-futuristic-digital-design-technology-elegant-flowing-cyan-waves-gracefully-curve-across-364426935.jpg"
-          alt="Glowing waves background"
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        />
-        <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
-          <p className="text-2xl font-bold mb-2">Seventy7 Kapital</p>
-          <p className="text-gray-400 mb-4">Seventy7 Academy • Expert Trading Mentorship</p>
-          <p className="text-sm text-gray-500">© 2026 Seventy7 Kapital. All rights reserved.</p>
+        <div className="text-center text-xs text-[#6B7280] pb-6">
+          © {new Date().getFullYear()} Seventy7Hub. All rights reserved.
         </div>
       </footer>
     </main>

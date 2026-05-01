@@ -50,7 +50,7 @@ const CommunityPage = () => {
 
         {/* CTA */}
         <motion.a
-          href="https://t.me/Seventy7_Kapital"
+          href="https://t.me/group77hub"
           target="_blank"
           rel="noopener noreferrer"
           whileHover={{ scale: 1.05 }}

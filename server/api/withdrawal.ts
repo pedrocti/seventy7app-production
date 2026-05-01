@@ -3,13 +3,14 @@ import { db } from "../db/connection";
 import { users, transactions } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "./utils";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
 // ---------------------------------------------
 // POST /withdrawal
 // ---------------------------------------------
-router.post("/withdrawal", auth, async (req, res) => {
+  router.post("/", auth, async (req, res) => {
   const { address, network, amount } = req.body;
 
   // Basic validation
@@ -21,6 +22,13 @@ router.post("/withdrawal", auth, async (req, res) => {
   if (Number.isNaN(numAmount) || numAmount <= 0) {
     return res.status(400).json({ error: "Invalid amount" });
   }
+
+  // ✅ AUTH GUARD (fixes req.user error)
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const amountStr = numAmount.toFixed(2);
 
   try {
     const [user] = await db
@@ -37,16 +45,26 @@ router.post("/withdrawal", auth, async (req, res) => {
     }
 
     // Create PENDING withdrawal (NO balance change yet)
+    const reference = `WD-${Date.now()}-${req.user.id}`;
+
     await db.insert(transactions).values({
+      reference,
       user_id: req.user.id,
       type: "withdrawal",
-      amount: numAmount, // ✅ store real amount
+      amount: amountStr,
       status: "pending",
       details: {
         address: address.trim(),
         network: network.trim(),
       },
     });
+
+    await createNotification(
+      req.user.id,
+      "Withdrawal Request Submitted",
+      `Your withdrawal request of $${amountStr} is pending approval.`
+    );
+
 
     res.json({
       success: true,

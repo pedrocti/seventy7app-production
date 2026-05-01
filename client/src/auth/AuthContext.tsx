@@ -13,9 +13,9 @@ export interface User {
   username: string;
   email?: string;
   role: string;
-  balance: string;
-  bonus_balance: string;
-  referral_code?: string;
+  balance: number;        
+  bonus_balance: number;  
+  referral_code: string; 
   created_at?: string;
   email_verified_at?: string | null;
 }
@@ -26,7 +26,7 @@ export interface AuthResponse {
   user?: User;
   error?: string;
   message?: string;
-  code?: string; // backend codes like EMAIL_NOT_VERIFIED
+  code?: string; 
 }
 
 interface AuthContextType {
@@ -51,44 +51,56 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem("token");
+  });
   const [loading, setLoading] = useState(true);
 
   // ----------------------------
   // Load user from localStorage on mount
   // ----------------------------
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("token");
+    try {
+      const storedUser = localStorage.getItem("user");
+      const storedToken = localStorage.getItem("token");
 
-    if (storedUser && storedToken) {
-      try {
-        const parsedUser: User = JSON.parse(storedUser);
-
-        // Only load if user is verified
-        const isVerified = !!parsedUser.email_verified_at;
-
-        if (isVerified) {
-          setUser(parsedUser);
-          setToken(storedToken);
-        } else {
-          // Remove invalid/blocked users
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
-        }
-      } catch {
-        // Remove corrupted data
-        localStorage.removeItem("user");
-        localStorage.removeItem("token");
+      if (!storedUser || !storedToken) {
+        setLoading(false);
+        return;
       }
-    }
 
-    setLoading(false);
+      const parsedUser: User = JSON.parse(storedUser);
+
+      // Restore session
+      setUser(parsedUser);
+      setToken(storedToken);
+
+      // Warn once if email is not verified (do NOT logout)
+      if (!parsedUser.email_verified_at) {
+        toast.warning(
+          "Your email is not verified. Some features are disabled until verification."
+        );
+      }
+    } catch (error) {
+      // Corrupted storage — clean up safely
+      console.warn("Corrupted auth storage detected. Clearing session.");
+
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+
+      setUser(null);
+      setToken(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
 
-  
   // ----------------------------
   // LOGIN
   // ----------------------------
@@ -102,16 +114,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { success: false, error: res.error || "Login failed" };
       }
 
-      // ------------------------------
-      // Safe verification check
-      // ------------------------------
       const isVerified = !!res.user.email_verified_at;
 
-      // Save user anyway, even if unverified
+      // Ensure referral_code exists even if user wasn't referred
       const userData: User = {
         ...res.user,
-        balance: Number(res.user.balance || 0).toFixed(2),
-        bonus_balance: Number(res.user.bonus_balance || 0).toFixed(2),
+        balance: Number(res.user.balance ?? 0),
+        bonus_balance: Number(res.user.bonus_balance ?? 0),
+        referral_code: res.user.referral_code ?? "", // always present
       };
 
       setUser(userData);
@@ -119,10 +129,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("user", JSON.stringify(userData));
       localStorage.setItem("token", res.token);
 
-      // Inform user about verification
       if (!isVerified) {
         toast.warning(
-          "Your email is not verified. Some features like deposits and investments are disabled. Please verify your email."
+          "Your email is not verified. Some features are disabled. Please verify your email."
         );
         return { success: true, token: res.token, user: userData, code: "EMAIL_NOT_VERIFIED" };
       }
@@ -152,10 +161,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await registerApi(firstName, lastName, username, email, password, ref);
+
       if (!res.success) {
         toast.error(res.error || "Registration failed");
         return { success: false, error: res.error || "Registration failed" };
       }
+
+      if (res.user) {
+        const userData: User = {
+          ...res.user,
+          balance: Number(res.user.balance ?? 0),
+          bonus_balance: Number(res.user.bonus_balance ?? 0),
+          referral_code: res.user.referral_code ?? "",
+        };
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
+
       toast.success("Registration successful! Please verify your email.");
       return res;
     } catch (err: any) {

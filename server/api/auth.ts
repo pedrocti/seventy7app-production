@@ -1,5 +1,4 @@
 // src/api/auth.ts (backend - Express router)
-import { Router } from "express";
 import { db, users } from "../db/connection.js";
 import { eq, and, sql } from "drizzle-orm";
 import { transactions, email_verification_tokens } from "../db/schema";
@@ -7,11 +6,93 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendEmail } from "../services/email.service";
 import { generateToken, getExpiry } from "../utils/token";
+import { Router, Request, Response, NextFunction } from "express";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
 
+// ✅ Safe FRONTEND_URL
+const FRONTEND_URL = process.env.FRONTEND_URL;
+if (!FRONTEND_URL) {
+  throw new Error("FRONTEND_URL must be defined");
+}
+
 console.log("AUTH ROUTES LOADED");
+
+// ==============================
+// Middleware to validate JWT
+// ==============================
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, error: "Unauthorized" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as {
+      id: number;
+      role: string;
+    };
+    req.user = decoded;
+    next();
+  } catch {
+    return res.status(401).json({ success: false, error: "Invalid or expired token" });
+  }
+}
+
+// ==============================
+// GET /auth/me → return logged-in user info
+// ==============================
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: "Unauthorized" });
+    }
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        role: users.role,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        balance: users.balance,
+        bonus_balance: users.bonus_balance,
+        referral_code: users.referral_code,
+        referred_by: users.referred_by,
+        created_at: users.created_at,
+      })
+      .from(users)
+      .where(eq(users.id, req.user.id))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        balance: parseFloat(user.balance),
+        bonusBalance: parseFloat(user.bonus_balance),
+        referral_code: user.referral_code ?? "",
+        referred_by: user.referred_by,
+        createdAt: user.created_at,
+      },
+    });
+  } catch (err) {
+    console.error("GET /auth/me error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
 
 // ==============================
 // REGISTER
@@ -20,24 +101,20 @@ router.post("/register", async (req, res) => {
   try {
     const { firstName, lastName, username, email, password, ref } = req.body;
 
-    // Required fields validation
     if (!firstName?.trim()) return res.status(400).json({ error: "First name is required" });
     if (!lastName?.trim()) return res.status(400).json({ error: "Last name is required" });
     if (!username?.trim()) return res.status(400).json({ error: "Username is required" });
     if (!email?.trim()) return res.status(400).json({ error: "Email is required" });
     if (!password?.trim()) return res.status(400).json({ error: "Password is required" });
 
-    // Basic input sanitization / length checks
     if (firstName.trim().length < 2) return res.status(400).json({ error: "First name is too short" });
     if (lastName.trim().length < 2) return res.status(400).json({ error: "Last name is too short" });
     if (username.trim().length < 3) return res.status(400).json({ error: "Username must be at least 3 characters" });
     if (password.length < 6) return res.status(400).json({ error: "Password must be at least 6 characters" });
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) return res.status(400).json({ error: "Invalid email format" });
 
-    // Check uniqueness
     const [existingUsername] = await db
       .select()
       .from(users)
@@ -55,7 +132,6 @@ router.post("/register", async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // Referral logic
     let referred_by: number | null = null;
     let isReferred = false;
     if (ref?.trim()) {
@@ -70,7 +146,6 @@ router.post("/register", async (req, res) => {
       }
     }
 
-    // Insert new user
     const [insertedUser] = await db
       .insert(users)
       .values({
@@ -89,28 +164,6 @@ router.post("/register", async (req, res) => {
 
     if (!insertedUser) throw new Error("Failed to create user");
 
-    // Referral bonus to referrer
-    if (isReferred && referred_by) {
-      const bonusAmount = 10.0;
-      await db
-        .update(users)
-        .set({
-          bonus_balance: sql`${users.bonus_balance} + ${bonusAmount}`,
-        })
-        .where(eq(users.id, referred_by));
-
-      await db.insert(transactions).values({
-        reference: `REF-BONUS-${insertedUser.id}-${Date.now()}`,
-        user_id: referred_by,
-        type: "referral_bonus_credit",
-        amount: bonusAmount.toString(),
-        status: "completed",
-        details: { referred_user_id: insertedUser.id, reason: "new_registration" },
-        created_at: new Date(),
-      });
-    }
-
-    // Email verification token
     const verifyToken = generateToken();
     await db.insert(email_verification_tokens).values({
       user_id: insertedUser.id,
@@ -120,26 +173,24 @@ router.post("/register", async (req, res) => {
       expires_at: getExpiry(24),
     });
 
-    // Send verification email
     await sendEmail({
       to: insertedUser.email,
       templateName: "verify_email",
       variables: {
         username: insertedUser.username,
-        link: `${process.env.FRONTEND_URL}/verify-email?token=${verifyToken}`,
+        link: `${FRONTEND_URL}/verify-email?token=${verifyToken}`,
       },
       userId: insertedUser.id,
     });
 
-    // Generate JWT (optional immediate token – but login still requires verification)
     const token = jwt.sign({ id: insertedUser.id, role: insertedUser.role }, JWT_SECRET, {
       expiresIn: "7d",
     });
 
     res.json({
       success: true,
-      message: "Registration successful! Please check your email (including spam) to verify your account.",
-      token, // optional – frontend can store but can't use until verified
+      message: "Registration successful! Please verify your email.",
+      token,
       user: {
         id: insertedUser.id,
         username: insertedUser.username,
@@ -239,7 +290,7 @@ router.post("/forgot-password", async (req, res) => {
       templateName: "reset_password",
       variables: {
         username: user.username,
-        link: `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`,
+        link: `${FRONTEND_URL}/reset-password?token=${resetToken}`,
       },
       userId: user.id,
     });
@@ -297,16 +348,36 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-
 // ==============================
-// LOGIN (only allowed after email verification)
+// LOGIN (schema-safe, production-ready)
 // ==============================
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    if (!username?.trim() || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Username and password are required",
+      });
+    }
+
     const [user] = await db
-      .select()
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        password_hash: users.password_hash,
+        role: users.role,
+        email_verified_at: users.email_verified_at,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        referred_by: users.referred_by,
+        referral_code: users.referral_code,
+        balance: users.balance,
+        bonus_balance: users.bonus_balance,
+        created_at: users.created_at,
+      })
       .from(users)
       .where(eq(users.username, username.trim()))
       .limit(1);
@@ -327,24 +398,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // -------------------------
-    // DEBUG LOG: inspect email_verified_at
-    // -------------------------
-    console.log("LOGIN CHECK:", {
-      username: user.username,
-      email_verified_at: user.email_verified_at,
-      type: typeof user.email_verified_at,
-    });
-
-    // Convert string timestamps (if returned as string) to Date
-    const emailVerifiedAtDate =
-      user.email_verified_at instanceof Date
-        ? user.email_verified_at
-        : user.email_verified_at
-        ? new Date(user.email_verified_at)
-        : null;
-
-    if (!emailVerifiedAtDate) {
+    if (!user.email_verified_at) {
       return res.status(403).json({
         success: false,
         error: "Please verify your email before logging in",
@@ -368,6 +422,11 @@ router.post("/login", async (req, res) => {
         firstName: user.first_name,
         lastName: user.last_name,
         role: user.role,
+        balance: parseFloat(user.balance),
+        bonusBalance: parseFloat(user.bonus_balance),
+        referral_code: user.referral_code ?? "",
+        referredBy: user.referred_by,
+        created_at: user.created_at,
       },
     });
   } catch (err) {
@@ -378,7 +437,5 @@ router.post("/login", async (req, res) => {
     });
   }
 });
-
-
 
 export default router;

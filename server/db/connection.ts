@@ -1,8 +1,8 @@
 // server/db/connection.ts
 import "dotenv/config";
-import { drizzle, NeonHttpDatabase } from "drizzle-orm/neon-http";
-import { neon } from "@neondatabase/serverless";
-import * as schema from "./schema.js"; // ESM-safe import
+import postgres from "postgres";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as schema from "./schema.js";
 
 // =========================
 // ENV SAFETY
@@ -15,16 +15,24 @@ if (!DATABASE_URL) {
 }
 
 // =========================
-// NEON CLIENT
+// POSTGRES CLIENT (NEON SAFE)
 // =========================
-const client = neon(DATABASE_URL);
+// - Neon requires SSL
+// - search_path MUST be public (do NOT use pgSchema("public"))
+export const sql = postgres(DATABASE_URL, {
+  ssl: "require",
+  prepare: false, // recommended for Neon
+  connection: {
+    search_path: "public",
+  },
+});
 
 // =========================
 // DRIZZLE INSTANCE
 // =========================
-export const db: NeonHttpDatabase<typeof schema> = drizzle(client, {
+export const db = drizzle(sql, {
   schema,
-  logger: process.env.NODE_ENV === "development", // ✅ safe query logging
+  logger: process.env.NODE_ENV === "development",
 });
 
 // =========================
@@ -40,18 +48,12 @@ export const {
   portfolio_requests,
   managed_portfolios,
   portfolio_allocations,
-  paymentAddresses,
-
-  // learning system
   learning_programs,
   courses,
   lessons,
   program_enrollments,
 } = schema;
 
-// =========================
-// CONNECTION CONFIRMATION
-// =========================
 if (process.env.NODE_ENV !== "test") {
-  console.log("✅ Connected to Neon + Drizzle");
+  console.log("✅ Connected to Postgres + Drizzle (public schema)");
 }

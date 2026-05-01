@@ -1,4 +1,4 @@
-// components/MentorshipEvents.tsx
+// dashboard/MentorshipEvents.tsx
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -24,7 +24,16 @@ export default function MentorshipEvents() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("/api/mentorship/events");
+        const token = localStorage.getItem("token");
+
+        const res = await fetch("/api/mentorship/events", {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : undefined,
+        });
+
         const data = await res.json();
 
         if (data.success) {
@@ -42,6 +51,7 @@ export default function MentorshipEvents() {
 
     fetchEvents();
   }, []);
+
 
   const buyEvent = async (eventId: number, price: string) => {
     const amount = Number(price);
@@ -68,11 +78,8 @@ export default function MentorshipEvents() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // ← THIS IS THE KEY FIX
-        // Works for BOTH new purchase AND "Already purchased"
         toast.success(data.message || (amount === 0 ? "Access granted!" : "Payment successful!"));
 
-        // Always add to purchased list if not already there
         setPurchased((prev) => {
           if (prev.includes(eventId)) return prev;
           return [...prev, eventId];
@@ -87,12 +94,11 @@ export default function MentorshipEvents() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-[#0F172A] to-black opacity-80" />
+      <div className="min-h-screen flex items-center justify-center">
         <motion.div
           animate={{ opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="text-2xl text-[#0AEFFF] font-light z-10"
+          className="text-2xl text-[#0AEFFF] font-light"
         >
           Loading exclusive events...
         </motion.div>
@@ -101,15 +107,7 @@ export default function MentorshipEvents() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-black">
-      {/* Subtle Futuristic Background */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0AEFFF]/10 via-transparent to-cyan-500/10" />
-        <div className="absolute top-20 left-10 w-96 h-96 bg-[#0AEFFF]/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-80 h-80 bg-cyan-400/20 rounded-full blur-3xl" />
-      </div>
-
-      {/* Compact & Vibrant Hero */}
+    <div className="min-h-screen bg-[#0B1120] text-white">
       <motion.header
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -117,14 +115,13 @@ export default function MentorshipEvents() {
       >
         <Sparkles className="w-10 h-10 text-[#0AEFFF] mx-auto mb-4 animate-pulse" />
         <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-cyan-300 bg-clip-text text-transparent">
-          Exclusive Mentorship Events
+          Exclusive Internship Events
         </h1>
         <p className="text-gray-400 mt-3 text-lg">
           Live • Interactive • Career-Accelerating
         </p>
       </motion.header>
 
-      {/* Dense Events Section */}
       <section className="relative max-w-5xl mx-auto px-6 pb-16">
         {events.length === 0 ? (
           <motion.div
@@ -145,8 +142,7 @@ export default function MentorshipEvents() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.08 }}
-                className="group relative bg-gradient-to-r from-[#1E293B]/60 to-[#0F172A]/80 backdrop-blur-sm rounded-xl border border-[#334155]/60
-                         shadow-lg hover:shadow-[#0AEFFF]/25 hover:border-[#0AEFFF]/50 transition-all duration-400 p-6"
+                className="group relative bg-[#0F172A]/80 backdrop-blur-sm border border-[#1E293B]/60 rounded-xl p-6 shadow-lg hover:shadow-[#0AEFFF]/25 hover:border-[#0AEFFF]/50 transition-all duration-400"
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                   <div className="flex-1">
@@ -178,16 +174,14 @@ export default function MentorshipEvents() {
                         href={ev.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold rounded-lg
-                                 shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
+                        className="inline-flex items-center gap-2 px-8 py-3 bg-[#0F172A]/80 backdrop-blur-sm border border-[#1E293B]/60 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
                       >
                         Join Now <ExternalLink className="w-4 h-4" />
                       </a>
                     ) : (
                       <Button
                         onClick={() => buyEvent(ev.id, ev.price)}
-                        className="px-10 py-3 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold rounded-lg
-                                 shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
+                        className="px-10 py-3 bg-[#0F172A]/80 backdrop-blur-sm border border-[#1E293B]/60 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all"
                       >
                         {ev.price === "0.00" ? "Get Access" : "Buy Now"}
                       </Button>
@@ -200,9 +194,8 @@ export default function MentorshipEvents() {
         )}
       </section>
 
-      {/* Minimal Footer */}
       <footer className="relative border-t border-[#334155]/30 py-6 text-center text-gray-600 text-sm">
-        © 2025 Your Platform • Transforming Careers Through Mentorship
+        © 2025 Your Platform • Transforming Careers Through Expert Guidiance
       </footer>
     </div>
   );

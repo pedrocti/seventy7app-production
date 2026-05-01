@@ -5,6 +5,7 @@ import { db } from "../db/connection";
 import { transactions, settings } from "../db/schema";
 import { auth } from "./utils";
 import { eq } from "drizzle-orm";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -39,6 +40,14 @@ router.post("/create", auth, async (req, res) => {
         provider: method === "card" ? "stripe" : "nowpayments",
       },
     });
+
+    await createNotification(
+      req.user!.id,
+      "Deposit Initiated",
+      `Your deposit of $${numAmount.toFixed(2)} is now pending.`
+    );
+
+
 
     // =============================================
     // CARD → STRIPE (unchanged — works great)

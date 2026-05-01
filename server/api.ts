@@ -15,8 +15,10 @@ import plansRoutes from "./api/plans";
 import tradesRouter from "./api/trades";
 import mentorshipRouter from "./api/mentorship";
 import userOverview from "./api/userOverview";
+import notificationsRouter from "./api/user/notifications";
 
-// ⛔ FIXED HERE — FORCE LOAD THE FOLDER
+
+// FORCE LOAD THE FOLDER
 import learningRouter from "./api/learning";
 
 // ---------------------------
@@ -40,8 +42,10 @@ router.use("/portfolio", portfolioRoutes);
 router.use("/plans", plansRoutes);
 router.use("/trades", tradesRouter);
 router.use("/mentorship", mentorshipRouter);
+router.use("/user/notifications", notificationsRouter);
 
-// ✔ Now this mounts ALL subroutes (courses, lessons, programs…)
+
+// courses, lessons, programs
 router.use("/learning", learningRouter);
 
 // Admin

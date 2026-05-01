@@ -1,40 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { LearningAPI } from "@/api/learning";
 
-// Define proper types
 interface Course {
   id: number;
   title: string;
   description: string | null;
   enrolled: boolean;
-  // Add more fields if your API returns them (e.g. progress, lessonsCount)
 }
 
-// Single, consistent props interface
 interface CoursesProps {
   programId: number;
-  onBack: () => void;
   onSelectCourse: (courseId: number) => void;
-  courses?: Course[] | undefined; // optional — parent can pass or we fetch
+  courses?: Course[] | undefined;
   refresh?: () => void;
   headers?: Record<string, string>;
 }
 
 export default function Courses({
   programId,
-  onBack,
   onSelectCourse,
   courses: propCourses = [],
   refresh,
   headers = {},
 }: CoursesProps) {
   const [localCourses, setLocalCourses] = useState<Course[]>(propCourses);
-  const [loading, setLoading] = useState(propCourses.length === 0); // only load if no prop passed
+  const [loading, setLoading] = useState(propCourses.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [loadingCourseId, setLoadingCourseId] = useState<number | null>(null);
 
-  // Fetch courses if parent didn't pass them (self-contained mode)
   useEffect(() => {
+    if (!programId || !Number.isInteger(programId) || programId <= 0) {
+      setLoading(false);
+      return;
+    }
+
     if (propCourses.length > 0) {
       setLocalCourses(propCourses);
       setLoading(false);
@@ -44,10 +43,10 @@ export default function Courses({
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
+
       try {
-        // Adjust to your actual API endpoint and response shape
         const token = localStorage.getItem("token");
-        const res = await fetch(`/api/learning/programs/${programId}`, {
+        const res = await fetch(`/api/learning/programs/${programId}/courses`, {
           headers: {
             ...headers,
             Authorization: token ? `Bearer ${token}` : "",
@@ -57,11 +56,9 @@ export default function Courses({
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
         const data = await res.json();
-
         if (!data.success) throw new Error(data.error || "Failed to load courses");
 
-        const fetched = data.courses || [];
-        setLocalCourses(fetched);
+        setLocalCourses(data.courses || []);
       } catch (err: any) {
         console.error("Courses fetch error:", err);
         setError(err.message || "Could not load courses. Please try again.");
@@ -71,7 +68,7 @@ export default function Courses({
     };
 
     fetchCourses();
-  }, [programId, propCourses.length, headers]);
+  }, [programId, propCourses.length]);
 
   const handleEnroll = async (courseId: number) => {
     if (loadingCourseId !== null) return;
@@ -79,9 +76,8 @@ export default function Courses({
 
     try {
       await LearningAPI.enroll(courseId, headers);
-      refresh?.(); // parent refresh if provided
+      refresh?.();
 
-      // Optimistic update
       setLocalCourses((prev) =>
         prev.map((c) =>
           c.id === courseId ? { ...c, enrolled: true } : c
@@ -111,37 +107,21 @@ export default function Courses({
     return (
       <div className="p-8 text-center text-red-400">
         {error}
-        <button
-          onClick={onBack}
-          className="mt-4 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-        >
-          Back
-        </button>
       </div>
     );
   }
 
-  const displayCourses = localCourses;
-
   return (
     <div className="space-y-6 p-4">
-      {/* Back button */}
-      <button
-        onClick={onBack}
-        className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition"
-      >
-        ← Back to Program
-      </button>
-
       <h2 className="text-2xl font-bold text-white">Courses in this Program</h2>
 
-      {displayCourses.length === 0 ? (
+      {localCourses.length === 0 ? (
         <div className="p-6 text-center text-gray-400 bg-[#071029] rounded-lg border border-[#0F172A]">
           No courses available in this program.
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {displayCourses.map((course) => (
+          {localCourses.map((course) => (
             <div
               key={course.id}
               className="p-5 bg-[#071029] rounded-lg border border-[#0F172A] hover:border-[#0AEFFF]/50 transition-colors"
@@ -164,13 +144,7 @@ export default function Courses({
               <div className="flex flex-wrap gap-3">
                 {!course.enrolled ? (
                   <button
-                    className={`
-                      px-4 py-2 rounded-md font-medium text-sm
-                      bg-[#0AEFFF] text-black
-                      hover:bg-[#00d4ff] active:bg-[#00bfff]
-                      disabled:opacity-50 disabled:cursor-not-allowed
-                      transition-colors
-                    `}
+                    className="px-4 py-2 rounded-md font-medium text-sm bg-[#0AEFFF] text-black hover:bg-[#00d4ff] active:bg-[#00bfff] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     disabled={loadingCourseId === course.id}
                     onClick={() => handleEnroll(course.id)}
                   >
@@ -186,12 +160,7 @@ export default function Courses({
                 )}
 
                 <button
-                  className={`
-                    px-4 py-2 rounded-md font-medium text-sm
-                    bg-[#0AEFFF]/80 text-black
-                    hover:bg-[#00d4ff]/80
-                    transition-colors
-                  `}
+                  className="px-4 py-2 rounded-md font-medium text-sm bg-[#0AEFFF]/80 text-black hover:bg-[#00d4ff]/80 transition-colors"
                   onClick={() => onSelectCourse(course.id)}
                 >
                   View Lessons

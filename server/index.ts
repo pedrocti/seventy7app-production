@@ -1,23 +1,53 @@
 // server/index.ts
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import path from "path";
+import http from "http";
+import { WebSocketServer } from "ws";
+
 import apiRoutes from "./api";
+import { payoutProfitsJob } from "./jobs/profitPayout";
+import { marketService } from "./services/marketService";
 
 const app = express();
 
 // ---------------------------
-// JSON & URL-Encoded parsing
+// ENV
+// ---------------------------
+const isProd = process.env.NODE_ENV === "production";
+const PORT = Number(process.env.PORT) || (isProd ? 3000 : 3100);
+
+// ---------------------------
+// SECURITY MIDDLEWARE
+// ---------------------------
+if (isProd) {
+  app.use(helmet());
+
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: 60 * 1000,
+      max: 100,
+    })
+  );
+}
+
+// ---------------------------
+// BODY PARSING
 // ---------------------------
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ---------------------------
-// CORS CONFIG (IMPORTANT)
+// CORS
 // ---------------------------
 const allowedOrigins = [
-  /^https:\/\/[a-z0-9-]+\.worf\.replit\.dev(:\d+)?$/, // your Replit dev domain
-  "http://localhost:5173", // optional local dev
-  process.env.FRONTEND_URL, // Production domain
+  "http://localhost:5100",
+  process.env.FRONTEND_URL,
+  ...(isProd ? [] : [/^https:\/\/.*\.replit\.dev(:\d+)?$/]),
 ].filter(Boolean) as (string | RegExp)[];
 
 app.use(
@@ -25,48 +55,103 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
 
-      if (
-        allowedOrigins.some((allowed) =>
-          allowed instanceof RegExp ? allowed.test(origin) : allowed === origin
-        )
-      ) {
-        return callback(null, true);
-      }
+      const allowed = allowedOrigins.some((o) =>
+        o instanceof RegExp ? o.test(origin) : o === origin
+      );
 
-      console.log("❌ BLOCKED ORIGIN:", origin);
-      callback(new Error("CORS blocked for origin: " + origin));
+      if (allowed) return callback(null, true);
+
+      console.warn("❌ BLOCKED ORIGIN:", origin);
+      callback(new Error("CORS blocked"));
     },
     credentials: true,
   })
 );
 
-// Preflight
 app.options("*", cors());
 
 // ---------------------------
-// Debug Log
+// DEV LOGGING
 // ---------------------------
-app.use("/api", (req, _res, next) => {
-  console.log(`API HIT: ${req.method} ${req.url}`, "BODY:", req.body);
-  next();
-});
+if (!isProd) {
+  app.use("/api", (req, _res, next) => {
+    console.log(`[DEV] ${req.method} ${req.url}`, req.body);
+    next();
+  });
+}
 
 // ---------------------------
-// API Routes
+// API ROUTES
 // ---------------------------
 app.use("/api", apiRoutes);
 
 // ---------------------------
-// Root Test Endpoint
+// STATIC FRONTEND
 // ---------------------------
-app.get("/", (_req, res) => {
-  res.json({ status: "ok", message: "77KAPITAL backend running" });
+if (isProd) {
+  const clientBuildPath = path.join(__dirname, "../client/dist");
+
+  app.use(express.static(clientBuildPath));
+
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientBuildPath, "index.html"));
+  });
+}
+
+// ---------------------------
+// HEALTH CHECK
+// ---------------------------
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+// ===========================
+// 🔥 CREATE HTTP SERVER
+// ===========================
+const server = http.createServer(app);
+
+// ===========================
+// 🔥 WEBSOCKET SERVER
+// ===========================
+const wss = new WebSocketServer({ server });
+
+wss.on("connection", (ws) => {
+  console.log("🔌 Client connected to WS");
+  marketService.addClient(ws);
+
+  ws.on("close", () => {
+    console.log("❌ Client disconnected");
+  });
+});
+
+// ===========================
+// 🔥 START MARKET SERVICE
+// ===========================
+marketService.start();
+
+// ===========================
+// START SERVER
+// ===========================
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(
+    `✅ Server running (${isProd ? "PROD" : "DEV"}) on port ${PORT}`
+  );
 });
 
 // ---------------------------
-// Start Server
+// BACKGROUND JOB
 // ---------------------------
-const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+let running = false;
+
+async function runJobSafe() {
+  if (running) return;
+  running = true;
+  try {
+    await payoutProfitsJob();
+  } finally {
+    running = false;
+  }
+}
+
+runJobSafe();
+setInterval(runJobSafe, 24 * 60 * 60 * 1000);

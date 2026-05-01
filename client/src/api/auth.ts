@@ -2,32 +2,60 @@
 import { apiRequest } from "./http";
 
 // ────────────────────────────────────────────────
-// AUTHENTICATION API CALLS
+// SHARED API TYPES
 // ────────────────────────────────────────────────
+interface ApiFailure {
+  success: false;
+  error?: string;
+  code?: string;
+  status?: number;
+}
 
-// Standard response type for auth operations
+interface ApiSuccess {
+  success: true;
+  token?: string;
+  user?: any;
+  message?: string;
+  code?: string;
+}
+
+type AuthApiResponse = ApiFailure | ApiSuccess;
+
+// ────────────────────────────────────────────────
+// Type Guard (THIS IS THE FIX)
+// ────────────────────────────────────────────────
+function isFailure(res: AuthApiResponse): res is ApiFailure {
+  return res.success === false;
+}
+
+// Frontend-friendly response
 export interface AuthResponse {
   success: boolean;
   error?: string;
+  code?: string;
   token?: string;
   user?: any;
   message?: string;
 }
 
-/**
- * Logs in a user with username and password
- */
-export async function login(username: string, password: string): Promise<AuthResponse> {
+// ────────────────────────────────────────────────
+// LOGIN
+// ────────────────────────────────────────────────
+export async function login(
+  username: string,
+  password: string
+): Promise<AuthResponse> {
   try {
-    const response = await apiRequest<{ token?: string; user?: any; success: boolean; error?: string }>("/auth/login", {
+    const response = (await apiRequest<AuthApiResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
-    });
+    })) as AuthApiResponse;
 
-    if (!response.success) {
+    if (isFailure(response)) {
       return {
         success: false,
         error: response.error || "Login failed. Please check your credentials.",
+        code: response.code,
       };
     }
 
@@ -35,16 +63,21 @@ export async function login(username: string, password: string): Promise<AuthRes
       success: true,
       token: response.token,
       user: response.user,
+      message: response.message,
+      code: response.code,
     };
   } catch (err: any) {
     console.error("Login API error:", err);
-    return { success: false, error: err?.message || "Network error during login" };
+    return {
+      success: false,
+      error: err?.message || "Network error during login",
+    };
   }
 }
 
-/**
- * Registers a new user
- */
+// ────────────────────────────────────────────────
+// REGISTER
+// ────────────────────────────────────────────────
 export async function register(
   firstName: string,
   lastName: string,
@@ -63,15 +96,16 @@ export async function register(
       ...(ref?.trim() && { ref: ref.trim() }),
     };
 
-    const response = await apiRequest<{ token?: string; user?: any; success: boolean; error?: string }>("/auth/register", {
+    const response = (await apiRequest<AuthApiResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
-    });
+    })) as AuthApiResponse;
 
-    if (!response.success) {
+    if (isFailure(response)) {
       return {
         success: false,
         error: response.error || "Registration failed. Please try again.",
+        code: response.code,
       };
     }
 
@@ -79,25 +113,32 @@ export async function register(
       success: true,
       token: response.token,
       user: response.user,
+      message: response.message,
+      code: response.code,
     };
   } catch (err: any) {
     console.error("Register API error:", err);
-    return { success: false, error: err?.message || "Network error during registration" };
+    return {
+      success: false,
+      error: err?.message || "Network error during registration",
+    };
   }
 }
 
-/**
- * Fetches the current user's profile
- */
+// ────────────────────────────────────────────────
+// PROFILE
+// ────────────────────────────────────────────────
 export async function getProfile(token: string): Promise<AuthResponse> {
-  if (!token) return { success: false, error: "No authentication token provided" };
+  if (!token) {
+    return { success: false, error: "No authentication token provided" };
+  }
 
   try {
-    const response = await apiRequest<{ user?: any; success: boolean; error?: string }>("/profile", {
+    const response = (await apiRequest<AuthApiResponse>("/profile", {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    })) as AuthApiResponse;
 
-    if (!response.success) {
+    if (isFailure(response)) {
       return {
         success: false,
         error: response.error || "Failed to fetch profile",
@@ -110,48 +151,80 @@ export async function getProfile(token: string): Promise<AuthResponse> {
     };
   } catch (err: any) {
     console.error("Profile API error:", err);
-    return { success: false, error: err?.message || "Network error fetching profile" };
+    return {
+      success: false,
+      error: err?.message || "Network error fetching profile",
+    };
   }
 }
 
-/**
- * Request a password reset email
- */
-export async function requestPasswordReset(email: string): Promise<AuthResponse> {
+// ────────────────────────────────────────────────
+// FORGOT PASSWORD
+// ────────────────────────────────────────────────
+export async function requestPasswordReset(
+  email: string
+): Promise<AuthResponse> {
   try {
-    const response = await apiRequest<{ success: boolean; error?: string; message?: string }>("/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
+    const response = (await apiRequest<AuthApiResponse>(
+      "/auth/forgot-password",
+      {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }
+    )) as AuthApiResponse;
+
+    if (isFailure(response)) {
+      return {
+        success: false,
+        error: response.error,
+      };
+    }
 
     return {
-      success: response.success,
-      error: response.error,
+      success: true,
       message: response.message,
     };
   } catch (err: any) {
     console.error("Forgot password API error:", err);
-    return { success: false, error: err?.message || "Network error during password reset request" };
+    return {
+      success: false,
+      error: err?.message || "Network error during password reset request",
+    };
   }
 }
 
-/**
- * Reset password using token from email
- */
-export async function resetPassword(token: string, newPassword: string): Promise<AuthResponse> {
+// ────────────────────────────────────────────────
+// RESET PASSWORD
+// ────────────────────────────────────────────────
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<AuthResponse> {
   try {
-    const response = await apiRequest<{ success: boolean; error?: string; message?: string }>("/auth/reset-password", {
-      method: "POST",
-      body: JSON.stringify({ token, newPassword }),
-    });
+    const response = (await apiRequest<AuthApiResponse>(
+      "/auth/reset-password",
+      {
+        method: "POST",
+        body: JSON.stringify({ token, newPassword }),
+      }
+    )) as AuthApiResponse;
+
+    if (isFailure(response)) {
+      return {
+        success: false,
+        error: response.error,
+      };
+    }
 
     return {
-      success: response.success,
-      error: response.error,
+      success: true,
       message: response.message,
     };
   } catch (err: any) {
     console.error("Reset password API error:", err);
-    return { success: false, error: err?.message || "Network error during password reset" };
+    return {
+      success: false,
+      error: err?.message || "Network error during password reset",
+    };
   }
 }

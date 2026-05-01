@@ -60,8 +60,8 @@ export default function Dashboard() {
   const [modalTab, setModalTab] = useState<"profile" | "referrals">("profile");
   // overview totals from /api/user/overview
   const [totals, setTotals] = useState({
-    main_balance: 0,
-    bonus_balance: 0,
+    main_balance: Number(user?.balance ?? 0),
+    bonus_balance: Number(user?.bonus_balance ?? 0),
     total_invested: 0,
     total_profit: 0,
     portfolio_value: 0,
@@ -90,80 +90,125 @@ export default function Dashboard() {
     return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
   })();
 
-  const referralLink = `${window.location.origin}/register?ref=${user?.referral_code || ""}`;
+  // Safe referral link
+  const referralLink = user?.referral_code
+    ? `${window.location.origin}/register?ref=${user.referral_code}`
+    : `${window.location.origin}/register`;
 
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+
+    if (tab === "mentorship") setActive("mentorship");
+    if (tab === "learning") setActive("learning");
+  }, [window.location.search]);
+
+
+  
   useEffect(() => {
     if (!token) {
       setLoading(false);
       return;
     }
+
     let cancelled = false;
     const controller = new AbortController();
-    const loadAll = async () => {
+
+    const loadDashboardData = async () => {
       setLoading(true);
       try {
-        const [invRes, overviewRes, refRes] = await Promise.allSettled([
-          apiRequest("/investments", {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-          apiRequest("/user/overview", {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-          apiRequest("/user/referrals", {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: controller.signal,
-          }),
-        ]);
+        // 1️⃣ Load latest user info (balance, bonus, etc.)
+        const userRes = await apiRequest("/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
         if (cancelled) return;
 
-        if (invRes.status === "fulfilled") {
-          const data = invRes.value as InvestmentsResponse;
-          if (data.success) setInvestments(data.investments || []);
-          else setInvestments([]);
+        if (userRes.success) {
+          const u = userRes.user;
+          setTotals(prev => ({
+            ...prev,
+            main_balance: Number(u.balance ?? 0),
+            bonus_balance: Number(u.bonusBalance ?? 0),
+          }));
+        }
+
+        // 2️⃣ Load overview totals
+        const overviewRes = await apiRequest("/user/overview", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
+        if (cancelled) return;
+
+        if (overviewRes.success) {
+          const t = overviewRes.totals;
+          setTotals(prev => ({
+            ...prev,
+            total_invested: Number(t.total_invested ?? 0),
+            total_profit: Number(t.total_profit ?? 0),
+            portfolio_value: Number(t.portfolio_value ?? 0),
+            active_investments: Number(t.active_investments ?? 0),
+          }));
+        }
+
+        // 3️⃣ Load referrals count
+        const refRes = await apiRequest("/user/referrals", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
+        if (cancelled) return;
+
+        if (refRes.success) {
+          setReferralCount(refRes.count ?? 0);
+        }
+
+        // 4️⃣ Load investments
+        const invRes = await apiRequest("/investments", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
+        if (cancelled) return;
+
+        if (invRes.success) {
+          setInvestments(invRes.investments ?? []);
         } else {
-          console.error("Investments load failed:", invRes.reason);
           setInvestments([]);
         }
 
-        if (overviewRes.status === "fulfilled") {
-          const data = overviewRes.value as OverviewResponse;
-          if (data.success) {
-            setTotals({
-              main_balance: Number(data.totals.main_balance ?? user?.balance ?? 0),
-              bonus_balance: Number(data.totals.bonus_balance ?? user?.bonus_balance ?? 0),
-              total_invested: Number(data.totals.total_invested ?? 0),
-              total_profit: Number(data.totals.total_profit ?? 0),
-              portfolio_value: Number(data.totals.portfolio_value ?? 0),
-              active_investments: Number(data.totals.active_investments ?? 0),
-            });
-          }
-        } else {
-          console.error("Overview load failed:", overviewRes.reason);
-        }
-
-        if (refRes.status === "fulfilled") {
-          const data = refRes.value as ReferralsResponse;
-          setReferralCount(data.success ? data.count : 0);
-        } else {
-          console.error("Referrals load failed:", refRes.reason);
-          setReferralCount(0);
-        }
       } catch (err) {
-        if (!controller.signal.aborted) {
-          console.error("Dashboard load error:", err);
-        }
+        if (!controller.signal.aborted) console.error("Dashboard load error:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-    loadAll();
+
+    loadDashboardData();
+
     return () => {
       cancelled = true;
       controller.abort();
     };
   }, [token]);
+
+  const refreshBalances = async () => {
+    if (!token) return;
+    const userRes = await apiRequest("/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (userRes.success) {
+      setTotals(prev => ({
+        ...prev,
+        main_balance: Number(userRes.user.balance ?? 0),
+        bonus_balance: Number(userRes.user.bonusBalance ?? 0),
+      }));
+    }
+  };
+
 
   const copyReferralLink = () => {
     navigator.clipboard.writeText(referralLink);
@@ -198,7 +243,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-b from-[#0B0E11] to-[#181A20] text-[#EAECEF]">
+        <div className="min-h-screen flex flex-col md:flex-row bg-[#0B1220] text-[#EAECEF]">
+          
       <Sidebar collapsed={collapsed} active={active} onNavigate={handleNavigate} />
       <div className="flex-1 flex flex-col">
         <Topbar
@@ -376,6 +422,7 @@ export default function Dashboard() {
                 bonus={bonusBalanceNum}
                 totalAvailable={totalAvailableNum}
                 performance={performance}
+                username={user?.username}
               />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <button
@@ -450,7 +497,7 @@ export default function Dashboard() {
                     flex items-center justify-center gap-3
                   `}
                 >
-                  Invest Now
+                  Stake Now
                 </button>
               </div>
               <OverviewPage />

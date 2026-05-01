@@ -54,21 +54,23 @@ router.post("/", async (req, res) => {
   const parsedEntryPrice =
     entry_price === null || entry_price === undefined || entry_price === ""
       ? null
-      : Number(entry_price);
+      : String(entry_price);
 
   const cleanDirection = direction === "sell" ? "sell" : "buy";
 
   try {
     const [trade] = await db
       .insert(trades)
-      .values({
-        pair: pair.trim(),
-        plan_id: numericPlanId,
-        direction: cleanDirection,
-        entry_price: parsedEntryPrice,
-        entry_notes: entry_notes?.trim() || "",
-        status: "pending",
-      })
+      .values([
+        {
+          pair: pair.trim(),
+          plan_id: numericPlanId ?? null,
+          direction: cleanDirection,
+          entry_price: parsedEntryPrice,
+          entry_notes: entry_notes?.trim() || "",
+          status: "pending",
+        },
+      ])
       .returning();
 
     res.json({ success: true, trade });
@@ -125,40 +127,57 @@ router.patch("/:id/resolve", async (req, res) => {
       return res.status(400).json({ error: "Trade is not active" });
     }
 
+    // Resolve trade first
     await db
       .update(trades)
       .set({
         status: "resolved",
-        pnl_percent: pnlPercent.toFixed(4),
+        pnl_percent: String(pnlPercent.toFixed(4)),
         exit_notes,
         resolved_at: new Date(),
       })
       .where(eq(trades.id, id));
 
+    // Trade not tied to a plan → nothing to apply
     if (!trade.plan_id) {
       return res.json({
         success: true,
-        message: `Trade resolved with ${pnlPercent}% (no plan_id, so no investments updated)`,
+        message: `Trade resolved with ${pnlPercent}% (no plan linked)`,
       });
     }
 
+    // Fetch active investments for this plan
     const activeInvestments = await db
       .select()
       .from(investments)
-      .where(and(eq(investments.plan_id, trade.plan_id), eq(investments.status, "active")));
+      .where(
+        and(
+          eq(investments.plan_id, trade.plan_id),
+          eq(investments.status, "active")
+        )
+      );
 
+    // HARD FAIL — prevents silent success
+    if (activeInvestments.length === 0) {
+      return res.status(400).json({
+        error: "No active investments found for this plan",
+        trade_plan_id: trade.plan_id,
+      });
+    }
+
+    // Apply PnL to each investment
     for (const inv of activeInvestments) {
       const originalAmount = Number(inv.amount || 0);
-      const delta = Number((originalAmount * pnlPercent) / 100);
+      const delta = (originalAmount * pnlPercent) / 100;
       const roundedDelta = Number(delta.toFixed(2));
 
-      const newProfit = (Number(inv.profit_loss || 0) + roundedDelta).toFixed(2);
-      const newProgress = (Number(inv.progress || 0) + Number(pnlPercent)).toFixed(2);
+      const newProfit = (
+        Number(inv.profit_loss || 0) + roundedDelta
+      ).toFixed(2);
 
-      await db
-        .update(investments)
-        .set({ profit_loss: newProfit, progress: newProgress })
-        .where(eq(investments.id, inv.id));
+      await db.update(investments).set({
+        profit_loss: newProfit,
+      }).where(eq(investments.id, inv.id));
 
       await db.insert(investment_trades).values({
         investment_id: inv.id,
@@ -168,15 +187,18 @@ router.patch("/:id/resolve", async (req, res) => {
       });
     }
 
-    const count = activeInvestments.length;
-
     res.json({
       success: true,
-      message: `${pnlPercent > 0 ? "+" : ""}${pnlPercent}% applied to ${count} investment${count === 1 ? "" : "s"}`,
+      message: `${pnlPercent > 0 ? "+" : ""}${pnlPercent}% applied to ${activeInvestments.length} investment${
+        activeInvestments.length === 1 ? "" : "s"
+      }`,
     });
   } catch (err: any) {
     console.error("Resolve trade error:", err);
-    res.status(500).json({ error: "Failed to resolve trade", detail: err.message });
+    res.status(500).json({
+      error: "Failed to resolve trade",
+      detail: err.message,
+    });
   }
 });
 

@@ -25,6 +25,6 @@
     "strict": false
   },
 
-  "include": ["src"],
+  "include": ["src", "src/types"],
   "exclude": ["../server", "dist"]
 }

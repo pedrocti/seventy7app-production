@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../../db/connection";
-import { courses, enrollments, users, lessons, assignments } from "../../db/schema"; // ← Import your lessons & assignments tables
+import { courses, enrollments, users, lessons, assignments } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { auth } from "../utils";
 
@@ -11,26 +11,19 @@ router.get("/", auth, async (req: any, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch active courses
     const courseList = await db
       .select()
       .from(courses)
       .where(eq(courses.is_active, true))
       .orderBy(courses.id);
 
-    if (courseList.length === 0) {
-      return res.json({ success: true, courses: [] });
-    }
-
-    // Fetch user enrollments for these courses
     const enrolledRows = await db
       .select({ course_id: enrollments.course_id })
       .from(enrollments)
-      .where(and(eq(enrollments.user_id, userId)));
+      .where(eq(enrollments.user_id, userId));
 
     const enrolledSet = new Set(enrolledRows.map((r) => r.course_id));
 
-    // Attach enrolled flag
     const finalList = courseList.map((c) => ({
       ...c,
       enrolled: enrolledSet.has(c.id),
@@ -54,11 +47,24 @@ router.post("/:id/enroll", auth, async (req: any, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
 
-    // Fetch course
     const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
     if (!course) return res.status(404).json({ success: false, error: "Course not found" });
 
-    // Check if already enrolled
+    // CHECK: if course has price in future, add here
+    if ((course as any).price !== undefined) {
+      const coursePrice = Number((course as any).price);
+
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+      if (Number(user.balance) < coursePrice) {
+        return res.status(400).json({ success: false, error: "Insufficient balance" });
+      }
+
+      const newBalance = Number(user.balance) - coursePrice;
+      await db.update(users).set({ balance: newBalance.toString() }).where(eq(users.id, userId));
+    }
+
     const [existingEnrollment] = await db
       .select()
       .from(enrollments)
@@ -68,20 +74,6 @@ router.post("/:id/enroll", auth, async (req: any, res) => {
       return res.status(400).json({ success: false, error: "Already enrolled in this course" });
     }
 
-    // Fetch user
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) return res.status(404).json({ success: false, error: "User not found" });
-
-    // Check balance
-    if (Number(user.balance) < Number(course.price)) {
-      return res.status(400).json({ success: false, error: "Insufficient balance" });
-    }
-
-    // Deduct balance
-    const newBalance = Number(user.balance) - Number(course.price);
-    await db.update(users).set({ balance: newBalance.toString() }).where(eq(users.id, userId));
-
-    // Create enrollment
     const [enrollment] = await db
       .insert(enrollments)
       .values({
@@ -95,7 +87,6 @@ router.post("/:id/enroll", auth, async (req: any, res) => {
     res.json({
       success: true,
       message: "Enrolled in course successfully",
-      remaining_balance: newBalance,
       enrollment,
     });
   } catch (err) {
@@ -104,7 +95,7 @@ router.post("/:id/enroll", auth, async (req: any, res) => {
   }
 });
 
-// NEW/UPDATED: GET /api/learning/courses/:id — single course details
+// GET /api/learning/courses/:id — single course details
 router.get("/:id", auth, async (req: any, res) => {
   const courseId = Number(req.params.id);
   if (!Number.isInteger(courseId)) {
@@ -112,26 +103,18 @@ router.get("/:id", auth, async (req: any, res) => {
   }
 
   try {
-    const [course] = await db
-      .select()
-      .from(courses)
-      .where(eq(courses.id, courseId));
+    const [course] = await db.select().from(courses).where(eq(courses.id, courseId));
+    if (!course) return res.status(404).json({ success: false, error: "Course not found" });
 
-    if (!course) {
-      return res.status(404).json({ success: false, error: "Course not found" });
-    }
-
-    // Fetch lessons (replace 'lessons' with your actual table name if different)
     const lessonsData = await db
       .select()
-      .from(lessons) // ← Make sure 'lessons' is imported from schema
-      .where(eq(lessons.course_id, courseId)); // ← adjust column name if different
+      .from(lessons)
+      .where(eq(lessons.course_id, courseId));
 
-    // Fetch assignments (replace 'assignments' with your actual table)
     const assignmentsData = await db
       .select()
-      .from(assignments) // ← Make sure 'assignments' is imported
-      .where(eq(assignments.course_id, courseId)); // ← adjust column name if different
+      .from(assignments)
+      .where(eq(assignments.course_id, courseId));
 
     res.json({
       success: true,
