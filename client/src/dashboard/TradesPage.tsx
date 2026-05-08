@@ -1,211 +1,157 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { API_BASE } from "@/api/http";
-import { useAuth } from "@/auth/AuthContext";
-import { formatDistanceToNow } from "date-fns";
-import { ArrowUpRight, ArrowDownRight, Clock, CheckCircle, XCircle, ZapOff, Zap } from "lucide-react";
-import { LiveCandleTeaser } from './LiveCandleTeaser';  
+// client/src/dashboard/TradesPage.tsx
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { API_BASE } from '@/api/http';
+import { useAuth } from '@/auth/AuthContext';
+import { formatDistanceToNow, format } from 'date-fns';
+import { LiveCandleTeaser } from './LiveCandleTeaser';
 
-// Use Inter or system sans for crisp, modern readability
-const fontFamily = "'Inter', system-ui, sans-serif";
+const fmt = (v: any) => { const n = Number(v ?? 0); return isNaN(n) ? '0.00' : n.toFixed(2); };
 
-type Trade = {
-  id: number;
-  pair: string;
-  entry_notes?: string | null;
-  exit_notes?: string | null;
-  status: "active" | "pending" | "resolved";
-  pnl_percent?: string | null;
-  created_at: string;
-  resolved_at?: string | null;
-  direction?: "LONG" | "SHORT"; // For obvious visual indication
-  leverage?: number;
-};
+function Label({ children }: { children: React.ReactNode }) {
+  return <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)', display:'block', marginBottom:6 }}>{children}</span>;
+}
 
 export default function TradesPage() {
   const { token } = useAuth();
-  const [activeTrades, setActiveTrades] = useState<Trade[]>([]); // Ready for multiple
-  const [history, setHistory] = useState<Trade[]>([]);
+  const [active,  setActive]  = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchTrades = async () => {
+  async function fetchTrades() {
     if (!token) return;
-    try {
-      const res = await fetch(`${API_BASE}/trades`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed");
-      const data = await res.json();
-      // Assume backend sends { active: Trade | null } → convert to array for future-proof
-      const actives = Array.isArray(data.active) ? data.active : data.active ? [data.active] : [];
-      setActiveTrades(actives);
-      setHistory(data.history || []);
-    } catch (err) {
-      console.error("Trades fetch error:", err);
-    } finally {
-      setLoading(false);
+    const r = await fetch(`${API_BASE}/trades`, { headers:{ Authorization:`Bearer ${token}` } });
+    const d = await r.json();
+    if (d?.success) {
+      setActive(Array.isArray(d.active) ? d.active : d.active ? [d.active] : []);
+      setHistory(d.history || []);
     }
-  };
+    setLoading(false);
+  }
 
-  useEffect(() => {
-    fetchTrades();
-    const interval = setInterval(fetchTrades, 4000);
-    return () => clearInterval(interval);
-  }, [token]);
+  useEffect(() => { fetchTrades(); const t = setInterval(fetchTrades, 8000); return () => clearInterval(t); }, [token]);
 
-  const getDirectionIcon = (direction?: string) => {
-    if (!direction) return <Zap className="w-5 h-5 text-yellow-400" />;
-    return direction === "LONG" ? (
-      <ArrowUpRight className="w-6 h-6 text-green-400" />
-    ) : (
-      <ArrowDownRight className="w-6 h-6 text-red-400" />
-    );
-  };
+  if (loading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:300, fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-2)', letterSpacing:'0.1em', textTransform:'uppercase' }}>Loading signals…</div>
+  );
 
   return (
-    <div 
-      className="min-h-screen bg-black text-white p-4 md:p-6 lg:p-8 font-[Inter] space-y-8"
-      style={{ fontFamily }}
-    >
-      <motion.h1
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-3xl md:text-4xl font-bold tracking-tight text-center md:text-left bg-gradient-to-r from-cyan-300 to-green-300 bg-clip-text text-transparent"
-      >
-        Live Signal Center
-      </motion.h1>
+    <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
 
-      {/* Active Trades – Compact cards, grid-ready for multiples */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-cyan-300">Current Signals</h2>
+      {/* Header strip */}
+      <div style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.08)', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:300, color:'var(--text)' }}>Signal Centre</div>
+          <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)', marginTop:4 }}>
+            Live market signals from the 77Kapital trading desk
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <span style={{ width:6, height:6, borderRadius:'50%', background: active.length > 0 ? 'var(--green)' : 'var(--muted-2)', display:'inline-block' }}/>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color: active.length > 0 ? 'var(--green)' : 'var(--muted-2)' }}>
+            {active.length > 0 ? `${active.length} Live` : 'No Active Signal'}
+          </span>
+        </div>
+      </div>
 
+      {/* Active signals */}
+      <div style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.08)', padding:'20px' }}>
+        <Label>Current Signals</Label>
         <AnimatePresence>
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2].map(i => (
-                <div key={i} className="h-40 rounded-xl bg-gray-900/60 animate-pulse border border-gray-800" />
-              ))}
-            </div>
-          ) : activeTrades.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeTrades.map((trade) => (
-                <motion.div
-                  key={trade.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative p-5 rounded-xl bg-gray-900/70 backdrop-blur-sm border border-gray-700/50 hover:border-cyan-500/40 transition-all duration-300 shadow-md hover:shadow-cyan-900/20 group"
-                >
-                  {/* Subtle glow ring on hover/active */}
-                  <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-green-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-600 group-hover:border-cyan-400/50 transition-colors">
-                          {getDirectionIcon(trade.direction)}
-                        </div>
-                        {/* Tiny pulse if active */}
-                        <motion.div
-                          className="absolute inset-0 rounded-full border-2 border-green-400/60"
-                          animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }}
-                          transition={{ duration: 2.5, repeat: Infinity }}
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold">{trade.pair}</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {formatDistanceToNow(new Date(trade.created_at), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-green-900/40 text-green-300 border border-green-700/40">
-                      LIVE
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-gray-300 mb-3 line-clamp-2">
-                    {trade.entry_notes || "Signal active — tracking momentum"}
-                  </p>
-
-                  {/* Mini status bar or future chart placeholder */}
-                  <div 
-                    className="relative h-16 bg-black/60 rounded-lg overflow-hidden border border-gray-800/70 isolate"
-                    style={{ 
-                      contain: 'paint',           // tells browser to clip strictly
-                      willChange: 'transform',    // improves rendering performance/clipping
-                    }}
-                  >
-                    <LiveCandleTeaser pair={trade.pair} />
-                  </div>
-                </motion.div>
-              ))}
+          {active.length === 0 ? (
+            <div style={{ padding:'48px 0', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+              No active signal — next high-conviction call incoming
             </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-8 text-center rounded-xl bg-gray-900/50 border border-dashed border-gray-700"
-            >
-              <Clock className="w-10 h-10 text-gray-500 mx-auto mb-3" />
-              <p className="text-lg font-medium text-gray-300">No Active Signals</p>
-              <p className="text-sm text-gray-500 mt-1">Next high-conviction call incoming...</p>
-            </motion.div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:1, background:'rgba(10,239,255,0.08)' }}>
+              {active.map(trade => {
+                const isLong = trade.direction === 'LONG' || trade.side?.toLowerCase() === 'buy';
+                return (
+                  <motion.div key={trade.id} initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
+                    style={{ background:'var(--surface)', padding:'20px', position:'relative' }}>
+                    {/* Live badge */}
+                    <div style={{ position:'absolute', top:16, right:16, display:'flex', alignItems:'center', gap:6 }}>
+                      <motion.span animate={{ opacity:[1,0.3,1] }} transition={{ duration:1.5, repeat:Infinity }}
+                        style={{ width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block' }}/>
+                      <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--green)' }}>Live</span>
+                    </div>
+
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:300, color:'var(--text)', marginBottom:4 }}>
+                        {trade.pair || trade.symbol || '—'}
+                      </div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.06em',
+                        color: isLong ? 'var(--green)' : 'var(--red)' }}>
+                        {(trade.direction || trade.side || '—').toUpperCase()}
+                      </div>
+                    </div>
+
+                    {/* Chart */}
+                    <div style={{ height:80, marginBottom:14, background:'rgba(10,239,255,0.03)', border:'1px solid rgba(10,239,255,0.08)', overflow:'hidden', position:'relative', contain:'paint' }}>
+                      <LiveCandleTeaser pair={trade.pair} />
+                    </div>
+
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, background:'rgba(10,239,255,0.08)' }}>
+                      {[
+                        { label:'Entry Price', value:`$${fmt(trade.entry_price??trade.price??0)}` },
+                        { label:'Opened',      value: trade.created_at ? formatDistanceToNow(new Date(trade.created_at),{addSuffix:true}) : '—' },
+                      ].map((item,i) => (
+                        <div key={i} style={{ background:'var(--surface)', padding:'10px 12px' }}>
+                          <div style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:3 }}>{item.label}</div>
+                          <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--text)' }}>{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {trade.entry_notes && (
+                      <p style={{ marginTop:12, fontFamily:'var(--font-sans)', fontSize:11, color:'var(--muted)', lineHeight:1.6 }}>{trade.entry_notes}</p>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
           )}
         </AnimatePresence>
-      </section>
+      </div>
 
-      {/* History – Compact, scannable */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-cyan-300">Signal History</h2>
-
-        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-          {loading ? (
-            [...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 rounded-lg bg-gray-900/60 animate-pulse" />
-            ))
-          ) : history.length === 0 ? (
-            <div className="p-6 text-center text-gray-500 bg-gray-900/40 rounded-lg">
-              No closed trades yet — wins loading...
-            </div>
-          ) : (
-            history.map((trade) => {
-              const pnl = Number(trade.pnl_percent || 0);
-              const isWin = pnl > 0;
+      {/* History */}
+      <div style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.08)', padding:'20px' }}>
+        <Label>Signal History</Label>
+        {history.length === 0 ? (
+          <div style={{ padding:'48px 0', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+            No closed signals yet
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            {history.map((t, i) => {
+              const pnl    = Number(t.pnl_percent ?? 0);
+              const isWin  = pnl > 0;
               return (
-                <motion.div
-                  key={trade.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  whileHover={{ scale: 1.015 }}
-                  className={`p-4 rounded-lg border ${
-                    isWin ? "border-green-800/40 bg-green-950/20" : "border-red-800/40 bg-red-950/20"
-                  } flex items-center justify-between hover:border-opacity-60 transition-all`}
-                >
-                  <div className="flex items-center gap-3">
-                    {isWin ? (
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-red-400" />
-                    )}
+                <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 0', borderBottom: i < history.length-1 ? '1px solid rgba(10,239,255,0.06)' : 'none' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                    <span style={{ width:8, height:8, borderRadius:0, background: isWin ? 'var(--green)' : 'var(--red)', flexShrink:0, display:'inline-block' }}/>
                     <div>
-                      <p className="font-medium">{trade.pair}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDistanceToNow(new Date(trade.resolved_at!), { addSuffix: true })}
-                      </p>
+                      <div style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--text)' }}>{t.pair || '—'}</div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:2 }}>
+                        {t.resolved_at ? format(new Date(t.resolved_at),'MMM d, yyyy') : '—'}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-xl font-bold ${isWin ? "text-green-400" : "text-red-400"}`}>
-                      {pnl > 0 ? "+" : ""}{pnl.toFixed(2)}%
-                    </p>
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:14, fontWeight:500, color: isWin ? 'var(--green)' : 'var(--red)' }}>
+                      {pnl > 0 ? '+' : ''}{pnl.toFixed(2)}%
+                    </div>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color: isWin ? 'var(--green)' : 'var(--red)', marginTop:2 }}>
+                      {isWin ? 'Win' : 'Loss'}
+                    </div>
                   </div>
-                </motion.div>
+                </div>
               );
-            })
-          )}
-        </div>
-      </section>
+            })}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

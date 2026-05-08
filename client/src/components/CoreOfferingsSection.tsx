@@ -1,122 +1,127 @@
 import { motion } from "framer-motion";
 import {
-  ResponsiveContainer,
-  BarChart, Bar,
-  LineChart, Line,
-  AreaChart, Area,
-  RadialBarChart, RadialBar,
-  XAxis, Tooltip,
+  ResponsiveContainer, BarChart, Bar,
+  LineChart, Line, AreaChart, Area,
+  RadialBarChart, RadialBar, XAxis, Tooltip,
 } from "recharts";
 import { Link } from "wouter";
 
+/* ═══════════════════════════════════════════════════════════
+   DATA
+   All colors reference CSS variables via JS strings —
+   these match exactly what var(--cyan) resolves to.
+═══════════════════════════════════════════════════════════ */
 const CYAN     = "#0AEFFF";
-const CYAN_MID = "#4AFFF5";
 const CYAN_DIM = (a: number) => `rgba(10,239,255,${a})`;
 
-const barData  = [{ v: 20 },{ v: 50 },{ v: 70 },{ v: 90 }];
-const lineData = [{ v: 15 },{ v: 40 },{ v: 65 },{ v: 85 }];
-const areaData = [{ v: 10 },{ v: 35 },{ v: 55 },{ v: 75 }];
-const radialData = [{ name: "Progress", value: 78, fill: CYAN }];
+const barData    = [{ v:20 },{ v:50 },{ v:70 },{ v:90 }];
+const lineData   = [{ v:15 },{ v:40 },{ v:65 },{ v:85 }];
+const areaData   = [{ v:10 },{ v:35 },{ v:55 },{ v:75 }];
+const radialData = [{ name:"Progress", value:78, fill:CYAN }];
 
 const tooltipStyle = {
-  background: "#0D1526",
+  background: "var(--surface)",
   border: `1px solid ${CYAN_DIM(0.15)}`,
-  borderRadius: 8,
-  color: "#E8EDF5",
-  fontSize: 12,
+  borderRadius: 0,
+  color: "var(--text)",
+  fontSize: 11,
+  fontFamily: "var(--font-mono)",
 };
 
 const offerings = [
   {
-    title: "77 Academy & Internship",
-    subtitle: "Personalized mentorship programs to elevate your trading mastery.",
-    link: "/mentorship",
-    type: "radial",
-    data: radialData,
+    num:      "01",
+    title:    "77 Academy",
+    subtitle: "Structured financial education and mentorship programmes built to elevate your understanding of markets and wealth.",
+    link:     "/mentorship",
+    type:     "radial",
+    data:     radialData,
+    badge:    "Education",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
       </svg>
     ),
-    badge: "Education",
-    accent: CYAN,
   },
   {
-    title: "Stake to Earn",
-    subtitle: "Curated staking paths emphasising steady, compounding growth.",
-    link: "/invest",
-    type: "bar",
-    data: barData,
+    num:      "02",
+    title:    "Stake to Earn",
+    subtitle: "Curated staking programmes with structured, compounding returns designed for consistent, long-term capital growth.",
+    link:     "/invest",
+    type:     "bar",
+    data:     barData,
+    badge:    "Staking",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="8"/>
+        <path d="M12 8v4l3 3"/>
       </svg>
     ),
-    badge: "Staking",
-    accent: CYAN,
   },
   {
-    title: "Portfolio Management",
-    subtitle: "Professionally managed portfolios tailored to your financial goals.",
-    link: "/portfolio",
-    type: "line",
-    data: lineData,
+    num:      "03",
+    title:    "Portfolio Management",
+    subtitle: "Professionally managed portfolios aligned to your risk profile, financial goals, and investment horizon.",
+    link:     "/portfolio",
+    type:     "line",
+    data:     lineData,
+    badge:    "Portfolio",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 10l3 3 4-5 3 3"/>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="1"/>
+        <path d="M8 21h8M12 17v4"/>
+        <path d="M6 10l3 3 4-5 3 3"/>
       </svg>
     ),
-    badge: "Portfolio",
-    accent: CYAN,
   },
   {
-    title: "Community Signals",
-    subtitle: "Real-time market insights, discussions, and shared opportunities.",
-    link: "/signal",
-    type: "area",
-    data: areaData,
+    num:      "04",
+    title:    "Community",
+    subtitle: "Real-time market data insights, structured analysis on stocks, equity, opportunities across asset classes all in one community.",
+    link:     "/signal",
+    type:     "area",
+    data:     areaData,
+    badge:    "Insights",
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={CYAN} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
       </svg>
     ),
-    badge: "Community",
-    accent: CYAN,
   },
 ];
 
-const renderChart = (type: string, data: any) => {
-  const commonProps = { margin: { left: -10, right: 0, top: 4, bottom: 4 } };
-
+/* ── Mini charts — kept small, purely decorative data signal ── */
+function MiniChart({ type, data }: { type: string; data: any[] }) {
   switch (type) {
     case "bar":
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} {...commonProps}>
+          <BarChart data={data} margin={{ left:0, right:0, top:2, bottom:0 }}>
             <XAxis dataKey="v" hide />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: CYAN_DIM(0.05) }} />
-            <Bar dataKey="v" radius={[4, 4, 0, 0]} fill={CYAN} opacity={0.85} />
+            <Bar dataKey="v" radius={[2,2,0,0]} fill={CYAN} opacity={0.7} />
           </BarChart>
         </ResponsiveContainer>
       );
     case "line":
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
+          <LineChart data={data} margin={{ left:0, right:0, top:2, bottom:0 }}>
             <XAxis dataKey="v" hide />
             <Tooltip contentStyle={tooltipStyle} />
-            <Line type="monotone" dataKey="v" stroke={CYAN} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="v" stroke={CYAN} strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       );
     case "area":
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data}>
+          <AreaChart data={data} margin={{ left:0, right:0, top:2, bottom:0 }}>
             <defs>
               <linearGradient id="areaCyan" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={CYAN} stopOpacity={0.35} />
-                <stop offset="95%" stopColor={CYAN} stopOpacity={0}    />
+                <stop offset="5%"  stopColor={CYAN} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={CYAN} stopOpacity={0}   />
               </linearGradient>
             </defs>
             <XAxis dataKey="v" hide />
@@ -128,194 +133,130 @@ const renderChart = (type: string, data: any) => {
     case "radial":
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart cx="50%" cy="50%" innerRadius="55%" outerRadius="100%" barSize={10} data={data} startAngle={180} endAngle={0}>
-            <RadialBar background={{ fill: CYAN_DIM(0.06) }} dataKey="value" cornerRadius={6} />
+          <RadialBarChart cx="50%" cy="50%" innerRadius="55%" outerRadius="100%"
+            barSize={8} data={data} startAngle={180} endAngle={0}>
+            <RadialBar background={{ fill: CYAN_DIM(0.06) }} dataKey="value" cornerRadius={2} />
           </RadialBarChart>
         </ResponsiveContainer>
       );
     default:
       return null;
   }
-};
+}
 
-const OfferingCard = ({ item, i }: { item: typeof offerings[0]; i: number }) => (
-  <motion.article
-    initial={{ opacity: 0, y: 32 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: 0.15 }}
-    transition={{ delay: 0.1 * i, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-    className="group relative flex flex-col h-full"
-    style={{
-      background: "#0D1526",
-      border: "1px solid rgba(232,237,245,0.06)",
-      borderRadius: 20,
-      padding: "1.75rem",
-      transition: "border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease",
-    }}
-    whileHover={{
-      y: -6,
-      borderColor: CYAN_DIM(0.22),
-      boxShadow: `0 16px 48px ${CYAN_DIM(0.07)}`,
-    }}
-  >
-    <div
-      className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
-      style={{
-        background: `radial-gradient(circle, ${CYAN_DIM(0.05)} 0%, transparent 70%)`,
-        filter: "blur(20px)",
-      }}
-    />
+/* ── Card — uses flush-cell + card-pad from our CSS system ── */
+function OfferingCard({ item, i }: { item: typeof offerings[0]; i: number }) {
+  return (
+    <motion.div
+      className="flush-cell"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ delay: 0.08 * i, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="card-pad">
 
-    <div className="relative z-10 flex flex-col h-full">
-      <div className="flex items-start gap-4 mb-5">
-        <div
-          className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-          style={{
-            background: CYAN_DIM(0.06),
-            border: `1px solid ${CYAN_DIM(0.14)}`,
-          }}
-        >
+        {/* Card number */}
+        <span className="card-num">{item.num}</span>
+
+        {/* Icon box */}
+        <div className="icon-box">
           {item.icon}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <span
-            className="inline-block text-[10px] font-semibold tracking-widest uppercase mb-1.5 px-2 py-0.5 rounded-full"
-            style={{
-              background: CYAN_DIM(0.07),
-              color: CYAN_DIM(0.75),
-              fontFamily: '"Space Grotesk", sans-serif',
-            }}
-          >
-            {item.badge}
-          </span>
-          <h3
-            className="text-base font-semibold leading-tight"
-            style={{ color: "#E8EDF5", fontFamily: '"Space Grotesk", sans-serif', fontWeight: 600 }}
-          >
-            {item.title}
-          </h3>
+        {/* Badge */}
+        <span className="eyebrow" style={{ display: 'block', marginBottom: 10 }}>
+          {item.badge}
+        </span>
+
+        {/* Title */}
+        <h3 className="section-heading" style={{ fontSize: 'clamp(18px, 1.6vw, 22px)', marginBottom: 14 }}>
+          {item.title}
+        </h3>
+
+        {/* Body */}
+        <p className="body-text-sm" style={{ marginBottom: 24 }}>
+          {item.subtitle}
+        </p>
+
+        {/* Mini chart */}
+        <div style={{ width: '100%', height: 64, marginBottom: 28, opacity: 0.75 }}>
+          <MiniChart type={item.type} data={item.data} />
         </div>
+
+        {/* Link */}
+        <Link href={item.link} className="card-link">
+          Explore
+        </Link>
+
       </div>
+    </motion.div>
+  );
+}
 
-      <p
-        className="text-sm leading-relaxed mb-5 flex-1"
-        style={{ color: "rgba(232,237,245,0.5)", fontFamily: '"Inter", sans-serif' }}
-      >
-        {item.subtitle}
-      </p>
-
-      <div className="w-full h-20 mb-5 opacity-80 group-hover:opacity-100 transition-opacity">
-        {renderChart(item.type, item.data)}
-      </div>
-
-      <Link
-        href={item.link}
-        className="inline-flex items-center gap-2 text-sm font-semibold group/link"
-        style={{ color: CYAN, fontFamily: '"Space Grotesk", sans-serif' }}
-      >
-        <span className="group-hover/link:underline underline-offset-2">Explore</span>
-        <motion.span animate={{ x: 0 }} whileHover={{ x: 3 }} style={{ display: "inline-flex" }}>
-          →
-        </motion.span>
-      </Link>
-    </div>
-  </motion.article>
-);
-
+/* ═══════════════════════════════════════════════════════════
+   SECTION
+═══════════════════════════════════════════════════════════ */
 export default function CoreOfferingsSection() {
   return (
-    <section
-      id="offerings"
-      className="relative py-20 lg:py-28 overflow-hidden"
-      style={{ background: "#080C14" }}
-    >
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse 60% 50% at 50% 0%, ${CYAN_DIM(0.04)} 0%, transparent 65%)`,
-        }}
-      />
+    <section id="offerings" className="section-base section-py">
+      <div className="container-s7">
 
-      <div className="container mx-auto px-6 relative z-10">
+        {/* ── Section header ── */}
         <motion.div
+          className="section-header"
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-14 lg:mb-18"
         >
-          <span
-            className="inline-block text-xs font-semibold tracking-widest uppercase mb-4 px-3 py-1 rounded-full"
-            style={{
-              background: CYAN_DIM(0.07),
-              border: `1px solid ${CYAN_DIM(0.15)}`,
-              color: CYAN,
-              fontFamily: '"Space Grotesk", sans-serif',
-            }}
-          >
-            What We Offer
-          </span>
-
-          <h2
-            className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4"
-            style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, color: "#E8EDF5" }}
-          >
-            Our Core{" "}
-            <span
-              style={{
-                background: `linear-gradient(135deg, ${CYAN} 0%, ${CYAN_MID} 60%, #00C8D4 100%)`,
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Offerings
+          {/* Left — eyebrow + heading */}
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 16 }}>
+              What We Offer
             </span>
-          </h2>
+            <h2 className="section-heading">
+              Core <em>Services</em>
+            </h2>
+          </div>
 
-          <p
-            className="text-base leading-relaxed"
-            style={{ color: "rgba(232,237,245,0.5)", fontFamily: '"Inter", sans-serif' }}
-          >
-            Premium services built to educate, grow, and protect your financial future —
-            with interactive insights and direct access to every destination.
+          {/* Right — body copy */}
+          <p className="body-text" style={{ maxWidth: 340 }}>
+            Premium services built to educate, grow, and protect your
+            financial future with structured access to every destination.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
+        {/* ── 4-column flush grid ── */}
+        <div className="flush-grid-4">
           {offerings.map((item, i) => (
-            <OfferingCard key={item.title} item={item} i={i} />
+            <OfferingCard key={item.num} item={item} i={i} />
           ))}
         </div>
 
+        {/* ── Bottom CTA row ── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4, duration: 0.6 }}
-          className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 32,
+            paddingTop: 48,
+            borderTop: `1px solid rgba(10,239,255,0.12)`,
+            marginTop: 1,
+          }}
         >
-          <a
-            href="/register"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-sm"
-            style={{
-              background: `linear-gradient(135deg, ${CYAN}, #00C8D4)`,
-              color: "#080C14",
-              fontFamily: '"Space Grotesk", sans-serif',
-              fontWeight: 700,
-            }}
-          >
-            Access All Services →
+          <a href="/register" className="btn-primary">
+            Access All Services
           </a>
-          <a
-            href="/mentorship"
-            className="text-sm font-medium"
-            style={{ color: "rgba(232,237,245,0.45)", fontFamily: '"Space Grotesk", sans-serif' }}
-          >
-            Explore mentorship first
+          <a href="/mentorship" className="btn-ghost">
+            Explore Academy
           </a>
         </motion.div>
+
       </div>
     </section>
   );

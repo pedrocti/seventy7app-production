@@ -22,7 +22,7 @@ export const users = pgTable("users", {
   referral_code: text("referral_code").unique(),
   referred_by: integer("referred_by"),
   first_name: text("first_name"),
-  last_name:  text("last_name"), 
+  last_name: text("last_name"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   email_verified_at: timestamp("email_verified_at"),
   admin_investment_balance: numeric("admin_investment_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
@@ -31,7 +31,6 @@ export const users = pgTable("users", {
   admin_portfolio_balance: numeric("admin_portfolio_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
 });
 
-
 /* ========================= PLANS ========================= */
 export const plans = pgTable("plans", {
   id: serial("id").primaryKey(),
@@ -39,12 +38,13 @@ export const plans = pgTable("plans", {
   min_amount: numeric("min_amount", { precision: 20, scale: 2 }).notNull(),
   max_amount: numeric("max_amount", { precision: 20, scale: 2 }),
   description: text("description").default(""),
-  duration_days: integer("duration_days").notNull().default(30),
-  progress_percent: numeric("progress_percent", { precision: 6, scale: 2 })
-    .notNull()
-    .default("0.00"),
+  // duration_days is always 365 for annual plans — kept for backward compat
+  duration_days: integer("duration_days").notNull().default(365),
+  progress_percent: numeric("progress_percent", { precision: 6, scale: 2 }).notNull().default("0.00"),
   profit_loss: numeric("profit_loss", { precision: 10, scale: 2 }).notNull().default("0.00"),
   last_update: timestamp("last_update", { withTimezone: true }).notNull().defaultNow(),
+  // ── NEW: expected monthly ROI % admin sets per plan ──
+  monthly_roi_percent: numeric("monthly_roi_percent", { precision: 8, scale: 4 }).notNull().default("0.0000"),
 });
 
 /* ======================= INVESTMENTS ====================== */
@@ -60,16 +60,34 @@ export const investments = pgTable("investments", {
   status: text("status").notNull().default("active"),
   progress: numeric("progress", { precision: 6, scale: 2 }).notNull().default("0.00"),
   profit_loss: numeric("profit_loss", { precision: 20, scale: 2 }).notNull().default("0.00"),
-  profit_paid: numeric("profit_paid", { precision: 20, scale: 2 })
-    .notNull()
-    .default("0.00"),
-
+  profit_paid: numeric("profit_paid", { precision: 20, scale: 2 }).notNull().default("0.00"),
   start_at: timestamp("start_at", { withTimezone: true }).notNull(),
-  duration_days: integer("duration_days").default(0),
+  duration_days: integer("duration_days").default(365),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   last_profit_payout_at: timestamp("last_profit_payout_at", { withTimezone: true }),
+  // ── NEW: annual model fields ──
+  term_months: integer("term_months").notNull().default(12),
+  current_month: integer("current_month").notNull().default(0),
+  total_earned: numeric("total_earned", { precision: 20, scale: 2 }).notNull().default("0.00"),
+  next_payout_at: timestamp("next_payout_at", { withTimezone: true }),
 });
 
+/* ================== INVESTMENT MONTHLY PAYOUTS ================== */
+// Logs each monthly payout for the 12-month summary email
+export const investment_monthly_payouts = pgTable("investment_monthly_payouts", {
+  id: serial("id").primaryKey(),
+  investment_id: integer("investment_id")
+    .notNull()
+    .references(() => investments.id, { onDelete: "cascade" }),
+  user_id: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  month_number: integer("month_number").notNull(),        // 1..12
+  roi_percent: numeric("roi_percent", { precision: 8, scale: 4 }).notNull(),
+  roi_amount: numeric("roi_amount", { precision: 20, scale: 2 }).notNull(),
+  principal: numeric("principal", { precision: 20, scale: 2 }).notNull(),
+  paid_at: timestamp("paid_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 /* ========================= PNL LOGS ======================== */
 export const pnl_logs = pgTable("pnl_logs", {
@@ -85,7 +103,7 @@ export const pnl_logs = pgTable("pnl_logs", {
 /* ======================= TRANSACTIONS ======================= */
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
-  reference: text("reference").notNull().unique(), 
+  reference: text("reference").notNull().unique(),
   user_id: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -93,11 +111,8 @@ export const transactions = pgTable("transactions", {
   amount: numeric("amount", { precision: 20, scale: 2 }).notNull(),
   status: text("status").notNull().default("pending"),
   details: jsonb("details").notNull().default({}),
-  created_at: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
-
 
 /* ================== PORTFOLIO REQUESTS =================== */
 export const portfolio_requests = pgTable("portfolio_requests", {
@@ -139,7 +154,7 @@ export const portfolio_allocations = pgTable("portfolio_allocations", {
   percentage: numeric("percentage", { precision: 5, scale: 2 }).notNull(),
 });
 
-/* ====================== REFERRAL SETTINGS ===================== */
+/* ====================== SETTINGS ===================== */
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
@@ -176,7 +191,6 @@ export const investment_trades = pgTable("investment_trades", {
   applied_at: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-
 /* ================== LEARNING PROGRAMS =================== */
 export const learning_programs = pgTable("learning_programs", {
   id: serial("id").primaryKey(),
@@ -185,8 +199,7 @@ export const learning_programs = pgTable("learning_programs", {
   price: numeric("price", { precision: 20, scale: 2 }).notNull(),
   duration_days: integer("duration_days").notNull().default(30),
   is_active: boolean("is_active").default(true),
-  thumbnail_url: text("thumbnail_url"), 
-
+  thumbnail_url: text("thumbnail_url"),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -194,7 +207,6 @@ export const learning_programs = pgTable("learning_programs", {
 export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
   program_id: integer("program_id")
-    // Temporarily allow NULL to unblock migration
     .references(() => learning_programs.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").default(""),
@@ -213,7 +225,7 @@ export const lessons = pgTable("lessons", {
   video_url: text("video_url"),
   external_link: text("external_link"),
   pdf_url: text("pdf_url"),
-  has_assignment: boolean("has_assignment").default(false), // ← ADD THIS LINE
+  has_assignment: boolean("has_assignment").default(false),
   sort_order: integer("sort_order").default(0),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
@@ -239,8 +251,7 @@ export const lesson_progress = pgTable("lesson_progress", {
   completed_at: timestamp("completed_at", { withTimezone: true }),
 });
 
-
-/* ================== ENROLLMENT ================== */
+/* ================== ENROLLMENTS ================== */
 export const enrollments = pgTable("enrollments", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id")
@@ -255,7 +266,6 @@ export const enrollments = pgTable("enrollments", {
   completed_at: timestamp("completed_at", { withTimezone: true }),
 });
 
-
 /* ================== ASSIGNMENTS ================== */
 export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
@@ -267,7 +277,6 @@ export const assignments = pgTable("assignments", {
   due_date: timestamp("due_date", { withTimezone: true }),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
-
 
 /* ================== ASSIGNMENT SUBMISSIONS ================== */
 export const assignment_submissions = pgTable("assignment_submissions", {
@@ -286,12 +295,11 @@ export const assignment_submissions = pgTable("assignment_submissions", {
   status: text("status").notNull().default("pending").$type<"pending" | "graded" | "rejected">(),
 });
 
-
 /* ================== MENTORSHIP ================== */
 export const mentorship_applications = pgTable("mentorship_applications", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").notNull().references(() => users.id),
-  event_id: integer("event_id").references(() => mentorship_events.id), // ← NEW
+  event_id: integer("event_id").references(() => mentorship_events.id),
   status: text("status").$type<"pending" | "approved" | "rejected">().default("pending"),
   is_paid_access: boolean("is_paid_access").default(false),
   amount_paid: numeric("amount_paid", { precision: 20, scale: 2 }).default("0.00"),
@@ -305,14 +313,13 @@ export const mentorship_events = pgTable("mentorship_events", {
   date: timestamp("date", { withTimezone: true }).notNull(),
   time: text("time").notNull(),
   venue: text("venue").notNull(),
-  link: text("link"), 
+  link: text("link"),
   price: numeric("price", { precision: 10, scale: 2 }).notNull().default("0.00"),
   is_active: boolean("is_active").default(true),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ================== EMAIL SETTING ================== */
+/* ================== EMAIL SETTINGS ================== */
 export const email_settings = pgTable("email_settings", {
   id: serial("id").primaryKey(),
   host: text("host").notNull(),
@@ -326,17 +333,16 @@ export const email_settings = pgTable("email_settings", {
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ==================Email_Templates================== */
+/* ================== EMAIL TEMPLATES ================== */
 export const email_templates = pgTable("email_templates", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(), // verify_email, reset_password
+  name: text("name").notNull().unique(),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-/* ==================Email Logs================== */
+/* ================== EMAIL LOGS ================== */
 export const email_logs = pgTable("email_logs", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
@@ -347,8 +353,7 @@ export const email_logs = pgTable("email_logs", {
   sent_at: timestamp("sent_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ==================Email verification token================== */
+/* ================== EMAIL VERIFICATION TOKENS ================== */
 export const email_verification_tokens = pgTable("email_verification_tokens", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id")
@@ -361,8 +366,7 @@ export const email_verification_tokens = pgTable("email_verification_tokens", {
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ==================Bonus Codes================== */
+/* ================== BONUS CODES ================== */
 export const bonus_codes = pgTable("bonus_codes", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),
@@ -375,7 +379,7 @@ export const bonus_codes = pgTable("bonus_codes", {
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-/* ==================Bonus Codes usage================== */
+/* ================== BONUS CODE USAGES ================== */
 export const bonus_code_usages = pgTable("bonus_code_usages", {
   id: serial("id").primaryKey(),
   bonus_code_id: integer("bonus_code_id")
@@ -389,23 +393,22 @@ export const bonus_code_usages = pgTable("bonus_code_usages", {
   used_at: timestamp("used_at", { withTimezone: true }).defaultNow(),
 });
 
-/* ==================payment_providers================== */
+/* ================== PAYMENT PROVIDERS ================== */
 export const payment_providers = pgTable("payment_providers", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(), // stripe, nowpayments
-  config: jsonb("config").notNull(),     // API keys
+  name: text("name").notNull().unique(),
+  config: jsonb("config").notNull(),
   is_enabled: boolean("is_enabled").default(true),
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ==================payment_intent================== */
+/* ================== PAYMENT INTENTS ================== */
 export const payment_intents = pgTable("payment_intents", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id")
     .notNull()
     .references(() => users.id),
-  provider: text("provider").notNull(), // stripe / nowpayments
+  provider: text("provider").notNull(),
   provider_ref: text("provider_ref").notNull(),
   amount: numeric("amount", { precision: 20, scale: 2 }).notNull(),
   status: text("status").default("pending"),
@@ -413,24 +416,63 @@ export const payment_intents = pgTable("payment_intents", {
   created_at: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-
-/* ==================payment_webhooks================== */
+/* ================== PAYMENT WEBHOOKS ================== */
 export const payment_webhooks = pgTable("payment_webhooks", {
   id: serial("id").primaryKey(),
   provider: text("provider").notNull(),
   payload: jsonb("payload").notNull(),
   received_at: timestamp("received_at", { withTimezone: true }).defaultNow(),
 });
-/* ==================Notifications================== */
-// db/schema.ts
+
+/* ================== NOTIFICATIONS ================== */
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-
   title: text("title").notNull(),
   message: text("message").notNull(),
   read: boolean("read").default(false).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+/* ================== BLOG POSTS ================== */
+export const blog_posts = pgTable("blog_posts", {
+  id:           serial("id").primaryKey(),
+  title:        text("title").notNull(),
+  slug:         text("slug").notNull().unique(),
+  tag:          text("tag").notNull().default("Insights"),
+  excerpt:      text("excerpt").notNull(),
+  content:      text("content").notNull(),
+  image_url:    text("image_url"),
+  author:       text("author").notNull().default("Seventy7 Kapital"),
+  published:    boolean("published").notNull().default(false),
+  published_at: timestamp("published_at", { withTimezone: true }),
+  created_at:   timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updated_at:   timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ================== LOAN APPLICATIONS ================== */
+export const loan_applications = pgTable("loan_applications", {
+  id:              serial("id").primaryKey(),
+  user_id:         integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount:          numeric("amount", { precision: 20, scale: 2 }).notNull(),
+  interest_rate:   numeric("interest_rate", { precision: 5, scale: 2 }).notNull().default("0.00"),
+  duration_months: integer("duration_months").notNull().default(12),
+  status:          text("status").notNull().default("pending"),
+  purpose:         text("purpose"),
+  admin_notes:     text("admin_notes"),
+  approved_at:     timestamp("approved_at", { withTimezone: true }),
+  due_at:          timestamp("due_at", { withTimezone: true }),
+  created_at:      timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updated_at:      timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+/* ================== LOAN SETTINGS ================== */
+export const loan_settings = pgTable("loan_settings", {
+  id:             serial("id").primaryKey(),
+  interest_rate:  numeric("interest_rate", { precision: 5, scale: 2 }).notNull().default("15.00"),
+  min_investment: numeric("min_investment", { precision: 20, scale: 2 }).notNull().default("5000.00"),
+  max_loan_pct:   numeric("max_loan_pct", { precision: 5, scale: 2 }).notNull().default("50.00"),
+  updated_at:     timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

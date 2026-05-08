@@ -22,14 +22,13 @@ import LoadingScreen from "@/components/LoadingScreen";
 import DevErrorBoundary from "./DevErrorBoundary";
 import { useEffect, useState } from "react";
 import VerifyEmail from "@/pages/VerifyEmail";
-
+import BlogPage from "@/pages/BlogPage";
+import BlogPostPage from "@/pages/BlogPostPage";
 const App = () => {
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     setTimeout(() => setLoading(false), 1000);
   }, []);
-
   return (
     <AuthProvider>
       <TooltipProvider>
@@ -53,12 +52,13 @@ const App = () => {
                   <Route path="/login" component={Login} />
                   <Route path="/register" component={Register} />
                   <Route path="/verify-email" component={VerifyEmail} />
-
+                  {/* BLOG ROUTES */}
+                  <Route path="/blog" component={BlogPage} />
+                  <Route path="/blog/:slug" component={BlogPostPage} />
                   {/* LEARNING ROUTES */}
                   <Route path="/learning/*">
                     <LearningRouter />
                   </Route>
-
                   {/* FIXED PRIVATE ROUTES */}
                   <Route path="/dashboard">
                     <PrivateRoute>
@@ -70,7 +70,6 @@ const App = () => {
                       <AdminDashboard />
                     </PrivateRoute>
                   </Route>
-
                   <Route path="/:rest*" component={NotFound} />
                 </Switch>
               </Router>
@@ -81,5 +80,4 @@ const App = () => {
     </AuthProvider>
   );
 };
-
 export default App;

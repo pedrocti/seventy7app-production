@@ -1,154 +1,108 @@
-import { motion } from "framer-motion";
-import { Wallet, Gift, TrendingUp, Sparkles } from "lucide-react";
+// client/src/components/StatsCards.tsx
+import { motion } from 'framer-motion';
 
 interface StatsCardsProps {
-  balance: number;
-  bonus: number;
+  balance:        number;
+  bonus:          number;
   totalAvailable: number;
-  performance: string;
-  username?: string;
+  performance:    string;
+  username?:      string;
 }
 
-const CYAN = "#0AEFFF";
-const CYAN_SOFT = "#4AFFF5";
-const CYAN_DARK = "#0088CC";
-const GREEN_ACCENT = "#0ECB81";
+function fmt(v: number): string {
+  return isNaN(v) ? '0.00' : v.toFixed(2);
+}
 
-const DARK_1 = "#0A0A0A";
-const DARK_2 = "#1A1A1A";
-
-const StatsCards = ({
-  balance,
-  bonus,
-  totalAvailable,
-  performance,
-  username,
-}: StatsCardsProps) => {
-  const hasBonus = bonus > 0;
-
+function StatCell({ label, value, sub, accent }: { label:string; value:string; sub?:string; accent?:boolean }) {
   return (
-    <div className="space-y-4">
-      {/* WELCOME HEADER */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="px-1"
-      >
-        <h2 className="text-xl font-semibold text-white">
-          Welcome back{username ? `, ${username}` : ""} 👋
-        </h2>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Here’s a snapshot of your account
-        </p>
-      </motion.div>
-
-      {/* STATS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* MAIN BALANCE */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl p-5 shadow border backdrop-blur-sm"
-          style={{
-            background: `linear-gradient(135deg, ${DARK_1}, ${DARK_2})`,
-            borderColor: `${CYAN}30`,
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-gray-500" />
-                Main Balance
-              </p>
-              <p className="text-2xl font-bold mt-1.5" style={{ color: CYAN }}>
-                ${balance.toFixed(2)}
-              </p>
-            </div>
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center"
-              style={{ background: `${CYAN}15` }}
-            >
-              <Wallet className="w-5 h-5" style={{ color: CYAN }} />
-            </div>
-          </div>
-          <p className="text-xs mt-2 text-gray-500">
-            Available for withdrawal
-          </p>
-        </motion.div>
-
-        {/* REFERRAL BONUS */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-2xl p-5 shadow border backdrop-blur-sm"
-          style={{
-            background: hasBonus
-              ? `linear-gradient(135deg, ${GREEN_ACCENT}15, ${GREEN_ACCENT}08)`
-              : `linear-gradient(135deg, ${DARK_1}, ${DARK_2})`,
-            borderColor: hasBonus ? `${GREEN_ACCENT}40` : "#333",
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-400 flex items-center gap-1.5">
-                <Gift className="w-3.5 h-3.5 text-gray-500" />
-                Referral Bonus
-              </p>
-              <p
-                className="text-2xl font-bold mt-1.5"
-                style={{ color: hasBonus ? GREEN_ACCENT : "#555" }}
-              >
-                ${bonus.toFixed(2)}
-              </p>
-            </div>
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center"
-              style={{ background: hasBonus ? `${GREEN_ACCENT}20` : "#222" }}
-            >
-              {hasBonus ? (
-                <Sparkles
-                  className="w-5.5 h-5.5"
-                  style={{ color: GREEN_ACCENT }}
-                />
-              ) : (
-                <Gift className="w-5 h-5 text-gray-600" />
-              )}
-            </div>
-          </div>
-          <p className="text-xs mt-2 text-gray-500">
-            {hasBonus ? "Ready to invest" : "Invite friends to earn"}
-          </p>
-        </motion.div>
-
-        {/* TOTAL AVAILABLE */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl p-5 shadow border backdrop-blur-sm"
-          style={{
-            background: `linear-gradient(135deg, ${CYAN_DARK}20, ${CYAN}12, ${CYAN_DARK}20)`,
-            borderColor: `${CYAN}40`,
-          }}
-        >
-          <p className="text-xs font-medium" style={{ color: CYAN_SOFT }}>
-            Total Available
-          </p>
-          <p className="text-3xl font-bold mt-1" style={{ color: CYAN }}>
-            ${totalAvailable.toFixed(2)}
-          </p>
-          <div className="flex items-center gap-2 mt-3">
-            <TrendingUp className="w-4 h-4" style={{ color: GREEN_ACCENT }} />
-            <span className="text-sm font-bold" style={{ color: GREEN_ACCENT }}>
-              {performance}
-            </span>
-            <span className="text-xs text-gray-500">Performance</span>
-          </div>
-        </motion.div>
-      </div>
+    <div style={{
+      padding:     '24px 28px',
+      borderRight: '1px solid rgba(10,239,255,0.08)',
+      display:     'flex',
+      flexDirection:'column',
+      gap:         6,
+    }}>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+        {label}
+      </span>
+      <span style={{ fontFamily:'var(--font-display)', fontSize:'clamp(22px, 2.5vw, 32px)', fontWeight:300, color: accent ? 'var(--cyan)' : 'var(--text)', lineHeight:1, letterSpacing:'-0.02em' }}>
+        {value}
+      </span>
+      {sub && (
+        <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--muted-2)' }}>{sub}</span>
+      )}
     </div>
   );
-};
+}
 
-export default StatsCards;
+export default function StatsCards({ balance, bonus, totalAvailable, performance, username }: StatsCardsProps) {
+  const hasBonus  = bonus > 0;
+  const perfPos   = performance.startsWith('+') || (!performance.startsWith('-') && performance !== '0%');
+
+  return (
+    <motion.div
+      initial={{ opacity:0, y:12 }}
+      animate={{ opacity:1, y:0 }}
+      transition={{ duration:0.5, ease:[0.22,1,0.36,1] }}
+      style={{
+        background:  'var(--surface)',
+        border:      '1px solid rgba(10,239,255,0.10)',
+        marginBottom: 1,
+      }}
+    >
+      {/* Welcome strip */}
+      <div style={{
+        padding:     '14px 28px',
+        borderBottom:'1px solid rgba(10,239,255,0.08)',
+        display:     'flex',
+        alignItems:  'center',
+        justifyContent:'space-between',
+        flexWrap:    'wrap',
+        gap:         8,
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+            Member Portal
+          </span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--cyan)', background:'rgba(10,239,255,0.06)', border:'1px solid rgba(10,239,255,0.14)', padding:'2px 7px' }}>
+            Verified
+          </span>
+        </div>
+        <span style={{ fontFamily:'var(--font-sans)', fontSize:13, fontWeight:300, color:'var(--muted)' }}>
+          Welcome back{username ? `, ${username}` : ''}
+        </span>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)' }} className="stats-grid">
+        <StatCell
+          label="Main Balance"
+          value={`$${fmt(balance)}`}
+          sub="Available for withdrawal"
+          accent
+        />
+        <StatCell
+          label="Referral Bonus"
+          value={`$${fmt(bonus)}`}
+          sub={hasBonus ? 'Ready to invest' : 'Invite friends to earn'}
+        />
+        <StatCell
+          label="Total Portfolio"
+          value={`$${fmt(totalAvailable)}`}
+          sub="Balance + Stakes + Profit"
+        />
+        <div style={{ padding:'24px 28px', display:'flex', flexDirection:'column', gap:6 }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+            Performance
+          </span>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:'clamp(22px,2.5vw,32px)', fontWeight:300, color: perfPos ? 'var(--green)' : 'var(--red)', lineHeight:1, letterSpacing:'-0.02em' }}>
+            {performance}
+          </span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--muted-2)' }}>
+            Return on investment
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}

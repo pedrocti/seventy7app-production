@@ -1,219 +1,125 @@
-import { useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
+// client/src/components/CTASection.tsx
+import { motion } from 'framer-motion';
 
-const CYAN     = "#0AEFFF";
-const CYAN_DIM = (a: number) => `rgba(10,239,255,${a})`;
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 },
-  },
-};
-
-const itemVariants = {
-  hidden:   { opacity: 0, y: 24 },
-  visible:  { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] } },
-};
+/* ═══════════════════════════════════════════════════════════
+   CTA SECTION — uses our CSS design system exclusively
+   No Space Grotesk, no rounded pills, no blur blobs,
+   no useInView from react-intersection-observer
+═══════════════════════════════════════════════════════════ */
 
 const trustItems = [
-  { icon: "🔒", label: "Secure & Confidential" },
-  { icon: "📈", label: "Real-time Market Access" },
-  { icon: "🎓", label: "Expert-led Education" },
+  { label: 'Secure & Confidential' },
+  { label: 'Real-time Market Access' },
+  { label: 'Expert-led Education' },
 ];
 
-const CTASection = () => {
-  const controls = useAnimation();
-  const [ref, inView] = useInView({ threshold: 0.15, triggerOnce: true });
+const stagger = {
+  hidden:  {},
+  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+};
+const rise = {
+  hidden:  { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
+};
 
-  useEffect(() => {
-    if (inView) controls.start("visible");
-  }, [controls, inView]);
-
+export default function CTASection() {
   return (
-    <section
-      id="cta"
-      className="relative py-24 lg:py-32 overflow-hidden"
-      style={{ background: "#080C14" }}
-    >
-      {/* Background decorations */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse 70% 60% at 50% 50%, ${CYAN_DIM(0.04)} 0%, transparent 70%)`,
-        }}
-      />
-
-      {/* Subtle grid */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-30"
-        style={{
-          backgroundImage: "radial-gradient(rgba(232,237,245,0.04) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-
-      {/* Top divider line */}
-      <div
-        className="absolute top-0 left-0 right-0 h-px"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${CYAN_DIM(0.20)}, transparent)`,
-        }}
-      />
-
-      <div className="container mx-auto px-6 relative z-10" ref={ref}>
+    <section id="cta" className="section-base section-py">
+      <div className="container-s7">
         <motion.div
-          className="max-w-3xl mx-auto text-center"
-          variants={containerVariants}
+          style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}
           initial="hidden"
-          animate={controls}
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          variants={stagger}
         >
+
           {/* Eyebrow */}
-          <motion.div variants={itemVariants} className="mb-6">
-            <span
-              className="inline-block text-xs font-semibold tracking-widest uppercase px-4 py-1.5 rounded-full"
-              style={{
-                background: CYAN_DIM(0.07),
-                border: `1px solid ${CYAN_DIM(0.18)}`,
-                color: CYAN,
-                fontFamily: '"Space Grotesk", sans-serif',
-              }}
-            >
+          <motion.div variants={rise}>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: 20 }}>
               Begin Today
             </span>
           </motion.div>
 
           {/* Headline */}
           <motion.h2
-            variants={itemVariants}
-            className="text-3xl md:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6"
-            style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, color: "#E8EDF5" }}
+            variants={rise}
+            className="section-heading"
+            style={{ marginBottom: 24 }}
           >
-            Build Your{" "}
-            <span
-              style={{
-                background: `linear-gradient(135deg, ${CYAN} 0%, #4AFFF5 50%, #00C8D4 100%)`,
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Financial Future
-            </span>{" "}
-            with Clarity
+            Build Your <em>Financial Future</em> with Clarity
           </motion.h2>
 
-          {/* Description */}
+          {/* Body */}
           <motion.p
-            variants={itemVariants}
-            className="text-base md:text-lg leading-relaxed mb-10 max-w-xl mx-auto"
-            style={{ color: "rgba(232,237,245,0.52)", fontFamily: '"Inter", sans-serif' }}
+            variants={rise}
+            className="body-text"
+            style={{ maxWidth: 480, margin: '0 auto 48px' }}
           >
             Join a growing community focused on financial literacy, market intelligence,
-            and disciplined wealth building. Develop the edge others don't have.
+            and disciplined wealth building and develop the edge others don't have.
           </motion.p>
 
           {/* CTAs */}
           <motion.div
-            variants={itemVariants}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
+            variants={rise}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 48 }}
           >
-            {/* Primary */}
             <motion.a
               href="/register"
-              className="relative overflow-hidden inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm"
-              style={{
-                padding: "1.05rem 2.5rem",
-                background: `linear-gradient(135deg, ${CYAN}, #00C8D4)`,
-                color: "#080C14",
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 700,
-                minWidth: 200,
-              }}
-              whileHover={{
-                scale: 1.04,
-                boxShadow: `0 16px 40px ${CYAN_DIM(0.35)}`,
-              }}
+              className="btn-primary"
+              whileHover={{ y: -2 }}
               whileTap={{ scale: 0.97 }}
+              style={{ textDecoration: 'none', display: 'inline-flex', minWidth: 200, justifyContent: 'center' }}
             >
-              <span
-                className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity"
-                style={{
-                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)",
-                }}
-              />
-              Start Learning Free
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              Open Your Account
             </motion.a>
 
-            {/* Secondary — Telegram community */}
             <motion.a
               href="https://t.me/group77hub"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full font-medium text-sm"
-              style={{
-                padding: "1.05rem 2.5rem",
-                background: "transparent",
-                border: `1px solid ${CYAN_DIM(0.20)}`,
-                color: "rgba(232,237,245,0.7)",
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontWeight: 500,
-                minWidth: 200,
-              }}
-              whileHover={{
-                borderColor: CYAN_DIM(0.50),
-                color: CYAN,
-                backgroundColor: CYAN_DIM(0.04),
-                scale: 1.02,
-              }}
+              className="btn-ghost"
               whileTap={{ scale: 0.97 }}
+              style={{ textDecoration: 'none' }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.833.932z"/>
-              </svg>
               Join the Community
             </motion.a>
           </motion.div>
 
           {/* Trust indicators */}
           <motion.div
-            variants={itemVariants}
-            className="flex flex-wrap items-center justify-center gap-6 sm:gap-10"
+            variants={rise}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 32, flexWrap: 'wrap' }}
           >
-            {trustItems.map((item) => (
-              <div key={item.label} className="flex items-center gap-2">
-                <span className="text-base">{item.icon}</span>
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: "rgba(232,237,245,0.38)", fontFamily: '"Inter", sans-serif' }}
-                >
-                  {item.label}
-                </span>
+            {trustItems.map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{
+                  display: 'inline-block',
+                  width: 4, height: 4,
+                  borderRadius: '50%',
+                  background: 'var(--cyan)',
+                  flexShrink: 0,
+                  opacity: 0.5,
+                }} />
+                <span className="data-label">{item.label}</span>
               </div>
             ))}
           </motion.div>
 
-          {/* Decorative line */}
+          {/* Decorative vertical line */}
           <motion.div
-            variants={itemVariants}
-            className="mt-16 mx-auto"
+            variants={rise}
             style={{
               width: 1,
               height: 48,
-              background: `linear-gradient(to bottom, ${CYAN_DIM(0.30)}, transparent)`,
-              marginLeft: "auto",
-              marginRight: "auto",
+              background: 'linear-gradient(to bottom, rgba(10,239,255,0.25), transparent)',
+              margin: '48px auto 0',
             }}
           />
+
         </motion.div>
       </div>
     </section>
   );
-};
-
-export default CTASection;
+}

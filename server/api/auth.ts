@@ -4,7 +4,14 @@ import { eq, and, sql } from "drizzle-orm";
 import { transactions, email_verification_tokens } from "../db/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { sendEmail } from "../services/email.service";
+// ── CHANGED: import Brevo functions instead of sendEmail ──
+import {
+  sendBrevoEmail,
+  welcomeEmail,
+  verifyEmailTemplate,
+  passwordResetEmail,
+  passwordChangedEmail,
+} from "../services/brevo.service";
 import { generateToken, getExpiry } from "../utils/token";
 import { Router, Request, Response, NextFunction } from "express";
 
@@ -173,15 +180,15 @@ router.post("/register", async (req, res) => {
       expires_at: getExpiry(24),
     });
 
-    await sendEmail({
-      to: insertedUser.email,
-      templateName: "verify_email",
-      variables: {
+    // ── CHANGED: use Brevo welcome email ──
+    sendBrevoEmail({
+      to: [{ email: insertedUser.email, name: insertedUser.username }],
+      subject: "Welcome to Seventy7 Kapital — Verify Your Email",
+      htmlContent: welcomeEmail({
         username: insertedUser.username,
-        link: `${FRONTEND_URL}/verify-email?token=${verifyToken}`,
-      },
-      userId: insertedUser.id,
-    });
+        verifyUrl: `${FRONTEND_URL}/verify-email?token=${verifyToken}`,
+      }),
+    }).catch(err => console.error("[Auth] Welcome email error:", err));
 
     const token = jwt.sign({ id: insertedUser.id, role: insertedUser.role }, JWT_SECRET, {
       expiresIn: "7d",
@@ -257,7 +264,6 @@ router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
     if (!email?.trim()) return res.status(400).json({ success: false, error: "Email is required" });
 
-    // Find the user by email
     const [user] = await db
       .select()
       .from(users)
@@ -272,10 +278,8 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
 
-    // Generate a password reset token
     const resetToken = generateToken();
 
-    // Save token to database
     await db.insert(email_verification_tokens).values({
       user_id: user.id,
       token: resetToken,
@@ -284,16 +288,15 @@ router.post("/forgot-password", async (req, res) => {
       expires_at: getExpiry(1), // 1 hour expiry
     });
 
-    // Send password reset email
-    await sendEmail({
-      to: user.email,
-      templateName: "reset_password",
-      variables: {
+    // ── CHANGED: use Brevo password reset email ──
+    sendBrevoEmail({
+      to: [{ email: user.email, name: user.username }],
+      subject: "Reset Your Password — Seventy7 Kapital",
+      htmlContent: passwordResetEmail({
         username: user.username,
-        link: `${FRONTEND_URL}/reset-password?token=${resetToken}`,
-      },
-      userId: user.id,
-    });
+        resetUrl: `${FRONTEND_URL}/reset-password?token=${resetToken}`,
+      }),
+    }).catch(err => console.error("[Auth] Forgot password email error:", err));
 
     res.json({
       success: true,
@@ -315,7 +318,6 @@ router.post("/reset-password", async (req, res) => {
     if (!newPassword || newPassword.length < 6)
       return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
 
-    // Find the token record
     const [record] = await db
       .select()
       .from(email_verification_tokens)
@@ -332,14 +334,25 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ success: false, error: "Invalid or expired token" });
     }
 
-    // Hash the new password
     const hash = await bcrypt.hash(newPassword, 10);
 
-    // Update user's password
     await db.update(users).set({ password_hash: hash }).where(eq(users.id, record.user_id));
-
-    // Mark token as used
     await db.update(email_verification_tokens).set({ used: true }).where(eq(email_verification_tokens.id, record.id));
+
+    // ── ADDED: send password changed confirmation via Brevo ──
+    const [user] = await db
+      .select({ email: users.email, username: users.username })
+      .from(users)
+      .where(eq(users.id, record.user_id))
+      .limit(1);
+
+    if (user) {
+      sendBrevoEmail({
+        to: [{ email: user.email, name: user.username }],
+        subject: "Your Password Has Been Changed — Seventy7 Kapital",
+        htmlContent: passwordChangedEmail({ username: user.username }),
+      }).catch(err => console.error("[Auth] Password changed email error:", err));
+    }
 
     res.json({ success: true, message: "Password reset successfully. You can now log in." });
   } catch (err) {

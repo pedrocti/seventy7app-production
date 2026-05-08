@@ -1,247 +1,169 @@
-// client/src/components/Topbar.tsx — UNIVERSAL CYAN EDITION
-
-import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { Menu, Bell, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/auth/AuthContext";
-import { apiRequest } from "@/api/http";
+// client/src/components/Topbar.tsx
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Menu, Bell, LogOut } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
+import { apiRequest } from '@/api/http';
 
 interface TopbarProps {
-  active: string;
-  onCollapse: () => void;
+  active:          string;
+  onCollapse:      () => void;
   onProfileClick?: () => void;
 }
 
-const CYAN = "#0AEFFF";
-const CYAN_SOFT = "#4AFFF5";
+const PAGE_LABELS: Record<string, string> = {
+  overview:   'Overview',
+  invest:     'Staking',
+  portfolio:  'Portfolio',
+  trades:     'Trades & PnL',
+  mentorship: 'Mentorship',
+  learning:   'Learning',
+};
 
-export default function Topbar({
-  active,
-  onCollapse,
-  onProfileClick,
-}: TopbarProps) {
+export default function Topbar({ active, onCollapse, onProfileClick }: TopbarProps) {
   const { logout, user, token } = useAuth();
+  const [showNotif,   setShowNotif]   = useState(false);
+  const [notifs,      setNotifs]      = useState<any[]>([]);
+  const [unread,      setUnread]      = useState(0);
+  const [dropPos,     setDropPos]     = useState({ top:0, left:0 });
+  const bellRef  = useRef<HTMLButtonElement>(null);
+  const dropRef  = useRef<HTMLDivElement>(null);
 
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-
-  const bellRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // -------------------------
-  // Fetch notifications
-  // -------------------------
-  const fetchNotifications = async () => {
+  async function fetchNotifs() {
     if (!token) return;
     try {
-      const res = await apiRequest("/user/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res?.success) {
-        const list = res.notifications || [];
-        setNotifications(list);
-        setUnreadCount(list.filter((n: any) => !n.read).length);
+      const r = await apiRequest('/user/notifications', { headers:{ Authorization:`Bearer ${token}` } });
+      if (r?.success) {
+        const list = r.notifications || [];
+        setNotifs(list);
+        setUnread(list.filter((n:any) => !n.read).length);
       }
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    }
-  };
+    } catch {}
+  }
+
+  useEffect(() => { fetchNotifs(); }, [token]);
 
   useEffect(() => {
-    fetchNotifications();
-  }, [token]);
-
-  // -------------------------
-  // Close on outside click
-  // -------------------------
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setShowNotifications(false);
-      }
+    if (!showNotif) return;
+    const fn = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setShowNotif(false);
     };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, [showNotif]);
 
-    if (showNotifications) {
-      document.addEventListener("mousedown", handleClick);
-    }
-
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [showNotifications]);
-
-  // -------------------------
-  // Mark as read
-  // -------------------------
-  const markAsRead = async (id: string) => {
+  async function markRead(id: string) {
     try {
-      await apiRequest(`/user/notifications/read/${id}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiRequest(`/user/notifications/read/${id}`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
+      setNotifs(p => p.map(n => n.id===id ? { ...n, read:true } : n));
+      setUnread(c => Math.max(c-1, 0));
+    } catch {}
+  }
 
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-      );
-      setUnreadCount((c) => Math.max(c - 1, 0));
-    } catch (err) {
-      console.error("Failed to mark notification as read:", err);
-    }
-  };
-
-  // -------------------------
-  // Toggle dropdown + position
-  // -------------------------
-  const toggleNotifications = () => {
+  function toggleNotif() {
     if (bellRef.current) {
-      const rect = bellRef.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 8,
-        left: rect.right - 300,
-      });
+      const r = bellRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 8, left: r.right - 300 });
     }
-    setShowNotifications((p) => !p);
-  };
+    setShowNotif(p => !p);
+  }
+
+  const initial = user?.username?.[0]?.toUpperCase() || 'U';
 
   return (
-    <header
-      className="backdrop-blur-sm px-6 py-4 border-b relative"
-      style={{
-        background: "rgba(15, 23, 42, 0.8)",
-        borderColor: "rgba(30, 41, 59, 0.6)",
-      }}
-    >
-      <div className="flex items-center justify-between">
-        {/* LEFT */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onCollapse}
-            className="md:hidden text-[#999] hover:text-white hover:bg-[#1A1A1A]"
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
+    <header style={{
+      height: 64, flexShrink:0,
+      display:'flex', alignItems:'center',
+      justifyContent:'space-between',
+      padding:'0 24px',
+      background:'var(--surface)',
+      borderBottom:'1px solid rgba(10,239,255,0.08)',
+      position:'sticky', top:0, zIndex:30,
+    }}>
 
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold tracking-wide text-white">
-              77<span style={{ color: CYAN }}>KAPITAL</span>
-            </h1>
+      {/* Left */}
+      <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+        {/* Hamburger */}
+        <button onClick={onCollapse} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', display:'flex', alignItems:'center' }}>
+          <Menu size={18} />
+        </button>
 
-            <span
-              className="hidden sm:inline px-3 py-1 rounded text-sm font-medium border"
-              style={{
-                background: `${CYAN}22`,
-                color: CYAN,
-                borderColor: `${CYAN}33`,
-              }}
-            >
-              {active.toUpperCase()}
-            </span>
-          </div>
-        </div>
-
-        {/* RIGHT */}
-        <div className="flex items-center gap-3">
-          {/* Notification */}
-          <Button
-            ref={bellRef}
-            variant="ghost"
-            size="icon"
-            className="text-[#aaa] hover:text-white hover:bg-[#1A1A1A] relative"
-            onClick={toggleNotifications}
-          >
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </Button>
-
-          {/* PROFILE */}
-          <button
-            onClick={onProfileClick}
-            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg hover:scale-110 transition shadow-lg"
-            style={{
-              background: `linear-gradient(90deg, ${CYAN}, ${CYAN_SOFT})`,
-              color: "#000",
-            }}
-          >
-            {user?.username?.[0]?.toUpperCase() || "U"}
-          </button>
-
-          {/* Logout Desktop */}
-          <Button
-            onClick={logout}
-            variant="destructive"
-            size="sm"
-            className="hidden sm:flex items-center gap-2 bg-red-600 hover:bg-red-700"
-          >
-            Logout
-            <LogOut className="h-4 w-4" />
-          </Button>
-
-          {/* Logout Mobile */}
-          <Button
-            onClick={logout}
-            variant="ghost"
-            size="icon"
-            className="text-red-400 hover:bg-red-500/20 sm:hidden"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+        {/* Page label */}
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:300, color:'var(--text)', letterSpacing:'-0.01em' }}>
+            {PAGE_LABELS[active] || active}
+          </span>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--cyan)', background:'rgba(10,239,255,0.06)', border:'1px solid rgba(10,239,255,0.15)', padding:'3px 8px' }}>
+            Live
+          </span>
         </div>
       </div>
 
-      {/* ================= PORTAL DROPDOWN ================= */}
-      {showNotifications &&
-        createPortal(
-          <div
-            ref={dropdownRef}
-            className="fixed w-72 bg-[#0F172A]/80 border border-[#1E293B]/60 rounded-xl shadow-2xl z-[999999]"
-            style={{ top: dropdownPos.top, left: dropdownPos.left }}
-          >
-            <div className="p-4 border-b border-[#1E293B]/60 text-[#EAECEF] font-semibold">
-              Notifications ({unreadCount})
-            </div>
+      {/* Right */}
+      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
 
-            <div className="max-h-64 overflow-y-auto">
-              {notifications.length === 0 && (
-                <p className="text-sm text-[#848E9C] p-4">
-                  No new notifications
-                </p>
-              )}
+        {/* Bell */}
+        <button ref={bellRef} onClick={toggleNotif}
+          style={{ position:'relative', background:'none', border:'1px solid rgba(10,239,255,0.12)', cursor:'pointer', color:'var(--muted)', width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.35)'; (e.currentTarget as HTMLElement).style.color='var(--cyan)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.12)'; (e.currentTarget as HTMLElement).style.color='var(--muted)'; }}>
+          <Bell size={15}/>
+          {unread > 0 && (
+            <span style={{ position:'absolute', top:6, right:6, width:6, height:6, borderRadius:'50%', background:'var(--red)' }}/>
+          )}
+        </button>
 
-              {notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={`px-4 py-3 border-b border-[#1E293B]/60 ${
-                    !n.read ? "bg-[#0AEFFF]/10" : ""
-                  } hover:bg-[#0AEFFF]/5`}
-                >
-                  <p className="text-sm text-[#EAECEF]">{n.message}</p>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-[#848E9C]">
-                      {new Date(n.created_at).toLocaleString()}
-                    </span>
-                    {!n.read && (
-                      <button
-                        onClick={() => markAsRead(n.id)}
-                        className="text-xs px-2 py-1 rounded bg-[#0ECB81] text-black hover:bg-[#0AEFFF]"
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </div>
+        {/* Profile */}
+        <button onClick={onProfileClick}
+          style={{ width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg, var(--cyan), var(--purple))', border:'none', cursor:'pointer', flexShrink:0 }}>
+          <span style={{ fontFamily:'var(--font-mono)', fontSize:12, fontWeight:500, color:'var(--bg)' }}>{initial}</span>
+        </button>
+
+        {/* Sign out — desktop */}
+        <button onClick={logout}
+          style={{ display:'flex', alignItems:'center', gap:7, padding:'7px 14px', background:'transparent', border:'1px solid rgba(246,70,93,0.2)', cursor:'pointer', color:'var(--red)', fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', transition:'all 0.2s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(246,70,93,0.06)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; }}>
+          <LogOut size={13}/> Sign Out
+        </button>
+
+      </div>
+
+      {/* Notification dropdown */}
+      {showNotif && createPortal(
+        <div ref={dropRef} style={{
+          position:'fixed', top:dropPos.top, left:dropPos.left,
+          width:300, background:'var(--surface)',
+          border:'1px solid rgba(10,239,255,0.14)',
+          zIndex:999999, boxShadow:'0 16px 48px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ padding:'14px 16px', borderBottom:'1px solid rgba(10,239,255,0.08)', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--cyan)' }}>
+            Notifications {unread > 0 && `(${unread})`}
+          </div>
+          <div style={{ maxHeight:280, overflowY:'auto' }}>
+            {notifs.length === 0 ? (
+              <div style={{ padding:20, fontFamily:'var(--font-mono)', fontSize:10, color:'var(--muted-2)', letterSpacing:'0.1em', textTransform:'uppercase' }}>No new notifications</div>
+            ) : notifs.map(n => (
+              <div key={n.id} style={{ padding:'12px 16px', borderBottom:'1px solid rgba(10,239,255,0.06)', background: !n.read ? 'rgba(10,239,255,0.03)' : 'transparent' }}>
+                <p style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--text)', marginBottom:6 }}>{n.message}</p>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', letterSpacing:'0.08em' }}>
+                    {new Date(n.created_at).toLocaleString()}
+                  </span>
+                  {!n.read && (
+                    <button onClick={() => markRead(n.id)}
+                      style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', padding:'3px 8px', background:'rgba(10,239,255,0.08)', border:'1px solid rgba(10,239,255,0.2)', color:'var(--cyan)', cursor:'pointer' }}>
+                      Mark read
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>,
-          document.body
-        )}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
+
     </header>
   );
 }

@@ -1,91 +1,112 @@
 // client/src/components/Sidebar.tsx
-import { BarChart3, User, PieChart, Activity, X, ClipboardList } from "lucide-react";
-import { clsx } from "clsx";
+import { Activity, PieChart, BarChart3, User, ClipboardList, LogOut, ChevronRight, CreditCard } from 'lucide-react';
+import { useAuth } from '@/auth/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
-  active: string;
-  onNavigate: (key: string) => void;
+  active:    string;
+  onNavigate:(key: string) => void;
 }
 
-const CYAN = "#0AEFFF";
-const CYAN_SOFT = "#4AFFF5";
+const NAV = [
+  { key:'overview',    label:'Overview',    icon: Activity     },
+  { key:'invest',      label:'Staking',     icon: BarChart3    },
+  { key:'portfolio',   label:'Portfolio',   icon: PieChart     },
+  { key:'trades',      label:'Trades',      icon: BarChart3    },
+  { key:'mentorship',  label:'Mentorship',  icon: User         },
+  { key:'learning',    label:'Learning',    icon: ClipboardList},
+  { key:'loan', label:'Loans', icon: CreditCard },
+];
 
-const Sidebar = ({ collapsed, active, onNavigate }: SidebarProps) => {
-  const items = [
-    { key: "overview", label: "Overview", icon: <Activity size={18} /> },
-    { key: "portfolio", label: "Portfolio", icon: <PieChart size={18} /> },
-    { key: "trades", label: "Trades", icon: <BarChart3 size={18} /> },
-    { key: "mentorship", label: "Mentorship", icon: <User size={18} /> },
-    { key: "learning", label: "Learning", icon: <ClipboardList size={18} /> },
-  ];
+export default function Sidebar({ collapsed, active, onNavigate }: SidebarProps) {
+  const { logout } = useAuth();
 
   return (
-    <aside
-      className={clsx(
-        "backdrop-blur-2xl p-4 z-40 fixed md:static h-full transition-all duration-300 border-r",
-        collapsed ? "w-16 -left-64 md:left-0" : "w-64 left-0"
+    <>
+      {!collapsed && (
+        <div style={{ position:'fixed', inset:0, zIndex:39, background:'rgba(11,17,32,0.7)' }}
+          onClick={() => onNavigate('toggle')} />
       )}
-      style={{
-        background: "rgba(17, 27, 46, 0.8)", // same as PortfolioPage cards
-        borderColor: "rgba(10, 239, 255, 0.14)",
-      }}
-    >
-      {/* Mobile close button */}
-      <div className="flex items-center justify-between mb-6 md:hidden">
-        {!collapsed && (
-          <button onClick={() => onNavigate("toggle")} className="p-1 text-gray-400 hover:text-white">
-            <X size={20} />
+
+      <aside style={{
+        position:'fixed', top:0, left:0, height:'100vh',
+        width: collapsed ? 64 : 240,
+        background:'var(--surface)',
+        borderRight:'1px solid rgba(10,239,255,0.10)',
+        display:'flex', flexDirection:'column',
+        transition:'width 0.25s ease',
+        zIndex:40, flexShrink:0, overflowX:'hidden',
+      }}>
+
+        {/* Brand */}
+        <div style={{
+          height:64, display:'flex', alignItems:'center',
+          padding: collapsed ? '0 20px' : '0 24px',
+          borderBottom:'1px solid rgba(10,239,255,0.08)',
+          flexShrink:0, gap:10, overflow:'hidden', whiteSpace:'nowrap',
+        }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--cyan)', flexShrink:0 }}/>
+          {!collapsed && (
+            <span style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:300, color:'var(--text)', letterSpacing:'-0.01em' }}>
+              <span style={{ color:'var(--cyan)' }}>77</span>Kapital
+            </span>
+          )}
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex:1, padding:'16px 0', overflowY:'auto', overflowX:'hidden' }}>
+          {NAV.map(item => {
+            const Icon = item.icon;
+            const isActive = active === item.key;
+            return (
+              <button key={item.key} onClick={() => onNavigate(item.key)}
+                title={collapsed ? item.label : undefined}
+                style={{
+                  width:'100%', display:'flex', alignItems:'center', gap:12,
+                  padding: collapsed ? '12px 20px' : '12px 24px',
+                  background: isActive ? 'rgba(10,239,255,0.06)' : 'transparent',
+                  borderLeft: `2px solid ${isActive ? 'var(--cyan)' : 'transparent'}`,
+                  borderTop:'none', borderRight:'none', borderBottom:'none',
+                  cursor:'pointer', transition:'all 0.18s ease',
+                  whiteSpace:'nowrap', overflow:'hidden',
+                }}
+                onMouseEnter={e => { if(!isActive)(e.currentTarget as HTMLElement).style.background='rgba(10,239,255,0.03)'; }}
+                onMouseLeave={e => { if(!isActive)(e.currentTarget as HTMLElement).style.background='transparent'; }}
+              >
+                <Icon size={15} style={{ color: isActive ? 'var(--cyan)' : 'var(--muted)', flexShrink:0 }}/>
+                {!collapsed && (
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color: isActive ? 'var(--cyan)' : 'var(--muted)' }}>
+                    {item.label}
+                  </span>
+                )}
+                {!collapsed && isActive && (
+                  <ChevronRight size={11} style={{ color:'var(--cyan)', marginLeft:'auto', flexShrink:0 }}/>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Sign out */}
+        <div style={{ padding:'16px 0', borderTop:'1px solid rgba(10,239,255,0.08)', flexShrink:0 }}>
+          <button onClick={logout}
+            style={{
+              width:'100%', display:'flex', alignItems:'center', gap:12,
+              padding: collapsed ? '12px 20px' : '12px 24px',
+              background:'transparent', border:'none', cursor:'pointer',
+              whiteSpace:'nowrap', overflow:'hidden', transition:'all 0.18s ease',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(246,70,93,0.05)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; }}
+          >
+            <LogOut size={15} style={{ color:'var(--red)', flexShrink:0 }}/>
+            {!collapsed && (
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--red)' }}>Sign Out</span>
+            )}
           </button>
-        )}
-      </div>
+        </div>
 
-      {/* Brand - hide text when collapsed */}
-      <div className="flex items-center justify-between mb-6">
-        {!collapsed && (
-          <div className="text-sm font-bold text-white">
-            77<span style={{ color: CYAN }}>KAPITAL</span>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <nav className="space-y-2">
-        {items.map((item) => {
-          const isActive = active === item.key;
-
-          return (
-            <button
-              key={item.key}
-              onClick={() => onNavigate(item.key)}
-              title={collapsed ? item.label : undefined}
-              className={clsx(
-                "group relative w-full text-left flex items-center justify-center md:justify-start gap-3 p-3 rounded-xl transition-all duration-200",
-                collapsed ? "justify-center" : "",
-                isActive
-                  ? "bg-gradient-to-r from-[#0AEFFF]/20 to-[#4AFFF5]/10 border-l-4 border-[#0AEFFF]"
-                  : "hover:bg-[#0AEFFF]/10"
-              )}
-            >
-              <div className="flex-shrink-0 transition-colors" style={{ color: isActive ? CYAN : "#888" }}>
-                {item.icon}
-              </div>
-
-              {!collapsed && (
-                <div className="font-medium transition-colors" style={{ color: isActive ? CYAN_SOFT : "#ddd" }}>
-                  {item.label}
-                </div>
-              )}
-
-              {collapsed && (
-                <div className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover:opacity-30 transition-opacity bg-gradient-to-r from-[#0AEFFF]/0 to-[#0AEFFF]/10" />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-    </aside>
+      </aside>
+    </>
   );
-};
-
-export default Sidebar;
+}

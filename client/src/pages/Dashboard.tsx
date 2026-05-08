@@ -1,518 +1,355 @@
 // client/src/pages/Dashboard.tsx
-import { useEffect, useState } from "react";
-import { useAuth } from "@/auth/AuthContext";
-import Sidebar from "@/components/Sidebar";
-import Topbar from "@/components/Topbar";
-import StatsCards from "@/components/StatsCards";
-import OverviewPage from "@/dashboard/OverviewPage";
-import PortfolioPage from "@/dashboard/PortfolioPage";
-import InvestPage from "@/dashboard/InvestPage";
-import TradesPage from "@/dashboard/TradesPage";
-import MentorshipPage from "@/dashboard/MentorshipPage";
-import DepositModal from "@/components/DepositModal";
-import WithdrawalModal from "@/components/WithdrawalModal";
-import LearningPage from "@/pages/Learning";
-import { Button } from "@/components/ui/button";
-import { ArrowDownCircle, ArrowUpRight, TrendingUp, Copy, Check, Users, Gift } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { apiRequest } from "@/api/http";
-import { format } from "date-fns";
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+import Sidebar from '@/components/Sidebar';
+import Topbar from '@/components/Topbar';
+import StatsCards from '@/components/StatsCards';
+import OverviewPage from '@/dashboard/OverviewPage';
+import PortfolioPage from '@/dashboard/PortfolioPage';
+import InvestPage from '@/dashboard/InvestPage';
+import TradesPage from '@/dashboard/TradesPage';
+import MentorshipPage from '@/dashboard/MentorshipPage';
+import DepositModal from '@/components/DepositModal';
+import WithdrawalModal from '@/components/WithdrawalModal';
+import LearningPage from '@/pages/Learning';
+import { apiRequest } from '@/api/http';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowDownCircle, ArrowUpRight, TrendingUp, Copy, Check, Users, Gift } from 'lucide-react';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import LoanPage from '@/dashboard/LoanPage';
 
-// FIXED TYPES FOR API RESPONSES
-type InvestmentsResponse =
-  | { success: true; investments: any[] }
-  | { success: false; error: any; status: number };
-type OverviewResponse =
-  | {
-      success: true;
-      totals: {
-        main_balance: number;
-        bonus_balance: number;
-        total_invested: number;
-        total_profit: number;
-        portfolio_value: number;
-        active_investments: number;
-      };
-    }
-  | { success: false; error: any; status: number };
-type ReferralsResponse =
-  | { success: true; count: number }
-  | { success: false; error: any; status: number };
+type Tab = 'overview' | 'portfolio' | 'invest' | 'trades' | 'mentorship' | 'learning';
 
-export default function Dashboard() {
-  const { user, token } = useAuth();
-  // UI state
-  const [collapsed, setCollapsed] = useState(true);
-  const [active, setActive] = useState<
-    "overview" | "portfolio" | "invest" | "trades" | "mentorship" | "learning"
-  >("overview");
-  // data state
-  const [referralCount, setReferralCount] = useState(0);
-  const [investments, setInvestments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  // modals
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
-  // referral UI
-  const [showReferral, setShowReferral] = useState(false);
+function fmt(v: any): string {
+  const n = Number(v ?? 0);
+  return isNaN(n) ? '0.00' : n.toFixed(2);
+}
+
+/* ── Quick action button ── */
+function ActionBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={{
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      gap:8, padding:'20px 12px',
+      background:'var(--surface)',
+      border:'1px solid rgba(10,239,255,0.10)',
+      cursor:'pointer', transition:'all 0.2s ease',
+      color:'var(--muted)',
+    }}
+    onMouseEnter={e => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.borderColor = 'rgba(10,239,255,0.30)';
+      el.style.background  = 'rgba(10,239,255,0.04)';
+      el.style.color       = 'var(--cyan)';
+    }}
+    onMouseLeave={e => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.borderColor = 'rgba(10,239,255,0.10)';
+      el.style.background  = 'var(--surface)';
+      el.style.color       = 'var(--muted)';
+    }}>
+      <span style={{ display:'flex' }}>{icon}</span>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase' }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+/* ── Profile / Referral modal ── */
+function ProfileModal({
+  onClose, user, totals, referralCount,
+}: {
+  onClose: () => void;
+  user: any;
+  totals: any;
+  referralCount: number;
+}) {
+  const [tab,    setTab]    = useState<'profile'|'referrals'>('profile');
   const [copied, setCopied] = useState(false);
-  const [modalTab, setModalTab] = useState<"profile" | "referrals">("profile");
-  // overview totals from /api/user/overview
-  const [totals, setTotals] = useState({
-    main_balance: Number(user?.balance ?? 0),
-    bonus_balance: Number(user?.bonus_balance ?? 0),
-    total_invested: 0,
-    total_profit: 0,
-    portfolio_value: 0,
-    active_investments: 0,
-  });
-
-  const formatCurrency = (value: any): string => {
-    if (value == null || value === "" || String(value).trim() === "" || String(value) === "NaN") {
-      return "0.00";
-    }
-    const num = Number(value);
-    return isNaN(num) ? "0.00" : num.toFixed(2);
-  };
-
-  const balanceRaw = Number(totals.main_balance ?? 0);
-  const bonusRaw = Number(totals.bonus_balance ?? 0);
-  const totalInvestedRaw = Number(totals.total_invested ?? 0) || 0;
-  const totalProfitRaw = Number(totals.total_profit ?? 0) || 0;
-  const mainBalanceNum = balanceRaw;
-  const bonusBalanceNum = bonusRaw;
-  const totalAvailableNum = balanceRaw + bonusRaw + totalInvestedRaw + totalProfitRaw;
-
-  const performance = (() => {
-    if (totalInvestedRaw <= 0) return "0%";
-    const pct = (totalProfitRaw / totalInvestedRaw) * 100;
-    return `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`;
-  })();
-
-  // Safe referral link
   const referralLink = user?.referral_code
     ? `${window.location.origin}/register?ref=${user.referral_code}`
     : `${window.location.origin}/register`;
 
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-
-    if (tab === "mentorship") setActive("mentorship");
-    if (tab === "learning") setActive("learning");
-  }, [window.location.search]);
-
-
-  
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    const loadDashboardData = async () => {
-      setLoading(true);
-      try {
-        // 1️⃣ Load latest user info (balance, bonus, etc.)
-        const userRes = await apiRequest("/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-
-        if (cancelled) return;
-
-        if (userRes.success) {
-          const u = userRes.user;
-          setTotals(prev => ({
-            ...prev,
-            main_balance: Number(u.balance ?? 0),
-            bonus_balance: Number(u.bonusBalance ?? 0),
-          }));
-        }
-
-        // 2️⃣ Load overview totals
-        const overviewRes = await apiRequest("/user/overview", {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-
-        if (cancelled) return;
-
-        if (overviewRes.success) {
-          const t = overviewRes.totals;
-          setTotals(prev => ({
-            ...prev,
-            total_invested: Number(t.total_invested ?? 0),
-            total_profit: Number(t.total_profit ?? 0),
-            portfolio_value: Number(t.portfolio_value ?? 0),
-            active_investments: Number(t.active_investments ?? 0),
-          }));
-        }
-
-        // 3️⃣ Load referrals count
-        const refRes = await apiRequest("/user/referrals", {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-
-        if (cancelled) return;
-
-        if (refRes.success) {
-          setReferralCount(refRes.count ?? 0);
-        }
-
-        // 4️⃣ Load investments
-        const invRes = await apiRequest("/investments", {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-
-        if (cancelled) return;
-
-        if (invRes.success) {
-          setInvestments(invRes.investments ?? []);
-        } else {
-          setInvestments([]);
-        }
-
-      } catch (err) {
-        if (!controller.signal.aborted) console.error("Dashboard load error:", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    loadDashboardData();
-
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [token]);
-
-  const refreshBalances = async () => {
-    if (!token) return;
-    const userRes = await apiRequest("/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (userRes.success) {
-      setTotals(prev => ({
-        ...prev,
-        main_balance: Number(userRes.user.balance ?? 0),
-        bonus_balance: Number(userRes.user.bonusBalance ?? 0),
-      }));
-    }
-  };
-
-
-  const copyReferralLink = () => {
+  function copyLink() {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
-    toast.success("Referral link copied!");
+    toast.success('Referral link copied');
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleNavigate = (key: string) => {
-    if (key === "toggle") {
-      setCollapsed((c) => !c);
-      return;
-    }
-    if (key === "profile") {
-      setShowReferral(true);
-      return;
-    }
-    if (key === "learning") {
-      setActive("learning");
-      return;
-    }
-    setActive(key as any);
-    setCollapsed(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-[#EAECEF] bg-[#0B0E11]">
-        Loading your dashboard...
-      </div>
-    );
   }
 
   return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-[#0B1220] text-[#EAECEF]">
-          
-      <Sidebar collapsed={collapsed} active={active} onNavigate={handleNavigate} />
-      <div className="flex-1 flex flex-col">
-        <Topbar
-          active={active}
-          onCollapse={() => setCollapsed((c) => !c)}
-          onProfileClick={() => {
-            setShowReferral(true);
-            setModalTab("profile");
-          }}
-        />
+    <motion.div
+      style={{ position:'fixed', inset:0, zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(11,17,32,0.88)', padding:24 }}
+      initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.14)', width:'100%', maxWidth:580, maxHeight:'85vh', overflowY:'auto', position:'relative' }}
+        initial={{ y:20, opacity:0 }} animate={{ y:0, opacity:1 }} exit={{ y:20, opacity:0 }}
+        transition={{ duration:0.3, ease:[0.22,1,0.36,1] }}
+      >
+        {/* Modal header */}
+        <div style={{ padding:'20px 28px', borderBottom:'1px solid rgba(10,239,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <span style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)' }}>Account</span>
+          <button onClick={onClose} style={{ background:'none', border:'1px solid rgba(240,237,230,0.12)', color:'var(--muted)', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:16, transition:'all 0.2s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.4)'; (e.currentTarget as HTMLElement).style.color='var(--cyan)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(240,237,230,0.12)'; (e.currentTarget as HTMLElement).style.color='var(--muted)'; }}>
+            ×
+          </button>
+        </div>
 
-        {/* ── Combined Profile + Referrals Modal ── */}
-        {showReferral && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onPointerDown={() => setShowReferral(false)}
-          >
-            <div
-              className="relative w-full max-w-3xl bg-[#181A20] rounded-3xl border border-[#2B3139] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              {/* Header with tabs */}
-              <div className="flex items-center justify-between px-8 pt-6 pb-4 border-b border-[#2B3139]">
-                <h2 className="text-3xl font-bold text-[#0AEFFF]">Account & Referrals</h2>
-                <button
-                  className="text-[#848E9C] hover:text-[#EAECEF] text-3xl"
-                  onClick={() => setShowReferral(false)}
-                >
-                  ×
-                </button>
+        {/* Tabs */}
+        <div style={{ display:'flex', borderBottom:'1px solid rgba(10,239,255,0.08)' }}>
+          {(['profile','referrals'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              flex:1, padding:'12px 0', background:'none',
+              border:'none', borderBottom:`2px solid ${tab===t?'var(--cyan)':'transparent'}`,
+              cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:10,
+              letterSpacing:'0.12em', textTransform:'uppercase',
+              color: tab===t ? 'var(--cyan)' : 'var(--muted-2)',
+              transition:'all 0.2s',
+            }}>
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ padding:'28px' }}>
+          {tab === 'profile' ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+              {/* Avatar + name */}
+              <div style={{ display:'flex', alignItems:'center', gap:20 }}>
+                <div style={{ width:56, height:56, background:'linear-gradient(135deg, var(--cyan), var(--purple))', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <span style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:300, color:'var(--bg)' }}>
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <div>
+                  <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)' }}>{user?.username || 'Member'}</div>
+                  <div style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.08em', color:'var(--muted-2)', marginTop:4 }}>{user?.email || '—'}</div>
+                </div>
               </div>
 
-              {/* Tabs */}
-              <div className="flex border-b border-[#2B3139]">
-                <button
-                  className={cn(
-                    "flex-1 py-4 text-center font-medium transition-colors",
-                    modalTab === "profile"
-                      ? "text-[#0AEFFF] border-b-2 border-[#0AEFFF]"
-                      : "text-[#848E9C] hover:text-[#EAECEF]"
-                  )}
-                  onClick={() => setModalTab("profile")}
-                >
-                  Profile
-                </button>
-                <button
-                  className={cn(
-                    "flex-1 py-4 text-center font-medium transition-colors",
-                    modalTab === "referrals"
-                      ? "text-[#0ECB81] border-b-2 border-[#0ECB81]"
-                      : "text-[#848E9C] hover:text-[#EAECEF]"
-                  )}
-                  onClick={() => setModalTab("referrals")}
-                >
-                  Referrals
-                </button>
-              </div>
-
-              {/* Tab content */}
-              <div className="p-8 space-y-8">
-                {modalTab === "profile" ? (
-                  <div className="space-y-8">
-                    <div className="text-center">
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0AEFFF] to-[#00D4FF] mx-auto mb-4 flex items-center justify-center text-4xl font-bold text-black">
-                        {user?.username?.[0]?.toUpperCase() || "?"}
-                      </div>
-                      <h3 className="text-2xl font-bold">{user?.username || "User"}</h3>
-                      <p className="text-[#848E9C]">{user?.email || "No email"}</p>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#2B3139]">
-                        <p className="text-sm text-[#848E9C] mb-1">Main Balance</p>
-                        <p className="text-3xl font-bold">${formatCurrency(totals.main_balance)}</p>
-                      </div>
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#2B3139]">
-                        <p className="text-sm text-[#848E9C] mb-1">Bonus Balance</p>
-                        <p className="text-3xl font-bold text-[#0ECB81]">
-                          ${formatCurrency(totals.bonus_balance)}
-                        </p>
-                      </div>
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#2B3139]">
-                        <p className="text-sm text-[#848E9C] mb-1">Portfolio Value</p>
-                        <p className="text-3xl font-bold">${formatCurrency(totals.portfolio_value)}</p>
-                      </div>
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#2B3139]">
-                        <p className="text-sm text-[#848E9C] mb-1">Joined</p>
-                        <p className="text-xl font-medium">
-                          {user?.created_at 
-                            ? format(new Date(user.created_at), "MMM d, yyyy")
-                            : "—"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <Button
-                        variant="outline"
-                        className="border-[#0AEFFF] text-[#0AEFFF] hover:bg-[#0AEFFF]/10"
-                        onClick={() => {
-                          toast.info("Profile editing coming soon!");
-                        }}
-                      >
-                        Edit Profile / Settings
-                      </Button>
-                    </div>
+              {/* Balance grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, background:'rgba(10,239,255,0.08)' }}>
+                {[
+                  { label:'Main Balance',    value:`$${fmt(totals.main_balance)}`    },
+                  { label:'Bonus Balance',   value:`$${fmt(totals.bonus_balance)}`   },
+                  { label:'Portfolio Value', value:`$${fmt(totals.portfolio_value)}` },
+                  { label:'Member Since',    value: user?.created_at ? format(new Date(user.created_at),'MMM yyyy') : '—' },
+                ].map((item, i) => (
+                  <div key={i} style={{ background:'var(--surface)', padding:'18px 20px' }}>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:6 }}>{item.label}</div>
+                    <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)' }}>{item.value}</div>
                   </div>
-                ) : (
-                  <div className="space-y-8">
-                    <div className="text-center">
-                      <h3 className="text-3xl font-bold text-[#0ECB81]">Referral Program</h3>
-                      <p className="text-[#848E9C] mt-2">
-                        Earn 10% bonus on your friends' first deposit!
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#2B3139] text-center">
-                        <Users className="h-10 w-10 text-[#0AEFFF] mx-auto mb-3" />
-                        <p className="text-4xl font-bold">{referralCount}</p>
-                        <p className="text-[#848E9C] mt-1">Referred Users</p>
-                      </div>
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#0ECB81]/40 text-center">
-                        <Gift className="h-10 w-10 text-[#0ECB81] mx-auto mb-3" />
-                        <p className="text-4xl font-bold text-[#0ECB81]">
-                          ${formatCurrency(totals.bonus_balance)}
-                        </p>
-                        <p className="text-[#848E9C] mt-1">Bonus Earned</p>
-                      </div>
-                      <div className="bg-[#1E2027] rounded-2xl p-6 border border-[#0AEFFF]/30 text-center">
-                        <TrendingUp className="h-10 w-10 text-[#0AEFFF] mx-auto mb-3" />
-                        <p className="text-4xl font-bold text-[#0AEFFF]">10%</p>
-                        <p className="text-[#848E9C] mt-1">Reward Rate</p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-[#848E9C] mb-4 uppercase tracking-wider">
-                        Your Referral Code
-                      </p>
-                      <div className="text-6xl font-mono font-bold text-[#0AEFFF] tracking-widest mb-6">
-                        {user?.referral_code || "------"}
-                      </div>
-                      <div className="max-w-lg mx-auto">
-                        <p className="text-sm text-[#848E9C] mb-3">Share Your Unique Link</p>
-                        <div className="flex gap-3">
-                          <input
-                            type="text"
-                            value={referralLink}
-                            readOnly
-                            className="flex-1 px-5 py-4 bg-[#181A20] rounded-xl border border-[#2B3139] text-sm font-mono text-[#EAECEF] break-all"
-                          />
-                          <Button
-                            onClick={copyReferralLink}
-                            className={cn(
-                              "px-8",
-                              copied ? "bg-[#0ECB81]" : "bg-[#0AEFFF] hover:bg-[#00D4FF] text-black"
-                            )}
-                          >
-                            {copied ? <Check className="h-6 w-6" /> : <Copy className="h-6 w-6" />}
-                            {copied ? "Copied!" : "Copy"}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+              {/* Referral stats */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:1, background:'rgba(10,239,255,0.08)' }}>
+                {[
+                  { label:'Referred Users',  value: referralCount.toString() },
+                  { label:'Bonus Earned',    value:`$${fmt(totals.bonus_balance)}` },
+                  { label:'Reward Rate',     value:'10%' },
+                ].map((item, i) => (
+                  <div key={i} style={{ background:'var(--surface)', padding:'18px 16px', textAlign:'center' }}>
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:6 }}>{item.label}</div>
+                    <div style={{ fontFamily:'var(--font-display)', fontSize:24, fontWeight:300, color:'var(--cyan)' }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
 
-        {/* MAIN CONTENT */}
-        <main className="p-6 space-y-8">
-          {active === "overview" && (
-            <>
+              {/* Referral code */}
+              <div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:12 }}>Your Referral Code</div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:32, letterSpacing:'0.15em', color:'var(--cyan)', marginBottom:20 }}>
+                  {user?.referral_code || '——————'}
+                </div>
+              </div>
+
+              {/* Copy link */}
+              <div>
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:10 }}>Referral Link</div>
+                <div style={{ display:'flex', gap:8 }}>
+                  <input readOnly value={referralLink}
+                    style={{ flex:1, background:'var(--surface-2)', border:'1px solid rgba(10,239,255,0.12)', padding:'10px 14px', color:'var(--muted)', fontFamily:'var(--font-mono)', fontSize:10, outline:'none', minWidth:0 }}/>
+                  <button onClick={copyLink}
+                    style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 16px', background: copied ? 'rgba(14,203,129,0.10)' : 'rgba(10,239,255,0.08)', border:`1px solid ${copied ? 'rgba(14,203,129,0.3)' : 'rgba(10,239,255,0.25)'}`, color: copied ? 'var(--green)' : 'var(--cyan)', fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer', flexShrink:0, transition:'all 0.2s' }}>
+                    {copied ? <Check size={13}/> : <Copy size={13}/>} {copied ? 'Copied' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--muted-2)', lineHeight:1.7, textTransform:'uppercase' }}>
+                Earn 10% bonus on your friends' first deposit. Share your unique link or code.
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════════════════ */
+export default function Dashboard() {
+  const { user, token } = useAuth();
+
+  const [collapsed,     setCollapsed]     = useState(true);
+  const [active,        setActive]        = useState<Tab>('overview');
+  const [depositOpen,   setDepositOpen]   = useState(false);
+  const [withdrawOpen,  setWithdrawOpen]  = useState(false);
+  const [showProfile,   setShowProfile]   = useState(false);
+  const [loading,       setLoading]       = useState(true);
+  const [referralCount, setReferralCount] = useState(0);
+
+  const [totals, setTotals] = useState({
+    main_balance:       Number(user?.balance ?? 0),
+    bonus_balance:      Number(user?.bonus_balance ?? 0),
+    total_invested:     0,
+    total_profit:       0,
+    portfolio_value:    0,
+    active_investments: 0,
+  });
+
+  /* ── Deep security: validate token on mount ── */
+  useEffect(() => {
+    if (!token) return;
+    apiRequest('/auth/me', { headers:{ Authorization:`Bearer ${token}` } })
+      .then(r => { if (!r.success) window.location.href = '/login'; })
+      .catch(() => window.location.href = '/login');
+  }, [token]);
+
+  /* ── Load data ── */
+  const loadData = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    const ctrl = new AbortController();
+    try {
+      const [meRes, overviewRes, refRes] = await Promise.all([
+        apiRequest('/auth/me',       { headers:{ Authorization:`Bearer ${token}` }, signal:ctrl.signal }),
+        apiRequest('/user/overview', { headers:{ Authorization:`Bearer ${token}` }, signal:ctrl.signal }),
+        apiRequest('/user/referrals',{ headers:{ Authorization:`Bearer ${token}` }, signal:ctrl.signal }),
+      ]);
+      if (meRes.success) {
+        const u = meRes.user;
+        setTotals(p => ({ ...p, main_balance: Number(u.balance ?? 0), bonus_balance: Number(u.bonusBalance ?? 0) }));
+      }
+      if (overviewRes.success) {
+        const t = overviewRes.totals;
+        setTotals(p => ({ ...p,
+          total_invested:     Number(t.total_invested ?? 0),
+          total_profit:       Number(t.total_profit ?? 0),
+          portfolio_value:    Number(t.portfolio_value ?? 0),
+          active_investments: Number(t.active_investments ?? 0),
+        }));
+      }
+      if (refRes.success) setReferralCount(refRes.count ?? 0);
+    } catch {}
+    finally { setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  /* ── Handle URL tab params ── */
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const t = p.get('tab') as Tab | null;
+    if (t) setActive(t);
+  }, []);
+
+  function handleNavigate(key: string) {
+    if (key === 'toggle') { setCollapsed(c => !c); return; }
+    if (key === 'profile') { setShowProfile(true); return; }
+    setActive(key as Tab);
+    setCollapsed(true);
+  }
+
+  const totalAvailable = totals.main_balance + totals.bonus_balance + totals.total_invested + totals.total_profit;
+  const performance = totals.total_invested > 0
+    ? `${totals.total_profit >= 0 ? '+' : ''}${((totals.total_profit / totals.total_invested) * 100).toFixed(1)}%`
+    : '0%';
+
+  const SIDEBARW = collapsed ? 64 : 240;
+
+  return (
+    <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'var(--bg)' }}>
+
+      <Sidebar collapsed={collapsed} active={active} onNavigate={handleNavigate} />
+
+      {/* Main content — offset by sidebar width */}
+      <div style={{ marginLeft:SIDEBARW, flex:1, display:'flex', flexDirection:'column', overflow:'hidden', transition:'margin-left 0.25s ease' }}>
+
+        <Topbar active={active} onCollapse={() => setCollapsed(c => !c)} onProfileClick={() => setShowProfile(true)} />
+
+        {/* Scrollable content */}
+        <main style={{ flex:1, overflowY:'auto', background:'var(--bg)' }}>
+
+          {/* Stats — always visible on overview */}
+          {active === 'overview' && !loading && (
+            <div style={{ padding:'0 0 1px 0' }}>
               <StatsCards
-                balance={mainBalanceNum}
-                bonus={bonusBalanceNum}
-                totalAvailable={totalAvailableNum}
+                balance={totals.main_balance}
+                bonus={totals.bonus_balance}
+                totalAvailable={totalAvailable}
                 performance={performance}
                 username={user?.username}
               />
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <button
-                  onClick={() => setDepositOpen(true)}
-                  className={`
-                    group relative overflow-hidden
-                    px-6 py-5 rounded-2xl
-                    bg-white/5 backdrop-blur-xl
-                    border border-[#0AEFFF]/40
-                    text-[#0AEFFF] font-semibold text-lg
-                    transition-all duration-300
-                    hover:border-[#0AEFFF] hover:shadow-[0_0_25px_-5px_#0AEFFF]
-                    hover:bg-[#0AEFFF]/5 hover:scale-[1.03]
-                    focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50
-                    flex items-center justify-center gap-3
-                  `}
-                >
-                  <ArrowDownCircle className="h-6 w-6" />
-                  Deposit
-                </button>
 
-                <button
-                  onClick={() => setWithdrawalOpen(true)}
-                  className={`
-                    group relative overflow-hidden
-                    px-6 py-5 rounded-2xl
-                    bg-white/5 backdrop-blur-xl
-                    border border-[#0AEFFF]/40
-                    text-[#0AEFFF] font-semibold text-lg
-                    transition-all duration-300
-                    hover:border-[#0AEFFF] hover:shadow-[0_0_25px_-5px_#0AEFFF]
-                    hover:bg-[#0AEFFF]/5 hover:scale-[1.03]
-                    focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50
-                    flex items-center justify-center gap-3
-                  `}
-                >
-                  <ArrowUpRight className="h-6 w-6" />
-                  Withdraw
-                </button>
-
-                <button
-                  onClick={() => handleNavigate("trades")}
-                  className={`
-                    group relative overflow-hidden
-                    px-6 py-5 rounded-2xl
-                    bg-white/5 backdrop-blur-xl
-                    border border-[#0AEFFF]/40
-                    text-[#0AEFFF] font-semibold text-lg
-                    transition-all duration-300
-                    hover:border-[#0AEFFF] hover:shadow-[0_0_25px_-5px_#0AEFFF]
-                    hover:bg-[#0AEFFF]/5 hover:scale-[1.03]
-                    focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50
-                    flex items-center justify-center gap-3
-                  `}
-                >
-                  <TrendingUp className="h-6 w-6" />
-                  View Trades
-                </button>
-
-                <button
-                  onClick={() => handleNavigate("invest")}
-                  className={`
-                    group relative overflow-hidden
-                    px-6 py-5 rounded-2xl
-                    bg-white/5 backdrop-blur-xl
-                    border border-[#0AEFFF]/40
-                    text-[#0AEFFF] font-semibold text-lg
-                    transition-all duration-300
-                    hover:border-[#0AEFFF] hover:shadow-[0_0_25px_-5px_#0AEFFF]
-                    hover:bg-[#0AEFFF]/5 hover:scale-[1.03]
-                    focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50
-                    flex items-center justify-center gap-3
-                  `}
-                >
-                  Stake Now
-                </button>
+              {/* Quick actions */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:1, marginBottom:1 }}>
+                <ActionBtn icon={<ArrowDownCircle size={20}/>} label="Deposit"     onClick={() => setDepositOpen(true)}           />
+                <ActionBtn icon={<ArrowUpRight    size={20}/>} label="Withdraw"    onClick={() => setWithdrawOpen(true)}           />
+                <ActionBtn icon={<TrendingUp      size={20}/>} label="View Trades" onClick={() => handleNavigate('trades')}         />
+                <ActionBtn icon={<TrendingUp      size={20}/>} label="Stake Now"   onClick={() => handleNavigate('invest')}         />
               </div>
-              <OverviewPage />
-            </>
+            </div>
           )}
-          {active === "portfolio" && <PortfolioPage />}
-          {active === "invest" && <InvestPage />}
-          {active === "trades" && <TradesPage />}
-          {active === "mentorship" && <MentorshipPage />}
-          {active === "learning" && <LearningPage />}
+
+          {/* Tab content */}
+          <div style={{ padding:'24px' }}>
+            {loading && active === 'overview' ? (
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:200, fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+                Loading…
+              </div>
+            ) : (
+              <>
+                {active === 'overview'   && <OverviewPage />}
+                {active === 'portfolio'  && <PortfolioPage />}
+                {active === 'invest'     && <InvestPage />}
+                {active === 'trades'     && <TradesPage />}
+                {active === 'mentorship' && <MentorshipPage />}
+                {active === 'learning'   && <LearningPage />}
+                {active === 'loan' && <LoanPage />}
+              </>
+            )}
+          </div>
+
         </main>
 
-        <DepositModal isOpen={depositOpen} onClose={() => setDepositOpen(false)} />
-        <WithdrawalModal isOpen={withdrawalOpen} onClose={() => setWithdrawalOpen(false)} />
       </div>
+
+      {/* Modals */}
+      <DepositModal  isOpen={depositOpen}  onClose={() => setDepositOpen(false)}  />
+      <WithdrawalModal isOpen={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+
+      <AnimatePresence>
+        {showProfile && (
+          <ProfileModal
+            onClose={() => setShowProfile(false)}
+            user={user}
+            totals={totals}
+            referralCount={referralCount}
+          />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

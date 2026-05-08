@@ -3,9 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import logoImage from '../assets/logo.jpeg';
 
 const navLinks = [
-  { name: 'About',    href: '#about' },
+  { name: 'About',    href: '#about'     },
   { name: 'Services', href: '#offerings' },
-  { name: 'Insights', href: '#blog' },
+  { name: 'Insights', href: '#blog'      },
 ];
 
 export default function Navbar() {
@@ -13,15 +13,28 @@ export default function Navbar() {
   const [menuOpen,   setMenuOpen]   = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  /* ── Scroll detection ── */
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 60);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
 
+  /* ── Auth state ── */
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('token'));
   }, []);
+
+  /* ── Close menu on outside click ── */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const fn = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.nav-header')) setMenuOpen(false);
+    };
+    document.addEventListener('click', fn);
+    return () => document.removeEventListener('click', fn);
+  }, [menuOpen]);
 
   const scrollTo = (href: string) => {
     setMenuOpen(false);
@@ -31,10 +44,10 @@ export default function Navbar() {
   return (
     <header className={`nav-header ${scrolled ? 'nav-header--scrolled' : ''}`}>
 
-      {/* ── Nav bar ── */}
+      {/* ── Main nav bar ── */}
       <nav className="nav-bar">
 
-        {/* Logo */}
+        {/* ── Logo ── */}
         <motion.a
           href="#"
           className="nav-logo"
@@ -43,16 +56,9 @@ export default function Navbar() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Logo image with gold accent border */}
           <div className="nav-logo-img-wrap">
-            <img
-              src={logoImage}
-              alt="77Kapital"
-              className="nav-logo-img"
-            />
+            <img src={logoImage} alt="77Kapital logo" className="nav-logo-img" />
           </div>
-
-          {/* Brand name */}
           <div className="nav-logo-text">
             <span className="nav-logo-name">
               <span className="nav-logo-77">77</span>Kapital
@@ -61,7 +67,7 @@ export default function Navbar() {
           </div>
         </motion.a>
 
-        {/* Desktop links */}
+        {/* ── Desktop links ── */}
         <div className="nav-links">
           {navLinks.map((link, i) => (
             <motion.a
@@ -84,7 +90,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Desktop CTA */}
+        {/* ── Desktop actions ── */}
         <motion.div
           className="nav-actions"
           initial={{ opacity: 0, x: 16 }}
@@ -97,17 +103,17 @@ export default function Navbar() {
           <motion.a
             href={isLoggedIn ? '/dashboard' : '/register'}
             className="nav-cta"
-            whileHover={{ background: '#E8C96A' }}
+            whileHover={{ opacity: 0.85 }}
             whileTap={{ scale: 0.97 }}
           >
             {isLoggedIn ? 'Dashboard' : 'Get Access'}
           </motion.a>
         </motion.div>
 
-        {/* Mobile hamburger */}
+        {/* ── Mobile hamburger ── */}
         <button
           className="nav-burger"
-          onClick={() => setMenuOpen(!menuOpen)}
+          onClick={() => setMenuOpen(v => !v)}
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
         >
@@ -118,7 +124,7 @@ export default function Navbar() {
 
       </nav>
 
-      {/* ── Mobile dropdown menu ── */}
+      {/* ── Mobile dropdown ── */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -129,8 +135,6 @@ export default function Navbar() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="nav-mobile-inner">
-
-              {/* Nav links */}
               <div className="nav-mobile-links">
                 {navLinks.map((link, i) => (
                   <motion.a
@@ -148,15 +152,12 @@ export default function Navbar() {
                 ))}
               </div>
 
-              {/* Mobile CTA row */}
               <div className="nav-mobile-ctas">
-                <a
-                  href="/login"
-                  className="nav-mobile-signin"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Sign In
-                </a>
+                {!isLoggedIn && (
+                  <a href="/login" className="nav-mobile-signin" onClick={() => setMenuOpen(false)}>
+                    Sign In
+                  </a>
+                )}
                 <a
                   href={isLoggedIn ? '/dashboard' : '/register'}
                   className="nav-mobile-cta"
@@ -165,7 +166,6 @@ export default function Navbar() {
                   {isLoggedIn ? 'Dashboard' : 'Get Access'}
                 </a>
               </div>
-
             </div>
           </motion.div>
         )}

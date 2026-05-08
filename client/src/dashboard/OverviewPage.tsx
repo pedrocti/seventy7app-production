@@ -1,842 +1,334 @@
-import { motion, useMotionValue, animate } from "framer-motion";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, LabelList } from "recharts";
-import { useAuth } from "@/auth/AuthContext";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { format } from "date-fns";
-import { BookOpen, Trophy, ArrowRight, Calendar } from "lucide-react";
-import { useLocation } from "wouter";
+// client/src/dashboard/OverviewPage.tsx
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { motion, useMotionValue, animate } from 'framer-motion';
+import { useAuth } from '@/auth/AuthContext';
+import { format, formatDistanceToNow } from 'date-fns';
+import { BookOpen, Trophy, Calendar, ArrowRight } from 'lucide-react';
 
+const fmt = (v: any) => { const n = Number(v ?? 0); return isNaN(n) ? '0.00' : n.toFixed(2); };
 
-// Hardened formatCurrency – never returns "NaN" or invalid string
-const formatCurrency = (value: any): string => {
-  if (value == null || value === "" || String(value).trim() === "" || String(value) === "NaN") {
-    return "0.00";
-  }
-  const num = Number(value);
-  return isNaN(num) ? "0.00" : num.toFixed(2);
-};
+/* ── Section label ── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ padding:'12px 0', borderBottom:'1px solid rgba(10,239,255,0.08)', marginBottom:16 }}>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+        {children}
+      </span>
+    </div>
+  );
+}
 
-function CarouselAutoSlider({
-  items,
-  showMarketing,
-}: {
-  items: any[];
-  showMarketing: boolean;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
+/* ── Data cell ── */
+function DataCell({ label, value, accent }: { label:string; value:string; accent?:boolean }) {
+  return (
+    <div style={{ padding:'18px 20px', borderRight:'1px solid rgba(10,239,255,0.07)' }}>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:6 }}>{label}</div>
+      <div style={{ fontFamily:'var(--font-display)', fontSize:'clamp(16px,1.8vw,22px)', fontWeight:300, color: accent ? 'var(--cyan)' : 'var(--text)', lineHeight:1 }}>{value}</div>
+    </div>
+  );
+}
+
+/* ── Progress bar ── */
+function ProgressBar({ pct, color = 'var(--cyan)' }: { pct:number; color?:string }) {
+  return (
+    <div style={{ height:3, background:'rgba(10,239,255,0.08)', position:'relative', overflow:'hidden' }}>
+      <motion.div style={{ position:'absolute', left:0, top:0, height:'100%', background:color }}
+        initial={{ width:0 }} animate={{ width:`${Math.min(100,pct)}%` }}
+        transition={{ duration:0.8, ease:[0.22,1,0.36,1] }} />
+    </div>
+  );
+}
+
+/* ── Card wrapper ── */
+function Card({ children, style }: { children:React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.08)', ...style }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Carousel for programs/events ── */
+function Carousel({ items, showMarketing }: { items:any[]; showMarketing:boolean }) {
   const x = useMotionValue(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const [contentWidth, setContentWidth] = useState(0);
-
-  const doubledItems = [...items, ...items];
-
+  const ref = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState(false);
+  const doubled = [...items, ...items];
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    const w = containerRef.current.scrollWidth / 2;
-    setContentWidth(w);
-
-    let animation: any;
-    const startAnimation = () => {
-      animation = animate(x, [0, -w], {
-        duration: 35,
-        ease: "linear",
-        repeat: Infinity,
-      });
-    };
-
-    if (!isHovered && contentWidth > 0) {
-      startAnimation();
+    if (!ref.current) return;
+    const w = ref.current.scrollWidth / 2;
+    let anim: any;
+    if (!hovered && w > 0) {
+      anim = animate(x, [0, -w], { duration: 40, ease:'linear', repeat:Infinity });
     }
+    return () => anim?.stop();
+  }, [hovered, items.length]);
 
-    return () => animation?.stop();
-  }, [isHovered, contentWidth, x]);
+  if (items.length === 0) return (
+    <div style={{ padding:'40px 0', textAlign:'center', color:'var(--muted-2)', fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase' }}>
+      No programmes available
+    </div>
+  );
 
   return (
-    <motion.div
-      className="relative overflow-hidden"
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-    >
-      <motion.div className="flex gap-6" style={{ x }} ref={containerRef}>
-        {doubledItems.map((item, idx) => (
-          <motion.div
-            key={`${item.id}-${idx}`}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              if (item.type === "event") {
-                window.location.href = "/dashboard?tab=mentorship";
-              } else if (item.type === "program") {
-                window.location.href = showMarketing
-                  ? "/learning/programs"
-                  : `/learning/program/${item.id}`;
-              }
+    <div style={{ overflow:'hidden' }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <motion.div ref={ref} style={{ display:'flex', gap:12, x }}>
+        {doubled.map((item, idx) => (
+          <div key={`${item.id}-${idx}`}
+            onClick={() => { window.location.href = item.type==='event' ? '/dashboard?tab=mentorship' : showMarketing ? '/learning/programs' : `/learning/program/${item.id}`; }}
+            style={{
+              flexShrink:0, width:220,
+              background:'var(--surface-2)',
+              border:'1px solid rgba(10,239,255,0.08)',
+              padding:'16px', cursor:'pointer',
+              transition:'border-color 0.2s',
             }}
-            
-            className="
-              flex-shrink-0 w-72 
-              bg-gradient-to-br from-[#1E293B] to-[#0F172A] 
-              rounded-xl p-6 
-              border border-[#334155] 
-              hover:border-[#0AEFFF] 
-              hover:shadow-xl hover:shadow-[#0AEFFF]/20 
-              cursor-pointer 
-              transition-all duration-300
-            "
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.3)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.08)'}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-[#0AEFFF]/20 rounded-lg">
-                {item.type === "event" ? (
-                  <Calendar className="w-8 h-8 text-[#0AEFFF]" />
-                ) : (
-                  <Trophy className="w-8 h-8 text-[#0AEFFF]" />
-                )}
-              </div>
-              <span className="text-xs text-gray-500 uppercase tracking-wider px-2 py-1 bg-[#0AEFFF]/10 rounded">
-                {item.type === "event" ? "EVENT" : showMarketing ? "Premium" : "Enrolled"}
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+              {item.type==='event'
+                ? <Calendar size={14} style={{ color:'var(--cyan)' }}/>
+                : <Trophy size={14} style={{ color:'var(--cyan)' }}/>
+              }
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+                {item.type==='event' ? 'Event' : showMarketing ? 'Premium' : 'Enrolled'}
               </span>
             </div>
-
-            <h4 className="text-xl font-bold text-white mb-3 line-clamp-2">
+            <div style={{ fontFamily:'var(--font-sans)', fontSize:12, fontWeight:400, color:'var(--text)', marginBottom:8, lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
               {item.title}
-            </h4>
-
-            {item.type === "event" ? (
-              <div className="space-y-3 mt-2">
-                <p className="text-sm text-[#0AEFFF] font-medium">{item.date}</p>
-                <p className="text-sm text-gray-300">with {item.mentor}</p>
-                <p className="text-lg font-bold text-white mt-2">{item.price}</p>
-              </div>
-            ) : showMarketing ? (
-              <div className="mt-6">
-                <p className="text-3xl font-bold text-[#0AEFFF] mb-1">${item.price}</p>
-                <p className="text-sm text-gray-400">Lifetime access • Expert-led</p>
-              </div>
-            ) : (
-              <div className="space-y-3 mt-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Progress</span>
-                  <span className="font-medium text-[#0AEFFF]">{item.progress}%</span>
-                </div>
-                <div className="w-full bg-[#2B3139] rounded-full h-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${item.progress}%` }}
-                    transition={{ duration: 1.4, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-[#0AEFFF] to-[#00D4FF] rounded-full"
-                  />
-                </div>
-                <p className="text-xs text-gray-500">{item.courses} courses</p>
+            </div>
+            {item.type!=='event' && !showMarketing && (
+              <div>
+                <ProgressBar pct={item.progress} />
+                <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:4 }}>{item.progress}% complete</div>
               </div>
             )}
-
-            <div className="mt-6 flex justify-end">
-              <span className="text-sm font-medium text-[#0AEFFF] flex items-center gap-2">
-                {item.type === "event"
-                  ? "Join Event"
-                  : showMarketing
-                  ? "Explore"
-                  : "Continue"}
-                <ArrowRight className="w-5 h-5" />
+            {showMarketing && item.type!=='event' && (
+              <div style={{ fontFamily:'var(--font-display)', fontSize:16, fontWeight:300, color:'var(--cyan)' }}>${item.price}</div>
+            )}
+            {item.type==='event' && (
+              <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--cyan)', marginTop:4 }}>{item.price}</div>
+            )}
+            <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:10 }}>
+              <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--cyan)' }}>
+                {item.type==='event' ? 'Join' : showMarketing ? 'Explore' : 'Continue'}
               </span>
+              <ArrowRight size={10} style={{ color:'var(--cyan)' }}/>
             </div>
-          </motion.div>
+          </div>
         ))}
       </motion.div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function OverviewPage() {
   const { token } = useAuth();
-  const [, setLocation] = useLocation();
-  const [overview, setOverview] = useState<any | null>(null);
-  const [allPrograms, setAllPrograms] = useState<any[]>([]);
-  const [tradesData, setTradesData] = useState<{ active: any | null; history: any[] }>({
-    active: null,
-    history: [],
-  });
-  const [mentorshipEvents, setMentorshipEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [pollMs] = useState(10000);
-  const [now, setNow] = useState(Date.now());
+  const [overview,   setOverview]   = useState<any>(null);
+  const [programs,   setPrograms]   = useState<any[]>([]);
+  const [trades,     setTrades]     = useState<{ active:any|null; history:any[] }>({ active:null, history:[] });
+  const [events,     setEvents]     = useState<any[]>([]);
+  const [loading,    setLoading]    = useState(true);
 
-  useEffect(() => {
-    const i = setInterval(() => setNow(Date.now()), 60_000); // every minute
-    return () => clearInterval(i);
-  }, []);
+  const headers = { Authorization: `Bearer ${token}` };
 
-
-  const fetchOverview = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch("/api/user/overview", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data?.success) setOverview(data);
-    } catch (err) {
-      console.error("Overview fetch error:", err);
-    }
-  }, [token]);
-
-  const fetchAllPrograms = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch("/api/learning/programs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success) {
-        setAllPrograms(data.programs || []);
-      }
-    } catch (err) {
-      console.error("Programs fetch error:", err);
-    }
-  }, [token]);
-
-  const fetchTrades = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch("/api/trades", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-
-      if (data?.success) {
-        setTradesData({
-          active: Array.isArray(data.active) && data.active.length > 0 ? data.active[0] : null,
-          history: Array.isArray(data.history) ? data.history : [],
-        });
-      }
-    } catch (err) {
-      console.error("Trades fetch error:", err);
-    }
-  }, [token]);
-
-  const fetchMentorshipEvents = useCallback(async () => {
-    if (!token) return;
-    try {
-      const res = await fetch("/api/mentorship/events", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success) {
-        const normalized = (data.events || []).map((ev: any) => ({
-          id: `event-${ev.id}`,
-          title: ev.title,
-          type: "event",
-          date: `${new Date(ev.date).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })} • ${ev.time}`,
-          mentor: ev.venue || "Mentorship Session",
-          price: ev.price === "0.00" ? "FREE" : `$${ev.price}`,
-          link: ev.link,
-        }));
-        setMentorshipEvents(normalized);
-      }
-    } catch (err) {
-      console.error("Mentorship events fetch error:", err);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    const run = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchOverview(),
-        fetchAllPrograms(),
-        fetchTrades(),
-        fetchMentorshipEvents(),
+      const [ov, pg, tr, ev] = await Promise.all([
+        fetch('/api/user/overview', { headers }).then(r=>r.json()),
+        fetch('/api/learning/programs', { headers }).then(r=>r.json()),
+        fetch('/api/trades', { headers }).then(r=>r.json()),
+        fetch('/api/mentorship/events', { headers }).then(r=>r.json()),
       ]);
-      setLoading(false);
-    };
+      if (ov?.success)  setOverview(ov);
+      if (pg?.success)  setPrograms(pg.programs || []);
+      if (tr?.success)  setTrades({ active: Array.isArray(tr.active) ? tr.active[0] ?? null : tr.active, history: tr.history || [] });
+      if (ev?.success)  setEvents((ev.events || []).map((e:any) => ({ ...e, id:`ev-${e.id}`, type:'event', price: e.price==='0.00'?'FREE':`$${e.price}` })));
+    } catch {}
+    setLoading(false);
+  }, [token]);
 
-    run();
+  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
 
-    const interval = setInterval(() => {
-      fetchOverview();
-      fetchAllPrograms();
-      fetchTrades();
-      fetchMentorshipEvents();
-    }, pollMs);
+  if (loading || !overview) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:300, fontFamily:'var(--font-mono)', fontSize:11, color:'var(--muted-2)', letterSpacing:'0.1em', textTransform:'uppercase' }}>
+      Loading overview…
+    </div>
+  );
 
-    const handler = () => {
-      fetchOverview();
-      fetchAllPrograms();
-      fetchTrades();
-      fetchMentorshipEvents();
-    };
-
-    window.addEventListener("data-updated", handler);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("data-updated", handler);
-    };
-  }, [
-    fetchOverview,
-    fetchAllPrograms,
-    fetchTrades,
-    fetchMentorshipEvents,
-    pollMs,
-  ]);
-
-  if (!overview) {
-    return <p className="text-[#848E9C] text-center py-12">Loading insights...</p>;
-  }
-
-  const userData = overview.user || {};
   const totals = overview.totals || {};
+  const recentTx  = overview.recent_transactions || [];
+  const recentInv = overview.recent_investments  || [];
 
-  const recentTx = Array.isArray(overview.recent_transactions)
-    ? overview.recent_transactions
-    : [];
-  const recentInv = Array.isArray(overview.recent_investments)
-    ? overview.recent_investments
-    : [];
-
-  const balanceRaw = Number(userData.balance ?? 0) || 0;
-  const bonusRaw = Number(userData.bonus_balance ?? 0) || 0;
-  const portfolioRaw = Number(totals.portfolio_value ?? 0) || 0;
-
-  const balance = formatCurrency(balanceRaw);
-  const bonus = formatCurrency(bonusRaw);
-  const portfolio = formatCurrency(portfolioRaw);
-
-  // Enrolled programs
-  const enrolledPrograms: any[] = [];
-  if (Array.isArray(overview.enrolled_programs)) {
-    overview.enrolled_programs.forEach((program: any) => {
-      enrolledPrograms.push({
-        id: program.id,
-        title: program.title || "Untitled Program",
-        type: "program",
-        progress: Number(program.progress) || 0,
-        courses: program.course_count || program.courses?.length || 0,
-        price: formatCurrency(program.price || "0"),
-      });
-    });
-  }
-
-  const showMarketing = enrolledPrograms.length === 0 && allPrograms.length > 0;
-
-  // Carousel items
-  let carouselItems: any[] = showMarketing
-    ? [
-        ...allPrograms.map((p: any) => ({
-          ...p,
-          type: "program",
-          price: formatCurrency(p.price || "0"),
-        })),
-        ...mentorshipEvents,
-      ]
-    : [...enrolledPrograms, ...mentorshipEvents];
-
-  const { active: activeTrade, history } = tradesData;
-  const recentHistory = history.slice(0, 3);
+  const enrolled = (overview.enrolled_programs || []).map((p:any) => ({ ...p, type:'program', price:fmt(p.price) }));
+  const showMarketing = enrolled.length===0 && programs.length>0;
+  const carouselItems = showMarketing
+    ? [...programs.map((p:any)=>({...p,type:'program',price:fmt(p.price)})), ...events]
+    : [...enrolled, ...events];
 
   return (
-          <div className="min-h-screen bg-[#0F172A] text-white">
+    <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
 
-      {/* Glowing cyan border wrapper around main content */}
-      <div
-        className="
-          relative z-20 mx-auto max-w-7xl 
-          my-6 md:my-8 lg:my-10 
-          rounded-3xl 
-          border border-[#0AEFFF]/20 
-          bg-black/10 backdrop-blur-xl 
-          shadow-2xl shadow-[#0AEFFF]/10 
-          overflow-hidden
-        "
-      >
-        <div className="p-6 md:p-8 lg:p-10 space-y-8 text-[#EAECEF]">
-          {/* TOP SECTION - 3-column grid */}
-          <section className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
-            {/* Portfolio Allocation Card */}
-            <div className="rounded-2xl p-6 backdrop-blur-2xl bg-black/10 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10 flex flex-col">
-              <h3 className="text-lg font-semibold text-[#0AEFFF] mb-6 tracking-wide">
-                Portfolio Allocation
-              </h3>
-              {loading ? (
-                <div className="flex-1 flex items-center justify-center min-h-[280px]">
-                  <p className="text-[#848E9C] animate-pulse text-base">Loading allocation...</p>
-                </div>
-              ) : (!overview?.allocation || overview.allocation.length === 0) && Number(totals.portfolio_value ?? 0) > 0 ? (
-                <div className="flex-1 min-h-[280px] relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[{ name: "Total Portfolio", value: Number(totals.portfolio_value ?? 0) }]}
-                      margin={{ top: 40, right: 30, left: 20, bottom: 50 }}
-                    >
-                      <defs>
-                        <linearGradient id="totalCyanGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#0AEFFF" stopOpacity={1} />
-                          <stop offset="100%" stopColor="#00D4FF" stopOpacity={0.8} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="name" stroke="#848E9C" fontSize={13} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#848E9C" fontSize={13} tickLine={false} axisLine={false} />
-                      <Bar
-                        dataKey="value"
-                        barSize={70}
-                        radius={[16, 16, 0, 0]}
-                        fill="url(#totalCyanGradient)"
-                        animationDuration={2000}
-                        animationEasing="ease-out"
-                        animationBegin={500}
-                      >
-                        <LabelList
-                          dataKey="value"
-                          position="top"
-                          formatter={(v: number) => `$${formatCurrency(v)}`}
-                          fill="#0AEFFF"
-                          fontSize={16}
-                          fontWeight="bold"
-                          offset={16}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center">
-                      <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0AEFFF] to-[#4AFFF5] drop-shadow-lg">
-                        ${formatCurrency(totals.portfolio_value ?? 0)}
-                      </div>
-                      <div className="text-base text-[#0AEFFF] mt-2 font-medium tracking-wider">
-                        Total Portfolio Value
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : !overview?.allocation || overview.allocation.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center min-h-[280px]">
-                  <p className="text-[#848E9C] text-lg">Portfolio is empty</p>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-[280px] relative">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={overview.allocation} margin={{ top: 40, right: 40, left: 20, bottom: 60 }}>
-                      <defs>
-                        <linearGradient id="barCyanGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#0AEFFF" stopOpacity={1} />
-                          <stop offset="100%" stopColor="#00D4FF" stopOpacity={0.8} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis
-                        dataKey="name"
-                        stroke="#848E9C"
-                        fontSize={13}
-                        tickLine={false}
-                        axisLine={false}
-                        interval={0}
-                        angle={-30}
-                        textAnchor="end"
-                        height={70}
-                      />
-                      <YAxis stroke="#848E9C" fontSize={13} tickLine={false} axisLine={false} />
-                      <Bar
-                        dataKey="value"
-                        barSize={55}
-                        radius={[16, 16, 0, 0]}
-                        fill="url(#barCyanGradient)"
-                        animationDuration={2000}
-                        animationEasing="ease-out"
-                        animationBegin={300}
-                      >
-                        <LabelList
-                          dataKey="value"
-                          position="top"
-                          formatter={(v: number) => {
-                            const total = Math.max(1, Number(totals.portfolio_value ?? 0));
-                            const pct = ((Number(v) / total) * 100).toFixed(1);
-                            return `$${formatCurrency(v)} (${pct}%)`;
-                          }}
+      {/* ── Key metrics strip ── */}
+      <Card>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)' }}>
+          <DataCell label="Active Stakes"    value={String(totals.active_investments ?? 0)} accent />
+          <DataCell label="Total Staked"     value={`$${fmt(totals.total_invested)}`} />
+          <DataCell label="Total Profit"     value={`$${fmt(totals.total_profit)}`} accent />
+        </div>
+      </Card>
 
-                          fill="#EAECEF"
-                          fontSize={14}
-                          fontWeight="600"
-                          offset={16}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-90">
-                    <div className="text-center">
-                      <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0AEFFF] to-[#4AFFF5] drop-shadow-lg">
-                        ${formatCurrency(totals.portfolio_value ?? 0)}
-                      </div>
-                      <div className="text-base text-[#0AEFFF] mt-2 font-medium tracking-wider">
-                        Total Portfolio Value
-                      </div>
-                    </div>
+      {/* ── Three column section ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:1 }}>
+
+        {/* Programmes carousel */}
+        <Card>
+          <div style={{ padding:'20px' }}>
+            <SectionLabel>{showMarketing ? 'Discover Programmes' : 'My Learning'}</SectionLabel>
+            <Carousel items={carouselItems} showMarketing={showMarketing} />
+          </div>
+        </Card>
+
+        {/* Live trade */}
+        <Card>
+          <div style={{ padding:'20px' }}>
+            <SectionLabel>Live Signal</SectionLabel>
+            {trades.active ? (
+              <div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                  <span style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)' }}>
+                    {trades.active.pair || trades.active.symbol || '—'}
+                  </span>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block' }}/>
+                    <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--green)' }}>Live</span>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Programs + Events Carousel */}
-            <div className="rounded-2xl p-6 backdrop-blur-2xl bg-black/10 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10 overflow-hidden">
-              <h3 className="text-sm text-[#848E9C] mb-5">
-                {showMarketing ? "Discover Programs & Events" : "My Learning & Sessions"}
-              </h3>
-              {carouselItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-500">No content available yet</p>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:1, background:'rgba(10,239,255,0.08)' }}>
+                  {[
+                    { label:'Direction', value:(trades.active.direction||trades.active.side||'—').toUpperCase() },
+                    { label:'Entry',     value:`$${fmt(trades.active.entry_price??trades.active.price??0)}` },
+                  ].map((item,i) => (
+                    <div key={i} style={{ background:'var(--surface)', padding:'12px 14px' }}>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:4 }}>{item.label}</div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:13, color: item.label==='Direction' && item.value==='LONG' ? 'var(--green)' : item.label==='Direction' ? 'var(--red)' : 'var(--text)' }}>{item.value}</div>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <CarouselAutoSlider items={carouselItems} showMarketing={showMarketing} />
-              )}
-            </div>
-
-            {/* Live Trade + Recent History */}
-            <div className="rounded-2xl p-5 backdrop-blur-2xl bg-black/10 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10">
-              <h3 className="text-sm text-[#848E9C] mb-3">Live Trade & Recent History</h3>
-
-              {/* Active Trade */}
-              {activeTrade ? (
-                <div className="relative bg-black/15 p-4 rounded-lg border border-[#0AEFFF]/25 overflow-hidden shadow-inner mb-6">
-                  <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
-                    <div className="trade-wave"></div>
-                  </div>
-                  <div className="absolute top-4 right-4 flex items-center gap-2 z-20">
-                    <span className="relative flex h-4 w-4">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0ECB81] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-[#0ECB81]"></span>
-                    </span>
-                    <span className="text-xs font-bold text-[#0ECB81] uppercase tracking-wider px-2 py-1 bg-[#0ECB81]/20 rounded">
-                      LIVE
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between relative z-10 mb-4">
-                    <div>
-                      <div className="text-xl font-bold text-[#EAECEF]">
-                        {activeTrade.pair || activeTrade.symbol || "—"}
-                      </div>
-                      <div className="text-xs text-[#848E9C] mt-1">
-                        {activeTrade.created_at
-                          ? format(new Date(activeTrade.created_at), "MMM d, yyyy • h:mm a")
-                          : "—"}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div
-                        className={`text-lg font-black ${
-                          (activeTrade.direction === "LONG" || activeTrade.side?.toLowerCase() === "buy")
-                            ? "text-[#0ECB81] animate-pulse"
-                            : "text-[#F6465D]"
-                        }`}
-                      >
-                        {(activeTrade.direction || activeTrade.side || "—").toUpperCase()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm relative z-10">
-                    <div>
-                      <div className="text-[#848E9C] mb-1">Entry Price</div>
-                      <div className="font-medium text-[#EAECEF]">
-                        ${formatCurrency(activeTrade.entry_price ?? activeTrade.price ?? 0)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[#848E9C] mb-1">Opened</div>
-                      <div className="font-medium text-[#EAECEF]">
-                        {activeTrade.created_at
-                          ? format(new Date(activeTrade.created_at), "MMM d, yyyy • h:mm a")
-                          : "—"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center text-[#848E9C] py-8 bg-black/10 rounded-lg border border-[#0AEFFF]/20">
-                  No active trade right now
-                </div>
-              )}
-
-              {/* Recent trades */}
-              <div className="mt-6">
-                <div className="text-xs text-[#848E9C] mb-3 uppercase tracking-wide">Recent Trades</div>
-                {recentHistory.length === 0 ? (
-                  <div className="text-center text-[#6B7280] py-6 bg-black/10 rounded-lg border border-[#0AEFFF]/20">
-                    No recent trades yet
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-[220px] overflow-y-auto">
-                    {recentHistory.slice(0, 2).map((t: any) => { 
-                      const percent = Number(t.pnl_percent ?? 0);
-                      const formattedPercent = percent.toFixed(2);
-                      const isPositive = percent > 0;
-                      const isNegative = percent < 0;
-                      return (
-                        <div
-                          key={t.id}
-                          className="flex items-center justify-between p-3 bg-black/10 rounded-lg border border-[#0AEFFF]/20 hover:border-[#0AEFFF]/40 transition-colors"
-                        >
-                          <div>
-                            <div className="text-sm font-medium text-[#EAECEF]">
-                              {t.pair || t.symbol || "—"}
-                            </div>
-                            <div className="text-xs text-[#848E9C] mt-1">
-                              {(t.side || t.direction || "").toUpperCase()} • {t.strategy || "—"}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div
-                              className={`text-lg font-bold ${
-                                isPositive ? "text-[#0ECB81]" : isNegative ? "text-[#F6465D]" : "text-[#848E9C]"
-                              }`}
-                            >
-                              {isPositive ? "+" : isNegative ? "-" : ""}{formattedPercent}%
-                              <span className="ml-2 text-xs font-normal opacity-80">
-                                {isPositive ? "WIN" : isNegative ? "LOSS" : ""}
-                              </span>
-                            </div>
-                            <div className="text-xs text-[#848E9C] mt-1">
-                              {t.resolved_at ? format(new Date(t.resolved_at), "MMM d, yyyy") : "—"}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                {trades.active.created_at && (
+                  <div style={{ marginTop:10, fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', letterSpacing:'0.08em' }}>
+                    Opened {format(new Date(trades.active.created_at), 'MMM d, yyyy · HH:mm')}
                   </div>
                 )}
               </div>
-            </div>
-          </section>
-
-          {/* REAL STATS – 3-column grid */}
-          <div className="grid md:grid-cols-3 gap-6">
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="backdrop-blur-2xl bg-black/10 p-6 rounded-2xl border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10"
-            >
-              <h4 className="text-sm text-[#848E9C]">Total Balance</h4>
-              <p className="text-3xl font-bold text-[#EAECEF] mt-2">${formatCurrency(portfolioRaw)}</p>
-              <p className="text-xs text-[#848E9C] mt-1">Main: ${balance} • Bonus: ${bonus}</p>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="backdrop-blur-2xl bg-black/10 p-6 rounded-2xl border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10"
-            >
-              <h4 className="text-sm text-[#848E9C]">Active Stakings</h4>
-              <p className="text-3xl font-bold text-[#EAECEF] mt-2">
-                {totals.active_investments ?? 0}
-              </p>
-              <p className="text-xs text-[#848E9C] mt-1">
-                Active Stake value: ${formatCurrency(totals.portfolio_value ?? 0)}
-              </p>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.03 }}
-              className="backdrop-blur-2xl bg-black/10 p-6 rounded-2xl border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10"
-            >
-              <h4 className="text-sm text-[#848E9C]">Portfolio Value</h4>
-              <p className="text-3xl font-bold text-[#EAECEF] mt-2">${portfolio}</p>
-              <p className="text-xs text-[#848E9C] mt-1">
-                Total profit: ${formatCurrency(totals.total_profit ?? 0)}
-              </p>
-            </motion.div>
-          </div>
-
-          {/* RECENT ACTIVITY */}
-          <div className="backdrop-blur-2xl bg-black/10 rounded-2xl p-6 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10">
-            <h3 className="text-xl font-bold mb-6 text-[#0AEFFF]">Recent Activity</h3>
-            {recentTx.length === 0 ? (
-              <p className="text-center text-[#6B7280] py-8">No transactions yet</p>
             ) : (
-              <div className="space-y-3">
-                {recentTx.map((t: any) => (
-                  <div
-                    key={t.id}
-                    className="flex justify-between items-center py-3 border-b border-[#0AEFFF]/10 last:border-0"
-                  >
+              <div style={{ padding:'32px 0', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>
+                No active signal
+              </div>
+            )}
+
+            {/* Recent history */}
+            {trades.history.length > 0 && (
+              <div style={{ marginTop:20 }}>
+                <SectionLabel>Recent Trades</SectionLabel>
+                <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+                  {trades.history.slice(0,3).map((t:any) => {
+                    const pnl = Number(t.pnl_percent ?? 0);
+                    return (
+                      <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid rgba(10,239,255,0.06)' }}>
+                        <div>
+                          <div style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--text)' }}>{t.pair||'—'}</div>
+                          <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)' }}>{(t.side||t.direction||'').toUpperCase()}</div>
+                        </div>
+                        <span style={{ fontFamily:'var(--font-mono)', fontSize:13, fontWeight:500, color: pnl>0 ? 'var(--green)' : pnl<0 ? 'var(--red)' : 'var(--muted)' }}>
+                          {pnl>0?'+':''}{pnl.toFixed(2)}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Recent activity */}
+        <Card>
+          <div style={{ padding:'20px' }}>
+            <SectionLabel>Recent Activity</SectionLabel>
+            {recentTx.length === 0 ? (
+              <div style={{ padding:'32px 0', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>No transactions yet</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {recentTx.map((t:any) => (
+                  <div key={t.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid rgba(10,239,255,0.05)' }}>
                     <div>
-                      <p className="font-medium text-[#EAECEF] capitalize">
-                        {t.type === "referral_bonus" ? "Referral Bonus" : t.type}
-                      </p>
-                      <p className="text-xs text-[#848E9C]">
-                        {t.created_at ? format(new Date(t.created_at), "MMM d, yyyy • h:mm a") : ""}
-                      </p>
-                      {t.status === "rejected" && t.details?.reject_reason && (
-                        <p className="text-xs text-[#F6465D] mt-1">Reason: {t.details.reject_reason}</p>
-                      )}
+                      <div style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--text)', textTransform:'capitalize' }}>
+                        {t.type==='referral_bonus' ? 'Referral Bonus' : t.type}
+                      </div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:2 }}>
+                        {t.created_at ? format(new Date(t.created_at),'MMM d, yyyy') : ''}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p
-                        className={`font-bold ${t.amount > 0 ? "text-[#0ECB81]" : "text-[#F6465D]"}`}
-                      >
-                        {t.amount > 0 ? "+" : "-"}${formatCurrency(Math.abs(Number(t.amount ?? 0)))}
-                      </p>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full mt-1 inline-block ${
-                          t.status === "completed"
-                            ? "bg-[#0ECB81]/20 text-[#0ECB81]"
-                            : t.status === "rejected"
-                            ? "bg-[#F6465D]/20 text-[#F6465D]"
-                            : "bg-[#0AEFFF]/20 text-[#0AEFFF]"
-                        }`}
-                      >
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:12, color: Number(t.amount)>0 ? 'var(--green)' : 'var(--red)' }}>
+                        {Number(t.amount)>0?'+':''}{fmt(Math.abs(Number(t.amount)))}
+                      </div>
+                      <div style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', color: t.status==='completed' ? 'var(--green)' : t.status==='rejected' ? 'var(--red)' : 'var(--muted-2)', marginTop:2 }}>
                         {t.status}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* RECENT INVESTMENTS */}
-          <div className="backdrop-blur-2xl bg-black/10 rounded-2xl p-6 border border-[#0AEFFF]/30 shadow-lg shadow-[#0AEFFF]/10">
-            <h3 className="text-xl font-bold mb-6 text-[#0AEFFF]">Recent Stakes</h3>
-
-            {recentInv.length === 0 ? (
-              <p className="text-center text-[#6B7280] py-12">No Staking yet</p>
-            ) : (
-              <div className="space-y-4">
-                {recentInv.map((inv: any) => {
-                  const now = Date.now();
-
-                  const start = inv.start_at
-                    ? new Date(inv.start_at).getTime()
-                    : inv.created_at
-                      ? new Date(inv.created_at).getTime()
-                      : now;
-
-                  const durationDays = Number(inv.duration_days ?? 30);
-                  const end = start + durationDays * 86400 * 1000;
-
-                  const totalMs = Math.max(1, end - start);
-                  const elapsedMs = Math.max(0, Math.min(now - start, totalMs));
-                  const percent = Math.min(100, Math.round((elapsedMs / totalMs) * 100));
-
-                  const daysLeft = inv.status === "active"
-                    ? Math.max(0, Math.ceil((end - now) / (24 * 60 * 60 * 1000)))
-                    : 0;
-
-                  return (
-                    <motion.div
-                      key={inv.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileHover={{
-                        scale: 1.02,
-                        boxShadow: "0 10px 25px rgba(10, 255, 255, 0.15)",
-                      }}
-                      transition={{ duration: 0.3 }}
-                      className="bg-black/15 rounded-xl p-4 border border-[#0AEFFF]/25 hover:border-[#0AEFFF]/40 transition-colors duration-300"
-                    >
-                      {/* Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-base font-semibold text-[#EAECEF]">
-                            {inv.plan_name || "Plan"}
-                          </div>
-
-                          <div className="text-sm text-[#848E9C] mt-1">
-                            Amount: ${formatCurrency(inv.amount ?? 0)}
-                          </div>
-
-                          <div className="text-sm mt-1">
-                            PnL:{" "}
-                            <span className={
-                              Number(inv.profit_loss ?? 0) >= 0
-                                ? "text-[#0ECB81] font-medium"
-                                : "text-[#F6465D] font-medium"
-                            }>
-                              ${formatCurrency(inv.profit_loss ?? 0)}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="text-xs text-[#848E9C]">Ends</div>
-                          <div className="text-sm font-semibold text-[#EAECEF]">
-                            {new Date(end).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Progress */}
-                      <div className="mt-4">
-                        <div className="w-full bg-[#2B3139]/30 rounded-full h-3 overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-[#0AEFFF] to-[#00D4FF]"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percent}%` }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                          />
-                        </div>
-
-                        <div className="mt-2 text-xs text-[#848E9C] flex items-center justify-between">
-                          <span className="font-medium">{percent}% complete</span>
-                          <span>
-                            {inv.status === "active"
-                              ? `${daysLeft} days left`
-                              : "Completed"}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Footer */}
-      <footer className="mt-16 border-t border-[#0AEFFF]/20 bg-black/20 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm text-[#848E9C]">
-
-          {/* Brand */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setLocation("/")}
-              className="text-[#0AEFFF] font-semibold text-lg mb-2 hover:underline hover:text-[#7E22CE] transition"
-            >
-              Seventy7Hub
-            </button>
-
-            <p className="text-xs leading-relaxed">
-              Smarter Stakes, learning, and portfolio management all in one platform.
-            </p>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex flex-col gap-2">
-            <a href="/dashboard" className="hover:text-[#0AEFFF]">Dashboard</a>
-            <a href="/invest" className="hover:text-[#0AEFFF]">Staking</a>
-            <a href="/portfolio" className="hover:text-[#0AEFFF]">Portfolio Management</a>
-          </div>
-
-          {/* Social */}
-          <div className="flex flex-col gap-2">
-            <a href="https://t.me/seventy7hub" target="_blank" rel="noopener noreferrer">Telegram</a>
-            <a href="https://discord.gg/seventy7hub" target="_blank" rel="noopener noreferrer">Discord</a>
-            <a href="https://x.com/seventy7hub" target="_blank" rel="noopener noreferrer">X (Twitter)</a>
-            <a href="https://www.instagram.com/seventy7trading?igsh=ZmNmNTBtdWJqa3Ax&utm_source=qr" target="_blank" rel="noopener noreferrer">Instagram</a>
-            <a href="https://www.facebook.com/share/1AiekpPNc3/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer">Facebook</a>
-            <a href="https://www.linkedin.com/company/seventy7-trading-academy" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-          </div>
-
+      {/* ── Recent stakes ── */}
+      <Card>
+        <div style={{ padding:'20px' }}>
+          <SectionLabel>Active Stakes</SectionLabel>
+          {recentInv.length === 0 ? (
+            <div style={{ padding:'32px 0', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)' }}>No active stakes</div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:1, background:'rgba(10,239,255,0.08)' }}>
+              {recentInv.map((inv:any) => {
+                const now   = Date.now();
+                const start = inv.start_at ? new Date(inv.start_at).getTime() : new Date(inv.created_at).getTime();
+                const end   = start + Number(inv.duration_days ?? 30) * 86400000;
+                const pct   = Math.min(100, Math.round(Math.max(0,(now-start))/(Math.max(1,end-start))*100));
+                const daysLeft = Math.max(0, Math.ceil((end-now)/86400000));
+                return (
+                  <div key={inv.id} style={{ background:'var(--surface)', padding:'18px 20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                      <div>
+                        <div style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--text)' }}>{inv.plan_name || 'Plan'}</div>
+                        <div style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--muted-2)', marginTop:2 }}>${fmt(inv.amount)}</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontFamily:'var(--font-mono)', fontSize:12, color: Number(inv.profit_loss??0)>=0 ? 'var(--green)' : 'var(--red)' }}>
+                          {Number(inv.profit_loss??0)>=0?'+':''}{fmt(inv.profit_loss)}
+                        </div>
+                        <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:2 }}>
+                          {inv.status==='active' ? `${daysLeft}d left` : 'Completed'}
+                        </div>
+                      </div>
+                    </div>
+                    <ProgressBar pct={pct} />
+                    <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:4 }}>{pct}% complete</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+      </Card>
 
-        <div className="text-center text-xs text-[#6B7280] pb-6">
-          © {new Date().getFullYear()} Seventy7Hub. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 }

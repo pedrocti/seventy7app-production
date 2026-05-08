@@ -8,31 +8,28 @@ import {
   ClipboardList,
   Settings,
   TrendingUp,
+  FileText,
 } from "lucide-react";
 import { clsx } from "clsx";
-
 interface SidebarProps {
   collapsed: boolean;
   active: string;
   onNavigate: (key: string) => void;
 }
-
 export default function AdminSidebar({ collapsed, active, onNavigate }: SidebarProps) {
   const items = [
-    { key: "overview", label: "Overview", icon: <Activity size={18} /> },
-    { key: "users", label: "Users", icon: <Users size={18} /> },
-    { key: "transactions", label: "Transactions", icon: <BarChart3 size={18} /> },
-    { key: "portfolio", label: "Portfolio", icon: <PieChart size={18} /> },
-    { key: "invest", label: "Investments", icon: <Wallet size={18} /> },
-    { key: "mentorship", label: "Mentorship", icon: <User size={18} /> },
-    { key: "learning", label: "Learning", icon: <ClipboardList size={18} /> },
-    { key: "plans", label: "Plans", icon: <ClipboardList size={18} /> },
-    { key: "trades", label: "Trades & PnL", icon: <TrendingUp size={18} /> },
-    { key: "settings", label: "Deposit Settings", icon: <Settings size={18} /> },
+    { key: "overview",     label: "Overview",          icon: <Activity size={18} /> },
+    { key: "users",        label: "Users",             icon: <Users size={18} /> },
+    { key: "transactions", label: "Transactions",      icon: <BarChart3 size={18} /> },
+    { key: "portfolio",    label: "Portfolio",         icon: <PieChart size={18} /> },
+    { key: "invest",       label: "Investments",       icon: <Wallet size={18} /> },
+    { key: "mentorship",   label: "Mentorship",        icon: <User size={18} /> },
+    { key: "learning",     label: "Learning",          icon: <ClipboardList size={18} /> },
+    { key: "plans",        label: "Plans",             icon: <ClipboardList size={18} /> },
+    { key: "trades",       label: "Trades & PnL",      icon: <TrendingUp size={18} /> },
+    { key: "blog",         label: "Blog Posts",        icon: <FileText size={18} /> },
+    { key: "settings",     label: "Deposit Settings",  icon: <Settings size={18} /> },
   ];
-
-
-
   return (
     <aside
       className={clsx(

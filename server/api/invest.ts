@@ -1,251 +1,251 @@
+// server/api/invest.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// Investment creation — Annual model (12 months)
+//
+// Key changes from old version:
+//   - Snapshots plan's monthly_roi_percent onto investment at creation time
+//     so future plan changes don't affect existing investments
+//   - Sets term_months = 12, current_month = 0
+//   - duration_days = 365
+//   - Amounts stored in dollars (NOT cents — fixing the inconsistency)
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { Router } from "express";
 import { db } from "../db/connection";
-import {
-  users,
-  plans,
-  investments,
-  settings,
-  transactions,
-} from "../db/schema";
+import { users, plans, investments, settings, transactions, notifications } from "../db/schema";
 import { eq, sql } from "drizzle-orm";
 import { auth } from "./utils";
-
-// OPTIONAL: if notifications exist
 import { createNotification } from "../utils/notifications";
 
 const router = Router();
-
-// Apply auth middleware
 router.use(auth);
 
-// Helper: numeric subtraction
-const subFromColumn = (col: any, amt: number) =>
-  sql`COALESCE(${col},0)::numeric - ${amt}::numeric`;
-
-// --------------------------------------------------
-// POST /api/invest
-// --------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/invest — Create a new annual investment
+// ─────────────────────────────────────────────────────────────────────────────
 router.post("/", async (req, res) => {
   const userId = req.user?.id;
-  if (!userId) {
-    return res.status(401).json({ success: false, error: "Unauthorized" });
-  }
+  if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
 
   const { plan_id, amount, use_bonus } = req.body;
   const numAmount = Number(amount);
 
   if (!plan_id || Number.isNaN(numAmount) || numAmount <= 0) {
-    return res
-      .status(400)
-      .json({ success: false, error: "Invalid investment data" });
+    return res.status(400).json({ success: false, error: "Invalid investment data" });
   }
 
   try {
-    // Fetch plan
+    // ── Validate plan ─────────────────────────────────────────────────────────
     const [plan] = await db.select().from(plans).where(eq(plans.id, plan_id));
-    if (!plan) {
-      return res.status(400).json({ success: false, error: "Plan not found" });
-    }
+    if (!plan) return res.status(400).json({ success: false, error: "Plan not found" });
 
-    // Validate min/max
-    if (
-      numAmount < Number(plan.min_amount) ||
-      (plan.max_amount && numAmount > Number(plan.max_amount))
-    ) {
+    if (numAmount < Number(plan.min_amount)) {
       return res.status(400).json({
         success: false,
-        error: `Amount must be between ${plan.min_amount} and ${plan.max_amount}`,
+        error:   `Minimum investment for this plan is $${Number(plan.min_amount).toLocaleString()}`,
       });
     }
 
-    // Fetch user
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: "User not found" });
+    if (plan.max_amount && numAmount > Number(plan.max_amount)) {
+      return res.status(400).json({
+        success: false,
+        error:   `Maximum investment for this plan is $${Number(plan.max_amount).toLocaleString()}`,
+      });
     }
 
-    const mainBalance = Number(user.balance || 0);
+    // ── Validate user balance ─────────────────────────────────────────────────
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const mainBalance  = Number(user.balance || 0);
     const bonusBalance = Number(user.bonus_balance || 0);
 
     let fromBonus = 0;
-    let fromMain = numAmount;
+    let fromMain  = numAmount;
 
-    if (use_bonus) {
+    if (use_bonus && bonusBalance > 0) {
       fromBonus = Math.min(bonusBalance, numAmount);
-      fromMain = Math.max(0, numAmount - fromBonus);
-
-      if (mainBalance < fromMain) {
-        return res.status(400).json({
-          success: false,
-          error:
-            "Insufficient main balance to cover remaining amount after bonus",
-        });
-      }
-    } else {
-      if (mainBalance < numAmount) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Insufficient main balance" });
-      }
+      fromMain  = Math.max(0, numAmount - fromBonus);
     }
 
+    if (mainBalance < fromMain) {
+      return res.status(400).json({
+        success: false,
+        error:   fromBonus > 0
+          ? "Insufficient main balance after applying bonus"
+          : "Insufficient main balance",
+      });
+    }
+
+    // ── Create investment ─────────────────────────────────────────────────────
     const startAt = new Date();
 
-    // Deduct balances + create investment in transaction
+    // Snapshot the plan's monthly ROI rate at time of investment
+    // This protects existing investors from future plan rate changes
+    const snapshotRoiRate = Number(plan.monthly_roi_percent || 0);
+
     const [inserted] = await db.transaction(async (tx) => {
+      // Deduct from user balance(s)
       await tx
         .update(users)
         .set({
-          balance: subFromColumn(users.balance, fromMain),
-          bonus_balance: subFromColumn(users.bonus_balance, fromBonus),
+          balance:       sql`COALESCE(${users.balance}, 0)::numeric - ${fromMain}::numeric`,
+          bonus_balance: sql`COALESCE(${users.bonus_balance}, 0)::numeric - ${fromBonus}::numeric`,
         })
         .where(eq(users.id, userId));
 
+      // Create the investment
       const inv = await tx
         .insert(investments)
         .values({
-          user_id: userId,
-          plan_id,
-          amount: numAmount.toString(),
-          status: "active",
-          progress: "0.00",
-          profit_loss: "0.00",
-          start_at: startAt,
-          duration_days: plan.duration_days ?? 0,
+          user_id:         userId,
+          plan_id:         plan.id,
+          amount:          numAmount.toFixed(2),
+          status:          "active",
+          progress:        "0.00",
+          profit_loss:     "0.00",
+          profit_paid:     "0.00",
+          // Annual model fields
+          term_months:     12,
+          current_month:   0,
+          total_earned:    "0.00",
+          monthly_roi_rate: snapshotRoiRate.toFixed(4),
+          // Timing
+          start_at:        startAt,
+          duration_days:   365,
         })
         .returning();
 
       return inv;
     });
 
-    // --------------------------------------------------
-    // REFERRAL BONUS (FIRST INVESTMENT ONLY)
-    // --------------------------------------------------
-    const existingInvestments = await db
+    // ── Referral bonus (first investment only) ────────────────────────────────
+    const allInvestments = await db
       .select({ id: investments.id })
       .from(investments)
       .where(eq(investments.user_id, userId))
       .limit(2);
 
-    const isFirstInvestment = existingInvestments.length === 1;
-
-    if (isFirstInvestment && user.referred_by) {
+    if (allInvestments.length === 1 && user.referred_by) {
       const [setting] = await db
         .select()
         .from(settings)
         .where(eq(settings.key, "referral_reward_percent"));
 
-      const percent = setting ? Number(setting.value) : 10;
-      const bonusAmount = numAmount * (percent / 100);
+      const percent     = setting ? Number(setting.value) : 10;
+      const bonusAmount = Number((numAmount * (percent / 100)).toFixed(2));
 
-      // Credit referrer bonus balance
       await db
         .update(users)
-        .set({
-          bonus_balance: sql`COALESCE(${users.bonus_balance},0) + ${bonusAmount}`,
-        })
+        .set({ bonus_balance: sql`COALESCE(${users.bonus_balance}, 0)::numeric + ${bonusAmount}::numeric` })
         .where(eq(users.id, user.referred_by));
 
-      // Log referral transaction
+      // Log as dollars (fixing the cents inconsistency from old code)
       await db.insert(transactions).values({
-        user_id: user.referred_by,
-        type: "referral_bonus",
-        amount: String(Math.round(bonusAmount * 100)),
-        status: "completed",
+        user_id:   user.referred_by,
+        type:      "referral_bonus",
+        amount:    bonusAmount.toFixed(2),
+        status:    "completed",
         reference: `referral_bonus_${Date.now()}`,
-        details: { source_investment_id: inserted.id },
+        details:   { source_investment_id: inserted.id },
       });
     }
 
-    // ---------------------------
-    // NOTIFY USER: INVESTMENT CREATED
-    // ---------------------------
-    try {
-      await createNotification(
-        userId,
-        "Investment Activated",
-        `Your investment of $${numAmount.toLocaleString()} has been activated.`
-      );
-    } catch (err) {
-      console.warn("Notification failed:", err);
-    }
+    // ── In-app notification ───────────────────────────────────────────────────
+    await createNotification(
+      userId,
+      "Investment Activated",
+      `Your $${numAmount.toLocaleString()} investment in the ${plan.name} plan has been activated. ` +
+      `You will receive monthly returns of approximately ${snapshotRoiRate}% over 12 months.`
+    ).catch(() => {});
 
-    // Fetch updated balances
-    const [updatedUser] = await db
-      .select({
-        balance: users.balance,
-        bonus_balance: users.bonus_balance,
-      })
+    // ── Return updated balances ───────────────────────────────────────────────
+    const [updated] = await db
+      .select({ balance: users.balance, bonus_balance: users.bonus_balance })
       .from(users)
       .where(eq(users.id, userId));
 
     return res.json({
       success: true,
-      message: "Investment activated",
-      investment: inserted || null,
+      message: "Investment activated — your monthly returns will begin within 30 days",
+      investment: {
+        ...inserted,
+        plan_name:       plan.name,
+        monthly_roi_rate: snapshotRoiRate,
+        term_months:     12,
+        end_date:        new Date(startAt.getTime() + 365 * 86400000).toISOString(),
+      },
       balances: {
-        balance: Number(updatedUser?.balance ?? 0),
-        bonus_balance: Number(updatedUser?.bonus_balance ?? 0),
+        balance:       Number(updated?.balance ?? 0),
+        bonus_balance: Number(updated?.bonus_balance ?? 0),
       },
     });
-
   } catch (err) {
     console.error("Invest error:", err);
-    return res
-      .status(500)
-      .json({ success: false, error: "Failed to create investment" });
+    return res.status(500).json({ success: false, error: "Failed to create investment" });
   }
 });
 
-// --------------------------------------------------
-// GET /api/investments
-// --------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/invest — List user's investments with progress details
+// ─────────────────────────────────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   const userId = req.user?.id;
-  if (!userId) {
-    return res.status(401).json({ success: false, error: "Unauthorized" });
-  }
+  if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
 
   try {
     const rows = await db
       .select({
-        id: investments.id,
-        amount: investments.amount,
-        status: investments.status,
-        progress: investments.progress,
-        profit_loss: investments.profit_loss,
-        start_at: investments.start_at,
-        duration_days: investments.duration_days,
-        plan_id: plans.id,
-        plan_name: plans.name,
-        min_amount: plans.min_amount,
-        max_amount: plans.max_amount,
-        plan_duration_days: plans.duration_days,
+        id:              investments.id,
+        amount:          investments.amount,
+        status:          investments.status,
+        progress:        investments.progress,
+        profit_loss:     investments.profit_loss,
+        profit_paid:     investments.profit_paid,
+        term_months:     investments.term_months,
+        current_month:   investments.current_month,
+        total_earned:    investments.total_earned,
+        monthly_roi_rate: investments.monthly_roi_rate,
+        start_at:        investments.start_at,
+        duration_days:   investments.duration_days,
+        last_profit_payout_at: investments.last_profit_payout_at,
+        plan_id:         plans.id,
+        plan_name:       plans.name,
+        min_amount:      plans.min_amount,
+        max_amount:      plans.max_amount,
       })
       .from(investments)
       .leftJoin(plans, eq(plans.id, investments.plan_id))
       .where(eq(investments.user_id, userId));
 
-    const investmentsWithEndDate = rows.map((inv) => {
-      const start = inv.start_at ? new Date(inv.start_at) : null;
-      const end =
-        start && inv.duration_days
-          ? new Date(start.getTime() + inv.duration_days * 86400000)
-          : null;
+    const enriched = rows.map((inv) => {
+      const start     = inv.start_at ? new Date(inv.start_at) : null;
+      const endDate   = start ? new Date(start.getTime() + 365 * 86400000) : null;
+      const termMonths = Number(inv.term_months ?? 12);
+      const curMonth   = Number(inv.current_month ?? 0);
 
-      return { ...inv, end_at: end };
+      // Next payout date
+      const lastPayout = inv.last_profit_payout_at
+        ? new Date(inv.last_profit_payout_at)
+        : start;
+      const nextPayout = lastPayout
+        ? new Date(lastPayout.getTime() + 30 * 24 * 60 * 60 * 1000)
+        : null;
+
+      return {
+        ...inv,
+        end_at:            endDate?.toISOString() ?? null,
+        next_payout_at:    nextPayout?.toISOString() ?? null,
+        months_remaining:  Math.max(0, termMonths - curMonth),
+        projected_monthly: Number(inv.amount) * (Number(inv.monthly_roi_rate) / 100),
+        projected_total:   Number(inv.amount) * (Number(inv.monthly_roi_rate) / 100) * termMonths,
+      };
     });
 
-    res.json({ success: true, investments: investmentsWithEndDate });
+    res.json({ success: true, investments: enriched });
   } catch (err) {
     console.error("Fetch investments error:", err);
-    res
-      .status(500)
-      .json({ success: false, error: "Failed to fetch investments" });
+    res.status(500).json({ success: false, error: "Failed to fetch investments" });
   }
 });
 

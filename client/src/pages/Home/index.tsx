@@ -10,6 +10,7 @@ import MarketImpactVisual from '@/components/MarketImpactVisual';
 import { Helmet } from 'react-helmet';
 import FloatingQuickAccess from '@/components/FloatingQuickAccess';
 import CoreOfferingsSection from "@/components/CoreOfferingsSection";
+import WealthAdvisory from '@/components/WealthAdvisory';
 
 const Home = () => {
   
@@ -36,6 +37,7 @@ const Home = () => {
         <main>
           <HeroSection />
           <CoreOfferingsSection /> 
+          <WealthAdvisory />
           <AboutSection />
           <TradingVisuals />
           <MarketImpactVisual />
