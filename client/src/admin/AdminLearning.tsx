@@ -158,7 +158,7 @@ export default function AdminLearning() {
 
       if (res.ok) {
         toast.success(editingProgramId ? "Program updated!" : "Program created!");
-        setProgramForm({ title: "", description: "", price: "0", duration_days: "30" });
+        setProgramForm({ title: "", description: "", price: "0", duration_days: "30", thumbnail_url: "" });
         setEditingProgramId(null);
         loadPrograms();
       } else {
@@ -196,6 +196,7 @@ export default function AdminLearning() {
       description: p.description || "",
       price: p.price,
       duration_days: p.duration_days.toString(),
+      thumbnail_url: p.thumbnail_url || "",
     });
     setEditingProgramId(p.id);
   };
