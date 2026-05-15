@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
+import { useMobile } from '@/hooks/useMobile';
 import { apiRequest } from '@/api/http';
 
 interface TopbarProps {
@@ -18,25 +19,27 @@ const PAGE_LABELS: Record<string, string> = {
   trades:     'Trades & PnL',
   mentorship: 'Mentorship',
   learning:   'Learning',
+  loan:       'Lends',
 };
 
 export default function Topbar({ active, onCollapse, onProfileClick }: TopbarProps) {
   const { logout, user, token } = useAuth();
-  const [showNotif,   setShowNotif]   = useState(false);
-  const [notifs,      setNotifs]      = useState<any[]>([]);
-  const [unread,      setUnread]      = useState(0);
-  const [dropPos,     setDropPos]     = useState({ top:0, left:0 });
-  const bellRef  = useRef<HTMLButtonElement>(null);
-  const dropRef  = useRef<HTMLDivElement>(null);
+  const isMobile = useMobile();
+  const [showNotif, setShowNotif] = useState(false);
+  const [notifs,    setNotifs]    = useState<any[]>([]);
+  const [unread,    setUnread]    = useState(0);
+  const [dropPos,   setDropPos]   = useState({ top: 0, left: 0 });
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
 
   async function fetchNotifs() {
     if (!token) return;
     try {
-      const r = await apiRequest('/user/notifications', { headers:{ Authorization:`Bearer ${token}` } });
+      const r = await apiRequest('/user/notifications', { headers: { Authorization: `Bearer ${token}` } });
       if (r?.success) {
         const list = r.notifications || [];
         setNotifs(list);
-        setUnread(list.filter((n:any) => !n.read).length);
+        setUnread(list.filter((n: any) => !n.read).length);
       }
     } catch {}
   }
@@ -54,16 +57,18 @@ export default function Topbar({ active, onCollapse, onProfileClick }: TopbarPro
 
   async function markRead(id: string) {
     try {
-      await apiRequest(`/user/notifications/read/${id}`, { method:'POST', headers:{ Authorization:`Bearer ${token}` } });
-      setNotifs(p => p.map(n => n.id===id ? { ...n, read:true } : n));
-      setUnread(c => Math.max(c-1, 0));
+      await apiRequest(`/user/notifications/read/${id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      setNotifs(p => p.map(n => n.id === id ? { ...n, read: true } : n));
+      setUnread(c => Math.max(c - 1, 0));
     } catch {}
   }
 
   function toggleNotif() {
     if (bellRef.current) {
       const r = bellRef.current.getBoundingClientRect();
-      setDropPos({ top: r.bottom + 8, left: r.right - 300 });
+      // On mobile: anchor to right edge of screen; on desktop: under bell
+      const left = isMobile ? Math.max(8, window.innerWidth - 308) : Math.max(8, r.right - 300);
+      setDropPos({ top: r.bottom + 8, left });
     }
     setShowNotif(p => !p);
   }
@@ -72,87 +77,103 @@ export default function Topbar({ active, onCollapse, onProfileClick }: TopbarPro
 
   return (
     <header style={{
-      height: 64, flexShrink:0,
-      display:'flex', alignItems:'center',
-      justifyContent:'space-between',
-      padding:'0 24px',
-      background:'var(--surface)',
-      borderBottom:'1px solid rgba(10,239,255,0.08)',
-      position:'sticky', top:0, zIndex:30,
+      height: 56,
+      flexShrink: 0,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: isMobile ? '0 12px' : '0 24px',
+      background: 'var(--surface)',
+      borderBottom: '1px solid rgba(10,239,255,0.08)',
+      position: 'sticky',
+      top: 0,
+      zIndex: 30,
+      gap: 8,
+      minWidth: 0,
     }}>
 
-      {/* Left */}
-      <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-        {/* Hamburger */}
-        <button onClick={onCollapse} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', display:'flex', alignItems:'center' }}>
+      {/* ── Left: hamburger + page label ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, minWidth: 0, flex: 1 }}>
+        <button onClick={onCollapse}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', alignItems: 'center', flexShrink: 0, padding: 4 }}>
           <Menu size={18} />
         </button>
 
-        {/* Page label */}
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontFamily:'var(--font-display)', fontSize:18, fontWeight:300, color:'var(--text)', letterSpacing:'-0.01em' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: isMobile ? 15 : 18, fontWeight: 300, color: 'var(--text)', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {PAGE_LABELS[active] || active}
           </span>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--cyan)', background:'rgba(10,239,255,0.06)', border:'1px solid rgba(10,239,255,0.15)', padding:'3px 8px' }}>
-            Live
-          </span>
+          {/* Hide Live badge on mobile to save space */}
+          {!isMobile && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--cyan)', background: 'rgba(10,239,255,0.06)', border: '1px solid rgba(10,239,255,0.15)', padding: '3px 8px', flexShrink: 0 }}>
+              Live
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Right */}
-      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+      {/* ── Right: actions — compact on mobile ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, flexShrink: 0 }}>
 
         {/* Bell */}
         <button ref={bellRef} onClick={toggleNotif}
-          style={{ position:'relative', background:'none', border:'1px solid rgba(10,239,255,0.12)', cursor:'pointer', color:'var(--muted)', width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.35)'; (e.currentTarget as HTMLElement).style.color='var(--cyan)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor='rgba(10,239,255,0.12)'; (e.currentTarget as HTMLElement).style.color='var(--muted)'; }}>
-          <Bell size={15}/>
+          style={{ position: 'relative', background: 'none', border: '1px solid rgba(10,239,255,0.12)', cursor: 'pointer', color: 'var(--muted)', width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,239,255,0.35)'; (e.currentTarget as HTMLElement).style.color = 'var(--cyan)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,239,255,0.12)'; (e.currentTarget as HTMLElement).style.color = 'var(--muted)'; }}>
+          <Bell size={14} />
           {unread > 0 && (
-            <span style={{ position:'absolute', top:6, right:6, width:6, height:6, borderRadius:'50%', background:'var(--red)' }}/>
+            <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: 'var(--red)' }} />
           )}
         </button>
 
-        {/* Profile */}
+        {/* Profile avatar */}
         <button onClick={onProfileClick}
-          style={{ width:36, height:36, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(135deg, var(--cyan), var(--purple))', border:'none', cursor:'pointer', flexShrink:0 }}>
-          <span style={{ fontFamily:'var(--font-mono)', fontSize:12, fontWeight:500, color:'var(--bg)' }}>{initial}</span>
+          style={{ width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--cyan), var(--purple))', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 500, color: 'var(--bg)' }}>{initial}</span>
         </button>
 
-        {/* Sign out — desktop */}
-        <button onClick={logout}
-          style={{ display:'flex', alignItems:'center', gap:7, padding:'7px 14px', background:'transparent', border:'1px solid rgba(246,70,93,0.2)', cursor:'pointer', color:'var(--red)', fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', transition:'all 0.2s' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background='rgba(246,70,93,0.06)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background='transparent'; }}>
-          <LogOut size={13}/> Sign Out
-        </button>
-
+        {/* Sign out — icon-only on mobile, text on desktop */}
+        {isMobile ? (
+          <button onClick={logout}
+            style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: '1px solid rgba(246,70,93,0.2)', cursor: 'pointer', color: 'var(--red)', flexShrink: 0 }}>
+            <LogOut size={13} />
+          </button>
+        ) : (
+          <button onClick={logout}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 14px', background: 'transparent', border: '1px solid rgba(246,70,93,0.2)', cursor: 'pointer', color: 'var(--red)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', transition: 'all 0.2s', flexShrink: 0 }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(246,70,93,0.06)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+            <LogOut size={13} /> Sign Out
+          </button>
+        )}
       </div>
 
       {/* Notification dropdown */}
       {showNotif && createPortal(
         <div ref={dropRef} style={{
-          position:'fixed', top:dropPos.top, left:dropPos.left,
-          width:300, background:'var(--surface)',
-          border:'1px solid rgba(10,239,255,0.14)',
-          zIndex:999999, boxShadow:'0 16px 48px rgba(0,0,0,0.4)',
+          position: 'fixed', top: dropPos.top, left: dropPos.left,
+          width: isMobile ? Math.min(300, window.innerWidth - 16) : 300,
+          background: 'var(--surface)',
+          border: '1px solid rgba(10,239,255,0.14)',
+          zIndex: 999999,
+          boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
         }}>
-          <div style={{ padding:'14px 16px', borderBottom:'1px solid rgba(10,239,255,0.08)', fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--cyan)' }}>
+          <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(10,239,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--cyan)' }}>
             Notifications {unread > 0 && `(${unread})`}
           </div>
-          <div style={{ maxHeight:280, overflowY:'auto' }}>
+          <div style={{ maxHeight: 280, overflowY: 'auto' }}>
             {notifs.length === 0 ? (
-              <div style={{ padding:20, fontFamily:'var(--font-mono)', fontSize:10, color:'var(--muted-2)', letterSpacing:'0.1em', textTransform:'uppercase' }}>No new notifications</div>
+              <div style={{ padding: 20, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>No new notifications</div>
             ) : notifs.map(n => (
-              <div key={n.id} style={{ padding:'12px 16px', borderBottom:'1px solid rgba(10,239,255,0.06)', background: !n.read ? 'rgba(10,239,255,0.03)' : 'transparent' }}>
-                <p style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--text)', marginBottom:6 }}>{n.message}</p>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <span style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', letterSpacing:'0.08em' }}>
+              <div key={n.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(10,239,255,0.06)', background: !n.read ? 'rgba(10,239,255,0.03)' : 'transparent' }}>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--text)', marginBottom: 6, lineHeight: 1.5 }}>{n.message}</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted-2)', letterSpacing: '0.08em' }}>
                     {new Date(n.created_at).toLocaleString()}
                   </span>
                   {!n.read && (
                     <button onClick={() => markRead(n.id)}
-                      style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.1em', textTransform:'uppercase', padding:'3px 8px', background:'rgba(10,239,255,0.08)', border:'1px solid rgba(10,239,255,0.2)', color:'var(--cyan)', cursor:'pointer' }}>
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', background: 'rgba(10,239,255,0.08)', border: '1px solid rgba(10,239,255,0.2)', color: 'var(--cyan)', cursor: 'pointer' }}>
                       Mark read
                     </button>
                   )}
@@ -163,7 +184,6 @@ export default function Topbar({ active, onCollapse, onProfileClick }: TopbarPro
         </div>,
         document.body
       )}
-
     </header>
   );
 }

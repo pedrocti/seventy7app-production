@@ -59,5 +59,17 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "client/dist"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-charts': ['recharts'],
+          'vendor-icons':  ['lucide-react'],
+          'vendor-query':  ['@tanstack/react-query'],
+        },
+      },
+    },
   },
 });

@@ -13,9 +13,9 @@ export interface User {
   username: string;
   email?: string;
   role: string;
-  balance: number;        
-  bonus_balance: number;  
-  referral_code: string; 
+  balance: number;
+  bonus_balance: number;
+  referral_code: string;
   created_at?: string;
   email_verified_at?: string | null;
 }
@@ -26,7 +26,7 @@ export interface AuthResponse {
   user?: User;
   error?: string;
   message?: string;
-  code?: string; 
+  code?: string;
 }
 
 interface AuthContextType {
@@ -46,6 +46,7 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<AuthResponse>;
   resetPassword: (token: string, newPassword: string) => Promise<AuthResponse>;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  googleAuth: (credential: string, ref?: string) => Promise<AuthResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,30 +77,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const parsedUser: User = JSON.parse(storedUser);
 
-      // Restore session
       setUser(parsedUser);
       setToken(storedToken);
 
-      // Warn once if email is not verified (do NOT logout)
       if (!parsedUser.email_verified_at) {
         toast.warning(
           "Your email is not verified. Some features are disabled until verification."
         );
       }
     } catch (error) {
-      // Corrupted storage — clean up safely
       console.warn("Corrupted auth storage detected. Clearing session.");
-
       localStorage.removeItem("user");
       localStorage.removeItem("token");
-
       setUser(null);
       setToken(null);
     } finally {
       setLoading(false);
     }
   }, []);
-
 
   // ----------------------------
   // LOGIN
@@ -116,17 +111,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const isVerified = !!res.user.email_verified_at;
 
-      // Ensure referral_code exists even if user wasn't referred
       const userData: User = {
         ...res.user,
-        balance: Number(res.user.balance ?? 0),
+        balance:       Number(res.user.balance ?? 0),
         bonus_balance: Number(res.user.bonus_balance ?? 0),
-        referral_code: res.user.referral_code ?? "", // always present
+        referral_code: res.user.referral_code ?? "",
       };
 
       setUser(userData);
       setToken(res.token);
-      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("user",  JSON.stringify(userData));
       localStorage.setItem("token", res.token);
 
       if (!isVerified) {
@@ -170,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (res.user) {
         const userData: User = {
           ...res.user,
-          balance: Number(res.user.balance ?? 0),
+          balance:       Number(res.user.balance ?? 0),
           bonus_balance: Number(res.user.bonus_balance ?? 0),
           referral_code: res.user.referral_code ?? "",
         };
@@ -238,6 +232,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ----------------------------
+  // GOOGLE AUTH
+  // ----------------------------
+  const googleAuth = async (credential: string, ref?: string): Promise<AuthResponse> => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/google", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ credential, ref }),
+      });
+      const data = await res.json();
+
+      if (!data.success || !data.token || !data.user) {
+        toast.error(data.error || "Google sign-in failed");
+        return { success: false, error: data.error || "Google sign-in failed" };
+      }
+
+      const userData: User = {
+        ...data.user,
+        balance:       Number(data.user.balance ?? 0),
+        bonus_balance: Number(data.user.bonus_balance ?? 0),
+        referral_code: data.user.referral_code ?? "",
+      };
+
+      setUser(userData);
+      setToken(data.token);
+      localStorage.setItem("user",  JSON.stringify(userData));
+      localStorage.setItem("token", data.token);
+
+      toast.success(`Welcome, ${userData.username}!`);
+      return { success: true, token: data.token, user: userData };
+    } catch (err: any) {
+      toast.error(err?.message || "Network error");
+      return { success: false, error: err?.message || "Network error" };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -250,6 +284,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         requestPasswordReset,
         resetPassword,
         setUser,
+        googleAuth,
       }}
     >
       {children}

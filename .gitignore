@@ -1,6 +1,17 @@
 node_modules
 dist
+dist_backup
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
+
+.env
+.env.*
+*.db
+*.sqlite
+logs
+*.log
+coverage
+.tmp
+.cache

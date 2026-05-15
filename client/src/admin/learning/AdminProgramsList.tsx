@@ -1,17 +1,11 @@
 // client/src/admin/learning/AdminProgramsList.tsx
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Edit2, Trash2, BookOpen, Clock, DollarSign } from "lucide-react";
+import { useState, useRef } from "react";
+import { Edit2, Trash2, BookOpen, Clock, Upload, X, ImageIcon } from "lucide-react";
 
 interface Program {
-  id: number;
-  title: string;
-  description: string | null;
-  price: string;
-  duration_days: number;
-  thumbnail_url?: string | null;
+  id: number; title: string; description: string | null;
+  price: string; duration_days: number; thumbnail_url?: string | null;
 }
-
 interface Props {
   programs: Program[];
   selectedProgram: Program | null;
@@ -25,263 +19,204 @@ interface Props {
   viewProgram: (p: Program) => void;
 }
 
-export default function AdminProgramsList({
-  programs,
-  programForm,
-  editingProgramId,
-  setProgramForm,
-  setEditingProgramId,
-  handleProgramSubmit,
-  startProgramEdit,
-  handleDeleteProgram,
-  viewProgram,
-}: Props) {
+const inp = { width:"100%", background:"var(--bg)", border:"1px solid rgba(10,239,255,0.12)", padding:"10px 14px", color:"var(--text)", fontFamily:"var(--font-sans)", fontSize:13, fontWeight:300, outline:"none", borderRadius:0, boxSizing:"border-box" as const };
+const lbl = { fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase" as const, color:"var(--muted-2)", display:"block", marginBottom:6 };
+const FALLBACK = "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80";
+
+export default function AdminProgramsList({ programs, selectedProgram, programForm, editingProgramId, setProgramForm, setEditingProgramId, handleProgramSubmit, startProgramEdit, handleDeleteProgram, viewProgram }: Props) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const token = localStorage.getItem("token");
+
   const cancelEdit = () => {
     setEditingProgramId(null);
-    setProgramForm({ title: "", description: "", price: "0", duration_days: "30", thumbnail_url: "" });
+    setProgramForm({ title:"", description:"", price:"0", duration_days:"30", thumbnail_url:"" });
   };
 
-  const inputStyle = {
-    background: "var(--surface)",
-    borderColor: "var(--surface-3)",
-    color: "var(--text)",
-  };
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setUploadErr("Please select an image file"); return; }
+    if (file.size > 10 * 1024 * 1024) { setUploadErr("Image must be under 10MB"); return; }
+    setUploadErr("");
+    setUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/admin/upload/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ data: base64 }),
+      });
+      const d = await res.json();
+      if (d.success && d.url) {
+        setProgramForm(f => ({ ...f, thumbnail_url: d.url }));
+      } else {
+        setUploadErr(d.error || "Upload failed");
+      }
+    } catch {
+      setUploadErr("Upload failed — please try again");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   return (
-    <div className="space-y-16">
+    <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
 
-      {/* ── Create / Edit Form ── */}
-      <div
-        className="rounded-3xl p-12 border shadow-2xl"
-        style={{
-          background: "linear-gradient(135deg, var(--surface-4), var(--surface))",
-          borderColor: "var(--surface-3)",
-        }}
-      >
-        <h2 className="text-4xl font-bold mb-10" style={{ color: "var(--cyan)" }}>
-          {editingProgramId ? "Edit Program" : "Create New Program"}
-        </h2>
+      <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"20px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:300, color:"var(--text)" }}>Learning Programmes</div>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)" }}>
+          {programs.length} programme{programs.length !== 1 ? "s" : ""}
+        </div>
+      </div>
 
-        <form onSubmit={handleProgramSubmit} className="grid md:grid-cols-2 gap-10">
-          {/* Title */}
-          <div className="space-y-4">
-            <label className="text-lg font-medium" style={{ color: "var(--text-2)" }}>
-              Program Title *
-            </label>
-            <Input
-              value={programForm.title}
-              onChange={(e) => setProgramForm({ ...programForm, title: e.target.value })}
-              placeholder="e.g. Advanced Crypto Trading Mastery"
-              className="text-lg py-6"
-              style={inputStyle}
-              required
-            />
-          </div>
-
-          {/* Price */}
-          <div className="space-y-4">
-            <label className="text-lg font-medium" style={{ color: "var(--text-2)" }}>
-              Price (USD) — set 0 for free
-            </label>
-            <div className="relative">
-              <span
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold"
-                style={{ color: "var(--cyan)" }}
-              >
-                $
-              </span>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={programForm.price}
-                onChange={(e) => setProgramForm({ ...programForm, price: e.target.value })}
-                placeholder="99.99"
-                className="pl-10 text-xl py-6"
-                style={inputStyle}
-              />
+      <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"28px 24px" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)", marginBottom:24 }}>
+          {editingProgramId ? "Edit Programme" : "Create New Programme"}
+        </div>
+        <form onSubmit={handleProgramSubmit} style={{ display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div>
+              <label style={lbl}>Programme Title *</label>
+              <input style={inp} value={programForm.title} onChange={e => setProgramForm({...programForm, title:e.target.value})} placeholder="e.g. Advanced Crypto Trading Mastery" required />
+            </div>
+            <div>
+              <label style={lbl}>Duration (days)</label>
+              <input style={inp} type="number" min="1" value={programForm.duration_days} onChange={e => setProgramForm({...programForm, duration_days:e.target.value})} placeholder="30" />
             </div>
           </div>
 
-          {/* Duration */}
-          <div className="space-y-4">
-            <label className="text-lg font-medium" style={{ color: "var(--text-2)" }}>
-              Duration (days)
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                min="1"
-                value={programForm.duration_days}
-                onChange={(e) => setProgramForm({ ...programForm, duration_days: e.target.value })}
-                placeholder="30"
-                className="pr-16 text-lg py-6"
-                style={inputStyle}
-              />
-              <span
-                className="absolute right-4 top-1/2 -translate-y-1/2"
-                style={{ color: "var(--muted)" }}
-              >
-                days
-              </span>
+          <div>
+            <label style={lbl}>Price (USD) — set 0 for free</label>
+            <input style={{ ...inp, maxWidth:240 }} type="number" step="0.01" min="0" value={programForm.price} onChange={e => setProgramForm({...programForm, price:e.target.value})} placeholder="99.99" />
+          </div>
+
+          <div>
+            <label style={lbl}>Thumbnail Image</label>
+            <div style={{ display:"flex", gap:12, alignItems:"flex-start", flexWrap:"wrap" }}>
+
+              {/* Preview or placeholder */}
+              <div style={{ width:160, height:100, background:"var(--bg)", border:"1px solid rgba(10,239,255,0.12)", flexShrink:0, overflow:"hidden", position:"relative", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                {programForm.thumbnail_url ? (
+                  <>
+                    <img src={programForm.thumbnail_url} alt="Thumbnail" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                    <button type="button"
+                      onClick={() => setProgramForm(f => ({ ...f, thumbnail_url:"" }))}
+                      style={{ position:"absolute", top:4, right:4, background:"rgba(11,17,32,0.85)", border:"1px solid rgba(246,70,93,0.3)", color:"var(--red)", width:22, height:22, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", padding:0 }}>
+                      <X size={12} />
+                    </button>
+                  </>
+                ) : (
+                  <ImageIcon size={28} style={{ color:"var(--muted-2)", opacity:0.4 }} />
+                )}
+              </div>
+
+              {/* Upload controls */}
+              <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1, minWidth:200 }}>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFileUpload}
+                  style={{ display:"none" }} id="thumb-upload" />
+                <label htmlFor="thumb-upload"
+                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"10px 18px", background: uploading ? "rgba(10,239,255,0.03)" : "rgba(10,239,255,0.06)", border:"1px solid rgba(10,239,255,0.2)", color: uploading ? "var(--muted-2)" : "var(--cyan)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor: uploading ? "not-allowed" : "pointer", transition:"all 0.2s", width:"fit-content" }}>
+                  <Upload size={12} />
+                  {uploading ? "Uploading..." : "Upload Image"}
+                </label>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.08em", color:"var(--muted-2)", lineHeight:1.6 }}>
+                  JPG, PNG, WebP — max 10MB. Uploaded to Cloudinary.
+                </div>
+                {uploadErr && (
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.08em", color:"var(--red)" }}>{uploadErr}</div>
+                )}
+                {/* Fallback manual URL */}
+                <div style={{ marginTop:4 }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.08em", color:"var(--muted-2)", marginBottom:4 }}>Or paste URL directly:</div>
+                  <input style={{ ...inp, fontSize:11, padding:"7px 10px" }} value={programForm.thumbnail_url} onChange={e => setProgramForm({...programForm, thumbnail_url:e.target.value})} placeholder="https://..." />
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Thumbnail URL (optional) */}
-          <div className="space-y-4">
-            <label className="text-lg font-medium" style={{ color: "var(--text-2)" }}>
-              Thumbnail URL (optional)
-            </label>
-            <Input
-              value={programForm.thumbnail_url ?? ""}
-              onChange={(e) => setProgramForm({ ...programForm, thumbnail_url: e.target.value })}
-              placeholder="https://example.com/image.jpg"
-              className="text-lg py-6"
-              style={inputStyle}
-            />
+          <div>
+            <label style={lbl}>Description</label>
+            <textarea value={programForm.description} onChange={e => setProgramForm({...programForm, description:e.target.value})}
+              placeholder="What will students learn? Who is this for? Key benefits and outcomes..."
+              rows={5}
+              style={{ ...inp, resize:"vertical", minHeight:100, lineHeight:1.7 }} />
           </div>
 
-          {/* Description */}
-          <div className="md:col-span-2 space-y-4">
-            <label className="text-lg font-medium" style={{ color: "var(--text-2)" }}>
-              Description
-            </label>
-            <textarea
-              value={programForm.description}
-              onChange={(e) => setProgramForm({ ...programForm, description: e.target.value })}
-              placeholder="What will students learn? Who is this for? Key benefits..."
-              rows={6}
-              className="w-full p-6 rounded-2xl text-lg resize-none border"
-              style={{
-                ...inputStyle,
-                outline: "none",
-              }}
-            />
-          </div>
-
-          {/* Submit */}
-          <div className="md:col-span-2 flex gap-6">
-            <Button
-              type="submit"
-              className="flex-1 font-bold text-2xl py-8 shadow-2xl hover:scale-105 transition-all border-0"
-              style={{
-                background: "linear-gradient(to right, var(--cyan), #67e8f9)",
-                color: "#000",
-              }}
-            >
-              {editingProgramId ? "Update Program" : "Create Program"}
-            </Button>
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
             {editingProgramId && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={cancelEdit}
-                className="px-12 text-xl py-8"
-                style={{ borderColor: "var(--surface-3)", color: "var(--text-2)" }}
-              >
+              <button type="button" onClick={cancelEdit}
+                style={{ padding:"10px 24px", background:"transparent", border:"1px solid rgba(10,239,255,0.15)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
                 Cancel
-              </Button>
+              </button>
             )}
+            <button type="submit" disabled={uploading} className="btn-primary"
+              style={{ cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.6 : 1 }}>
+              {editingProgramId ? "Update Programme" : "Create Programme"}
+            </button>
           </div>
         </form>
       </div>
 
-      {/* ── Programs List ── */}
-      <div className="space-y-10">
-        <h2 className="text-4xl font-bold text-center" style={{ color: "var(--cyan)" }}>
-          All Programs
-        </h2>
-
-        {programs.length === 0 ? (
-          <div className="text-center py-20">
-            <BookOpen className="w-32 h-32 mx-auto mb-8" style={{ color: "var(--muted)" }} />
-            <p className="text-3xl" style={{ color: "var(--muted)" }}>No programs created yet</p>
-            <p className="text-xl mt-4" style={{ color: "var(--muted-2)" }}>
-              Create your first premium program above!
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {programs.map((p) => (
-              <div
-                key={p.id}
-                className="rounded-3xl p-8 border cursor-pointer hover:scale-[1.01] transition-all"
-                style={{
-                  background: "linear-gradient(135deg, var(--surface-4), var(--surface))",
-                  borderColor: "var(--surface-3)",
-                }}
-                onClick={() => viewProgram(p)}
-                onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--cyan)")
-                }
-                onMouseLeave={(e) =>
-                  ((e.currentTarget as HTMLElement).style.borderColor = "var(--surface-3)")
-                }
-              >
-                {p.thumbnail_url && (
-                  <img
-                    src={p.thumbnail_url}
-                    alt={p.title}
-                    className="w-full h-40 object-cover rounded-xl mb-6"
-                  />
-                )}
-
-                <h3 className="text-2xl font-bold mb-4" style={{ color: "var(--text)" }}>
-                  {p.title}
-                </h3>
-
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-center gap-2" style={{ color: "var(--cyan)" }}>
-                    <DollarSign className="w-4 h-4" />
-                    <span className="text-xl font-bold">
-                      {Number(p.price) === 0 ? "FREE" : `$${p.price}`}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2" style={{ color: "var(--muted)" }}>
-                    <Clock className="w-4 h-4" />
-                    <span>{p.duration_days} days access</span>
+      {programs.length === 0 ? (
+        <div style={{ background:"var(--surface)", padding:"64px 24px", textAlign:"center" }}>
+          <BookOpen size={36} style={{ color:"var(--muted-2)", display:"block", margin:"0 auto 16px", opacity:0.3 }} />
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)" }}>No programmes yet — create one above</div>
+        </div>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:1, background:"rgba(10,239,255,0.06)" }}>
+          {programs.map(p => {
+            const isFree = Number(p.price) === 0;
+            const img    = p.thumbnail_url || FALLBACK;
+            return (
+              <div key={p.id} style={{ background:"var(--surface)", display:"flex", flexDirection:"column", overflow:"hidden", cursor:"pointer" }} onClick={() => viewProgram(p)}>
+                <div style={{ width:"100%", height:160, overflow:"hidden", flexShrink:0, position:"relative" }}>
+                  <img src={img} alt={p.title} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", transition:"transform 0.4s ease" }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLImageElement).style.transform="scale(1.04)")}
+                    onMouseLeave={e => ((e.currentTarget as HTMLImageElement).style.transform="scale(1)")} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(11,17,32,0.65) 0%, transparent 55%)" }} />
+                  <div style={{ position:"absolute", top:10, right:10, fontFamily:"var(--font-display)", fontSize:16, fontWeight:300, color: isFree ? "var(--green)" : "var(--cyan)", background:"rgba(11,17,32,0.88)", border:`1px solid ${isFree ? "rgba(14,203,129,0.3)" : "rgba(10,239,255,0.25)"}`, padding:"3px 8px", lineHeight:1 }}>
+                    {isFree ? "FREE" : `$${p.price}`}
                   </div>
                 </div>
 
-                {p.description && (
-                  <p className="mb-8 line-clamp-3" style={{ color: "var(--text-2)" }}>
-                    {p.description}
-                  </p>
-                )}
+                <div style={{ padding:"18px 20px", flex:1, display:"flex", flexDirection:"column", gap:8 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, fontFamily:"var(--font-mono)", fontSize:9, color:"var(--muted-2)", letterSpacing:"0.08em" }}>
+                    <Clock size={10} />
+                    {`${p.duration_days} days`}
+                  </div>
+                  <div style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:500, color:"var(--text)", lineHeight:1.3 }}>{p.title}</div>
+                  {p.description && (
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--muted)", lineHeight:1.65, margin:0, display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                      {p.description}
+                    </p>
+                  )}
+                </div>
 
-                <div className="flex gap-4">
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startProgramEdit(p);
-                    }}
-                    className="flex-1 font-bold border"
-                    style={{
-                      background: "transparent",
-                      borderColor: "var(--cyan)",
-                      color: "var(--cyan)",
-                    }}
-                  >
-                    <Edit2 className="mr-2 w-4 h-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProgram(p.id);
-                    }}
-                    variant="destructive"
-                    className="flex-1 font-bold"
-                  >
-                    <Trash2 className="mr-2 w-4 h-4" />
-                    Delete
-                  </Button>
+                <div style={{ padding:"14px 20px", borderTop:"1px solid rgba(10,239,255,0.07)", display:"flex", gap:8 }}>
+                  <button onClick={e => { e.stopPropagation(); startProgramEdit(p); }}
+                    style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px", background:"rgba(242,178,58,0.06)", border:"1px solid rgba(242,178,58,0.2)", color:"#F2B23A", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    <Edit2 size={12} />
+                    {"Edit"}
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); handleDeleteProgram(p.id); }}
+                    style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"8px", background:"rgba(239,68,68,0.06)", border:"1px solid rgba(239,68,68,0.2)", color:"#ef4444", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    <Trash2 size={12} />
+                    {"Delete"}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

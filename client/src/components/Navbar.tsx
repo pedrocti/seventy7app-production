@@ -48,6 +48,8 @@ export default function Navbar() {
       <nav className="nav-bar">
 
         {/* ── Logo ── */}
+
+        {/* ── Logo ── */}
         <motion.a
           href="#"
           className="nav-logo"
@@ -56,15 +58,16 @@ export default function Navbar() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <div className="nav-logo-img-wrap">
-            <img src={logoImage} alt="77Kapital logo" className="nav-logo-img" />
-          </div>
-          <div className="nav-logo-text">
-            <span className="nav-logo-name">
-              <span className="nav-logo-77">77</span>Kapital
-            </span>
-            <span className="nav-logo-sub">Premium Trading</span>
-          </div>
+          <img
+            src={logoImage}
+            alt="Seventy7Hub"
+            style={{
+              height: 42,
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
         </motion.a>
 
         {/* ── Desktop links ── */}

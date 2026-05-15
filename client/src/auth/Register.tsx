@@ -1,63 +1,62 @@
-// src/pages/Register.tsx
+// src/auth/Register.tsx
 import { useState, useEffect } from "react";
 import { useAuth } from "@/auth/AuthContext";
-import { register as registerApi } from "./api";
+import { register as registerApi } from "@/api/auth";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function Register() {
-  const { login } = useAuth();
+  const { googleAuth } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [refCode, setRefCode] = useState("");
+  const [firstName,     setFirstName]     = useState("");
+  const [lastName,      setLastName]      = useState("");
+  const [username,      setUsername]      = useState("");
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [refCode,       setRefCode]       = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showPassword,  setShowPassword]  = useState(false);
+  const [error,         setError]         = useState("");
+  const [loading,       setLoading]       = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
+    const ref = new URLSearchParams(window.location.search).get("ref");
     if (ref) setRefCode(ref.toUpperCase());
   }, []);
+
+  async function handleGoogle(credential: string) {
+    setLoading(true); setError("");
+    try {
+      const result = await googleAuth(credential, refCode.trim() || undefined);
+      if (result.success && result.user) {
+        setLocation(result.user.role?.toLowerCase() === "admin" ? "/admin" : "/dashboard", { replace: true });
+      } else {
+        setError(result.error || "Google sign-up failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    if (!firstName.trim()) return setError("First name is required");
-    if (firstName.trim().length < 2) return setError("First name is too short");
-    if (!lastName.trim()) return setError("Last name is required");
-    if (lastName.trim().length < 2) return setError("Last name is too short");
-    if (!username.trim()) return setError("Username is required");
-    if (!email.trim()) return setError("Email is required");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return setError("Please enter a valid email address");
-    }
-    if (!password.trim()) return setError("Password is required");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
-    if (!agreedToTerms) {
-      return setError("You must agree to the Terms & Conditions");
-    }
-
+    if (!firstName.trim())                          return setError("First name is required");
+    if (firstName.trim().length < 2)                return setError("First name is too short");
+    if (!lastName.trim())                           return setError("Last name is required");
+    if (lastName.trim().length < 2)                 return setError("Last name is too short");
+    if (!username.trim())                           return setError("Username is required");
+    if (!email.trim())                              return setError("Email is required");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Please enter a valid email address");
+    if (!password.trim())                           return setError("Password is required");
+    if (password.length < 6)                        return setError("Password must be at least 6 characters");
+    if (!agreedToTerms)                             return setError("You must agree to the Terms and Conditions");
     setLoading(true);
-
     try {
-      const result = await registerApi(
-        firstName.trim(),          // 1: firstName
-        lastName.trim(),           // 2: lastName
-        username.trim(),           // 3: username
-        email.trim(),              // 4: email
-        password.trim(),           // 5: password
-        refCode.trim() || undefined // 6: ref (optional)
-      );
-
+      const result = await registerApi(firstName.trim(), lastName.trim(), username.trim(), email.trim(), password.trim(), refCode.trim() || undefined);
       if (result.success) {
         alert("Registration successful! Check your email (including spam) to verify your account.");
         setLocation("/login", { replace: true });
@@ -66,188 +65,102 @@ export default function Register() {
       }
     } catch (err: any) {
       setError(err.message || "Network error. Please try again.");
-      console.error("Registration error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 relative overflow-hidden">
-      {/* Subtle background glows */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#0AEFFF]/5 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#7E22CE]/5 rounded-full blur-3xl animate-pulse-slow delay-1000" />
-      </div>
+    <main style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 16px", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 30% 30%, rgba(10,239,255,0.04) 0%, transparent 60%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 50% 40% at 70% 70%, rgba(126,34,206,0.04) 0%, transparent 60%)", pointerEvents: "none" }} />
 
-      {/* Form container */}
-      <div className="relative z-10 w-full max-w-lg">
-        {/* Back link */}
-        <button
-          type="button"
-          onClick={() => setLocation("/")}
-          className="mb-8 text-gray-400 hover:text-[#0AEFFF] transition flex items-center gap-2 text-sm font-medium mx-auto"
-        >
-          ← Back to Homepage
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480 }}>
+        <button type="button" onClick={() => setLocation("/")}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", marginBottom: 32, padding: 0 }}>
+          Back to Homepage
         </button>
 
-        {/* Card */}
-        <div className="bg-[#0F172A]/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8 md:p-10">
-          {/* Logo & Title */}
-          <div className="text-center mb-8">
-            <img
-              src={logo}
-              alt="77KAPITAL Logo"
-              className="w-20 h-20 mx-auto mb-6 rounded-full object-cover shadow-lg shadow-cyan-500/30"
-              loading="lazy"
-            />
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] bg-clip-text text-transparent">
+        <div style={{ background: "var(--surface)", border: "1px solid rgba(10,239,255,0.14)", padding: "40px 36px" }}>
+
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <img src={logo} alt="77KAPITAL" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block", margin: "0 auto 20px" }} />
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 36px)", fontWeight: 300, background: "linear-gradient(135deg, var(--cyan), var(--purple))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: 0 }}>
               77KAPITAL
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">Begin your Financial Mastery</p>
+            <p className="body-text-sm" style={{ marginTop: 8 }}>Begin your Financial Journey</p>
           </div>
 
-          {/* Referral banner */}
           {refCode && (
-            <div className="mb-8 p-5 bg-gradient-to-r from-[#0AEFFF]/15 to-[#7E22CE]/15 border border-[#0AEFFF]/30 rounded-2xl text-center">
-              <p className="text-[#0AEFFF] font-medium">Referral Code Applied</p>
-              <p className="text-3xl font-bold text-white mt-1 tracking-widest">{refCode}</p>
+            <div style={{ marginBottom: 24, padding: "16px 20px", background: "rgba(10,239,255,0.04)", border: "1px solid rgba(10,239,255,0.2)", textAlign: "center" }}>
+              <div className="eyebrow" style={{ marginBottom: 6 }}>Referral Code Applied</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, letterSpacing: "0.2em", color: "var(--text)" }}>{refCode}</div>
             </div>
           )}
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/15 border border-red-500/30 rounded-xl text-red-300 text-center text-sm">
+            <div style={{ marginBottom: 20, padding: "12px 16px", border: "1px solid rgba(246,70,93,0.3)", background: "rgba(246,70,93,0.06)", color: "var(--red)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textAlign: "center" }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="First Name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Last Name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-                required
-              />
+          <div style={{ marginBottom: 24 }}>
+            <GoogleAuthButton onCredential={handleGoogle} text="signup_with" />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0 0" }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(10,239,255,0.1)" }} />
+              <span className="data-label">or register with email</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(10,239,255,0.1)" }} />
             </div>
+          </div>
 
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-              required
-            />
-
-            <input
-              type="email"
-              placeholder="Email (for verification)"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-              required
-            />
-
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="form-input" required />
+              <input type="text" placeholder="Last Name"  value={lastName}  onChange={e => setLastName(e.target.value)}  className="form-input" required />
+            </div>
+            <input type="text"  placeholder="Username"             value={username} onChange={e => setUsername(e.target.value)} className="form-input" required />
+            <input type="email" placeholder="Email (for verification)" value={email} onChange={e => setEmail(e.target.value)} className="form-input" required />
+            <div style={{ position: "relative" }}>
+              <input type={showPassword ? "text" : "password"} placeholder="Password" value={password}
+                onChange={e => setPassword(e.target.value)} className="form-input" style={{ paddingRight: 48 }} required />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--muted)", cursor: "pointer", display: "flex" }}>
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            <input type="text" placeholder="Referral Code (optional)" value={refCode}
+              onChange={e => setRefCode(e.target.value.toUpperCase())}
+              style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.15em", color: "var(--cyan)" }}
+              className="form-input" />
 
-            <input
-              type="text"
-              placeholder="Referral Code (optional)"
-              value={refCode}
-              onChange={(e) => setRefCode(e.target.value.toUpperCase())}
-              className="w-full px-5 py-4 bg-gradient-to-r from-[#0AEFFF]/5 to-cyan-500/5 border border-[#0AEFFF]/20 rounded-xl text-[#0AEFFF] placeholder-cyan-400 font-mono tracking-wider focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-            />
-
-            {/* Terms */}
-            <div className="flex items-start gap-3 pt-2">
-              <input
-                type="checkbox"
-                id="terms-agree"
-                checked={agreedToTerms}
-                onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-1.5 h-5 w-5 rounded border-white/20 bg-white/5 text-[#0AEFFF] focus:ring-[#0AEFFF] focus:ring-offset-2 focus:ring-offset-[#0B1120]"
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, paddingTop: 4 }}>
+              <input type="checkbox" id="terms-agree" checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
                 disabled={loading}
-              />
-              <label htmlFor="terms-agree" className="text-sm text-gray-300 leading-relaxed">
-                I am at least 18, I agree to the{" "}
-                <a
-                  href="/terms-of-service"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#0AEFFF] hover:text-cyan-300 underline transition-colors"
-                >
-                  Terms & Conditions
-                </a>
-                , and understand trading involves risk.
+                style={{ marginTop: 3, flexShrink: 0, accentColor: "var(--cyan)", width: 16, height: 16 }} />
+              <label htmlFor="terms-agree" className="body-text-sm" style={{ margin: 0, cursor: "pointer" }}>
+                I am at least 18 and agree to the Terms and Conditions, and understand participation in financial markets involves risk.
               </label>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading || !agreedToTerms}
-              className={`w-full py-5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] text-[#0B1120] font-bold text-lg rounded-2xl hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 ${
-                !agreedToTerms ? "opacity-60" : ""
-              }`}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                <>
-                  <img
-                    src={logo}
-                    alt="77KAPITAL"
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                  Register Now
-                </>
-              )}
+            <button type="submit" disabled={loading || !agreedToTerms}
+              className="btn-primary"
+              style={{ justifyContent: "center", marginTop: 4, cursor: loading || !agreedToTerms ? "not-allowed" : "pointer", opacity: loading || !agreedToTerms ? 0.6 : 1 }}>
+              {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+              {loading ? "Creating Account..." : "Register Now"}
             </button>
           </form>
 
-          {/* Login link */}
-          <p className="text-center mt-8 text-gray-400 text-sm">
-            Already have an account?{" "}
-            <button
-              type="button"
-              onClick={() => setLocation("/login")}
-              className="text-[#0AEFFF] font-semibold hover:underline"
-            >
+          <p style={{ textAlign: "center", marginTop: 20, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", color: "var(--muted-2)" }}>
+            {"Already have an account? "}
+            <button type="button" onClick={() => setLocation("/login")}
+              style={{ background: "none", border: "none", color: "var(--cyan)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em" }}>
               Login here
             </button>
           </p>
+
         </div>
       </div>
-    </div>
+    </main>
   );
 }

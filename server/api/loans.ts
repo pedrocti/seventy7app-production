@@ -47,7 +47,7 @@ router.get('/eligibility', async (req: any, res) => {
     const portfolioAmount = portfolios.reduce((sum, p) => sum + Number(p.amount), 0);
 
     const hasStake     = totalInvested >= minInvestment;
-    const hasPortfolio = portfolioAmount >= 50000;
+    const hasPortfolio = portfolioAmount >= 25000;
     const eligible     = hasStake || hasPortfolio;
 
     const baseAmount = hasPortfolio ? portfolioAmount : totalInvested;
@@ -97,7 +97,7 @@ router.post('/apply', async (req: any, res) => {
     const portfolioAmount = portfolios.reduce((sum, p) => sum + Number(p.amount), 0);
 
     const hasStake     = totalInvested >= minInvestment;
-    const hasPortfolio = portfolioAmount >= 50000;
+    const hasPortfolio = portfolioAmount >= 25000;
 
     if (!hasStake && !hasPortfolio) {
       return res.status(403).json({

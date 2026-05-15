@@ -479,3 +479,40 @@ export function depositConfirmedEmail(d: { username: string; amount: number }): 
     <div style="text-align:center"><a href="${appUrl}/invest" class="btn">Start Investing</a></div>
   `, { tag: "Deposit Confirmed ✅" });
 }
+
+/* ── Add contact to Brevo mailing list ── */
+export async function addBrevoContact(opts: {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}): Promise<void> {
+  const apiKey = process.env.BREVO_API_KEY ?? "";
+  const listId = Number(process.env.BREVO_LIST_ID ?? 4);
+
+  if (!apiKey) {
+    console.warn("[Brevo] API key not set — contact sync skipped");
+    return;
+  }
+
+  const res = await fetch("https://api.brevo.com/v3/contacts", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": apiKey,
+    },
+    body: JSON.stringify({
+      email: opts.email,
+      attributes: {
+        FIRSTNAME: opts.firstName ?? "",
+        LASTNAME:  opts.lastName  ?? "",
+      },
+      listIds:       [listId],
+      updateEnabled: true,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`[Brevo] Contact sync failed ${res.status}:`, err);
+  }
+}

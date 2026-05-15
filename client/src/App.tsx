@@ -1,5 +1,5 @@
-// src/App.tsx
-import { Route, Switch, Router } from "wouter";
+// client/src/App.tsx
+import { Route, Switch, Router, Redirect } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/auth/AuthContext";
@@ -15,7 +15,6 @@ import Login from "@/auth/Login";
 import Register from "@/auth/Register";
 import Dashboard from "@/pages/Dashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
-import LearningRouter from "@/pages/Learning";
 import NotFound from "@/pages/not-found";
 import PrivateRoute from "@/auth/PrivateRoute";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -24,11 +23,13 @@ import { useEffect, useState } from "react";
 import VerifyEmail from "@/pages/VerifyEmail";
 import BlogPage from "@/pages/BlogPage";
 import BlogPostPage from "@/pages/BlogPostPage";
+
 const App = () => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     setTimeout(() => setLoading(false), 1000);
   }, []);
+
   return (
     <AuthProvider>
       <TooltipProvider>
@@ -37,7 +38,6 @@ const App = () => {
           {loading ? (
             <LoadingScreen />
           ) : (
-            // ✔️ Global layout wrapper
             <div className="min-h-screen bg-[#0B1120] text-white">
               <Router>
                 <Switch>
@@ -52,14 +52,18 @@ const App = () => {
                   <Route path="/login" component={Login} />
                   <Route path="/register" component={Register} />
                   <Route path="/verify-email" component={VerifyEmail} />
-                  {/* BLOG ROUTES */}
+
+                  {/* Blog */}
                   <Route path="/blog" component={BlogPage} />
                   <Route path="/blog/:slug" component={BlogPostPage} />
-                  {/* LEARNING ROUTES */}
-                  <Route path="/learning/*">
-                    <LearningRouter />
+
+                  {/* Learning lives inside the dashboard — redirect any direct
+                      /learning URL hits to the dashboard's learning tab        */}
+                  <Route path="/learning/:rest*">
+                    <Redirect to="/dashboard?tab=learning" />
                   </Route>
-                  {/* FIXED PRIVATE ROUTES */}
+
+                  {/* Private routes */}
                   <Route path="/dashboard">
                     <PrivateRoute>
                       <Dashboard />
@@ -70,6 +74,7 @@ const App = () => {
                       <AdminDashboard />
                     </PrivateRoute>
                   </Route>
+
                   <Route path="/:rest*" component={NotFound} />
                 </Switch>
               </Router>
@@ -80,4 +85,5 @@ const App = () => {
     </AuthProvider>
   );
 };
+
 export default App;

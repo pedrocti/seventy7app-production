@@ -271,7 +271,7 @@ function CapitalProjectionSimulator() {
           <span className="cps-out-delta">{fmtPct(pctLow)}</span>
         </div>
         <div className="cps-out-card cps-out-card--mid" style={{ '--s-color':s.color, '--s-rgb':s.rgb } as CSSProperties}>
-          <span className="cps-out-tag cps-out-tag--primary">Expected</span>
+          <span className="cps-out-tag cps-out-tag--primary">Expected ROI</span>
           <AnimatePresence mode="wait">
             <motion.span key={fmtCap(activePt.mid)} className="cps-out-val cps-out-val--primary"
               initial={{ opacity:0, y:3 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:0.18 }}>
@@ -343,20 +343,20 @@ export default function HeroSection() {
 
             <motion.div variants={rise} className="h-overline">
               <span className="h-overline-bar" />
-              <span className="eyebrow">Institutional-Grade · Est. 2024</span>
+              <span className="eyebrow">EDUCATION & FINANCE- · Est. 2024</span>
             </motion.div>
 
             <motion.h1 variants={rise} className="h-headline">
               Grow wealth
-              <em className="h-headline-gold">the way institutions do.</em>
+              <em className="h-headline-gold">by doing what institutions do.</em>
             </motion.h1>
 
             <motion.div variants={rise} className="h-body">
               <span className="h-body-bar" />
               <p className="h-body-text">
-                Join 500+ members accessing structured investment plans,
+                Join 500+ members accessing structured investment Advisory,
                 managed portfolios, stake-to-earn programmes, and financial
-                education built for serious, long-term wealth.
+                education built for long-term wealth.
               </p>
             </motion.div>
 

@@ -1,76 +1,82 @@
+// client/src/api/learning.ts
+// ─────────────────────────────────────────────────────────────────────────────
+// All calls go through this module. Token is passed in from AuthContext —
+// never read from localStorage here.
+// ─────────────────────────────────────────────────────────────────────────────
 import axios from "axios";
 import { API_BASE } from "./http";
 
-// Helper to get auth header
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+function authHeader(token: string) {
+  return { Authorization: `Bearer ${token}` };
+}
 
 export const LearningAPI = {
-  // GET all courses (existing)
-  getCourses: async () => {
-    const res = await axios.get(`${API_BASE}/learning/courses`, {
-      headers: getAuthHeader(),
-    });
-    return res.data;
+  /* ── Programs ──────────────────────────────────────────────────────────── */
+  getPrograms: async (token: string) => {
+    const r = await axios.get(`${API_BASE}/learning/programs`, { headers: authHeader(token) });
+    return r.data; // { success, programs, purchased }
   },
 
-  // NEW: GET single course by course ID
-  getSingleCourse: async (courseId: number) => {
-  const res = await axios.get(`${API_BASE}/learning/courses/${courseId}`, {
-    headers: getAuthHeader(),
-  });
-  return res.data;
-},
-
-  // Existing getCourse (by program ID — keep for other uses)
-  getCourse: async (programId: number) => {
-    const res = await axios.get(`${API_BASE}/learning/programs/${programId}`, {
-      headers: getAuthHeader(),
-    });
-    return res.data;
+  getProgram: async (programId: number, token: string) => {
+    const r = await axios.get(`${API_BASE}/learning/programs/${programId}`, { headers: authHeader(token) });
+    return r.data; // { success, program, courses, enrolled }
   },
 
-  enroll: async (course_id: number) => {
-    const res = await axios.post(
-      `${API_BASE}/learning/enroll`,
-      { course_id },
-      { headers: getAuthHeader() }
-    );
-    return res.data;
+  buyProgram: async (programId: number, token: string) => {
+    const r = await axios.post(`${API_BASE}/learning/programs/buy/${programId}`, {}, { headers: authHeader(token) });
+    return r.data;
   },
 
-  getLessons: async (courseId: number) => {
-    const res = await axios.get(
-      `${API_BASE}/learning/courses/${courseId}/lessons`,
-      { headers: getAuthHeader() }
-    );
-    return res.data;
+  enrollProgram: async (programId: number, token: string) => {
+    const r = await axios.post(`${API_BASE}/learning/programs/${programId}/enroll`, {}, { headers: authHeader(token) });
+    return r.data;
   },
 
-  getAssignments: async (courseId: number) => {
-    const res = await axios.get(
-      `${API_BASE}/learning/courses/${courseId}/assignments`,
-      { headers: getAuthHeader() }
-    );
-    return res.data;
+  /* ── Courses ───────────────────────────────────────────────────────────── */
+  getCourse: async (courseId: number, token: string) => {
+    const r = await axios.get(`${API_BASE}/learning/courses/${courseId}`, { headers: authHeader(token) });
+    return r.data; // { success, course, lessons, assignments }
   },
 
-  getAssignmentsWithSubmission: async (courseId: number) => {
-    const res = await axios.get(
-      `${API_BASE}/learning/courses/${courseId}/assignments-with-submission`,
-      { headers: getAuthHeader() }
-    );
-    return res.data;
+  enrollCourse: async (courseId: number, token: string) => {
+    const r = await axios.post(`${API_BASE}/learning/courses/${courseId}/enroll`, {}, { headers: authHeader(token) });
+    return r.data;
   },
 
-  submitAssignment: async (assignmentId: number, content: string) => {
-    const res = await axios.post(
+  getProgramCourses: async (programId: number, token: string) => {
+    const r = await axios.get(`${API_BASE}/learning/programs/${programId}/courses`, { headers: authHeader(token) });
+    return r.data;
+  },
+
+  /* ── Assignments ───────────────────────────────────────────────────────── */
+  getAssignmentsWithSubmission: async (courseId: number, token: string) => {
+    // Route: GET /api/learning/assignments/with-submission/:course_id
+    const r = await axios.get(`${API_BASE}/learning/assignments/with-submission/${courseId}`, { headers: authHeader(token) });
+    return r.data; // { success, assignments }
+  },
+
+  submitAssignment: async (assignmentId: number, content: string, token: string) => {
+    const r = await axios.post(
       `${API_BASE}/learning/assignments/${assignmentId}/submit`,
       { content },
-      { headers: getAuthHeader() }
+      { headers: authHeader(token) }
     );
-    return res.data;
+    return r.data;
+  },
+
+  /* ── Progress ──────────────────────────────────────────────────────────── */
+  getCourseProgress: async (courseId: number, token: string) => {
+    // Returns { success, lessons_completed, progress_percent, totals }
+    const r = await axios.get(`${API_BASE}/learning/progress/${courseId}`, { headers: authHeader(token) });
+    return r.data;
+  },
+
+  markLessonComplete: async (lessonId: number, token: string) => {
+    const r = await axios.post(
+      `${API_BASE}/learning/progress/complete`,
+      { lesson_id: lessonId },
+      { headers: authHeader(token) }
+    );
+    return r.data;
   },
 };

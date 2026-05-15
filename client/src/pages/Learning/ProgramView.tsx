@@ -1,319 +1,180 @@
-import { useEffect, useState } from "react";
-import { apiRequest } from "@/api/http";
-import { toast } from "sonner";
-import { ArrowLeft, CheckCircle2, Lock, BookOpen, PlayCircle } from "lucide-react";
+// client/src/pages/Learning/ProgramView.tsx
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+import { useMobile } from '@/hooks/useMobile';
+import { LearningAPI } from '@/api/learning';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { ArrowLeft, CheckCircle2, Lock, PlayCircle, Clock, BookOpen } from 'lucide-react';
 
-interface Program {
-  id: number;
-  title: string;
-  description: string;
-  image_url?: string;
-  thumbnail_url?: string;
-  price: string;
-}
+interface Program { id: number; title: string; description: string; image_url?: string; thumbnail_url?: string; price: string; }
+interface Course  { id: number; title: string; description: string; is_active: boolean; price: string; enrolled?: boolean; }
+interface Props    { id: number; onBack: () => void; onViewCourse: (courseId: number) => void; }
 
-interface Course {
-  id: number;
-  title: string;
-  description: string;
-  is_active: boolean;
-  price: string;
-  enrolled?: boolean;
-}
-
-interface Props {
-  id: number;
-  onBack: () => void;
-  onViewCourses: () => void;
-  onViewCourse?: (courseId: number) => void;
-}
+const FALLBACK = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80';
 
 export default function ProgramView({ id, onBack, onViewCourse }: Props) {
-  const [program, setProgram] = useState<Program | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [enrolled, setEnrolled] = useState(false);
+  const { token } = useAuth();
+  const isMobile  = useMobile();
+  const [program,   setProgram]   = useState<Program | null>(null);
+  const [courses,   setCourses]   = useState<Course[]>([]);
+  const [enrolled,  setEnrolled]  = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [enrollingCourseId, setEnrollingCourseId] = useState<number | null>(null);
+  const [loading,   setLoading]   = useState(true);
 
-  useEffect(() => {
-    loadProgram();
-  }, [id]);
+  useEffect(() => { if (token) load(); }, [id, token]);
 
-  const loadProgram = async () => {
+  async function load() {
+    if (!token) return;
     setLoading(true);
-    const res = await apiRequest(`/learning/programs/${id}`);
-    if (res.success) {
-      setProgram((res as any).program || null);
-      setCourses((res as any).courses || []);
-      setEnrolled(!!(res as any).enrolled);
-    } else {
-      toast.error(res.error || "Failed to load program");
-    }
-    setLoading(false);
-  };
+    try {
+      const d = await LearningAPI.getProgram(id, token);
+      if (d.success) { setProgram(d.program || null); setCourses(d.courses || []); setEnrolled(!!d.enrolled); }
+      else toast.error(d.error || 'Failed to load programme');
+    } catch { toast.error('Network error'); }
+    finally { setLoading(false); }
+  }
 
-  const handleEnroll = async () => {
-    const price = Number(program?.price ?? 0);
-
-    // Paid programs must go through the buy flow (ProgramsList page)
-    if (price > 0) {
-      toast.error("This is a paid program. Please purchase it from the programs list.");
-      return;
-    }
-
+  async function handleEnroll() {
+    if (!token) return;
+    if (Number(program?.price ?? 0) > 0) { toast.error('Paid programme — purchase from the programmes list.'); return; }
     setEnrolling(true);
-    const res = await apiRequest(`/learning/programs/${id}/enroll`, { method: "POST" });
-    if (res.success) {
-      setEnrolled(true);
-      // Refresh to get updated course enrollment status
-      await loadProgram();
-      toast.success("You are now enrolled in this program!");
-    } else {
-      toast.error(res.error || "Enrollment failed");
-    }
-    setEnrolling(false);
-  };
+    try {
+      const d = await LearningAPI.enrollProgram(id, token);
+      if (d.success) { setEnrolled(true); await load(); toast.success('Enrolled successfully!'); }
+      else toast.error(d.error || 'Enrolment failed');
+    } catch { toast.error('Network error'); }
+    finally { setEnrolling(false); }
+  }
 
-  const handleCourseEnroll = async (courseId: number) => {
-    if (!enrolled) {
-      toast.error("Enroll in the program first to access its courses.");
-      return;
-    }
+  async function handleCourseEnroll(courseId: number) {
+    if (!token) return;
+    if (!enrolled) { toast.error('Enrol in the programme first.'); return; }
     setEnrollingCourseId(courseId);
-    const res = await apiRequest(`/learning/courses/${courseId}/enroll`, { method: "POST" });
-    if (res.success) {
-      setCourses((prev) =>
-        prev.map((c) => (c.id === courseId ? { ...c, enrolled: true } : c))
-      );
-      toast.success("Course enrollment successful!");
-    } else {
-      toast.error(res.error || "Course enrollment failed");
-    }
-    setEnrollingCourseId(null);
-  };
-
-  const renderDescription = (text: string) => {
-    return text.split("\n").map((line, i) => {
-      const t = line.trim();
-      if (!t) return null;
-
-      if (t.endsWith(":")) {
-        return (
-          <h4 key={i} className="mt-8 mb-3 text-xl font-semibold border-b pb-1" style={{ color: "var(--cyan)", borderColor: "var(--cyan-line)" }}>
-            {t}
-          </h4>
-        );
-      }
-      if (t.startsWith("**") && t.endsWith("**")) {
-        return (
-          <p key={i} className="font-semibold text-lg my-4" style={{ color: "var(--gold)" }}>
-            {t.replace(/\*\*/g, "")}
-          </p>
-        );
-      }
-      if (t.startsWith("!!") && t.endsWith("!!")) {
-        return (
-          <div key={i} className="p-4 rounded-lg my-4 border" style={{ background: "var(--cyan-dim)", borderColor: "var(--cyan)", color: "var(--cyan)" }}>
-            {t.replace(/!!/g, "")}
-          </div>
-        );
-      }
-      if (t.startsWith("-")) {
-        return (
-          <li key={i} className="ml-6 list-disc mb-1" style={{ color: "var(--text-2)" }}>
-            {t.replace("-", "").trim()}
-          </li>
-        );
-      }
-      return (
-        <p key={i} className="text-base leading-relaxed mb-3" style={{ color: "var(--text-2)" }}>
-          {t}
-        </p>
-      );
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--text)" }}>
-        <div className="text-center animate-pulse">
-          <BookOpen className="w-16 h-16 mx-auto mb-4" style={{ color: "var(--cyan)" }} />
-          <p className="text-xl" style={{ color: "var(--text-2)" }}>Loading program...</p>
-        </div>
-      </div>
-    );
+    try {
+      const d = await LearningAPI.enrollCourse(courseId, token);
+      if (d.success) { setCourses(prev => prev.map(c => c.id === courseId ? { ...c, enrolled: true } : c)); toast.success('Course enrolment successful!'); }
+      else toast.error(d.error || 'Enrolment failed');
+    } catch { toast.error('Network error'); }
+    finally { setEnrollingCourseId(null); }
   }
 
-  if (!program) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--text)" }}>
-        <p className="text-xl" style={{ color: "var(--muted)" }}>Program not found.</p>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted-2)", letterSpacing:"0.1em", textTransform:"uppercase" }}>
+      Loading programme...
+    </div>
+  );
 
-  const coverImage = program.image_url || program.thumbnail_url;
+  if (!program) return (
+    <div style={{ padding:40, textAlign:"center", fontFamily:"var(--font-mono)", fontSize:11, color:"var(--red)" }}>Programme not found</div>
+  );
+
   const isFree = Number(program.price) === 0;
+  const cover  = program.thumbnail_url || program.image_url || FALLBACK;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--text)" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
 
-        {/* Back */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 mb-10 transition-opacity hover:opacity-70"
-          style={{ color: "var(--cyan)" }}
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back to Programs
+      <div style={{ background:"var(--surface)", borderBottom:"1px solid rgba(10,239,255,0.08)", padding: isMobile ? "12px 16px" : "14px 28px" }}>
+        <button onClick={onBack} style={{ display:"flex", alignItems:"center", gap:8, background:"none", border:"none", color:"var(--cyan)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", padding:0 }}>
+          <ArrowLeft size={13} />
+          {"Back to Programmes"}
         </button>
+      </div>
 
-        {/* Hero Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6" style={{ color: "var(--text)" }}>
-            {program.title}
-          </h1>
-          {coverImage && (
-            <img
-              src={coverImage}
-              alt={program.title}
-              className="w-full h-72 md:h-96 object-cover rounded-2xl shadow-xl mb-8"
-            />
+      <div style={{ position:"relative", width:"100%", height: isMobile ? 200 : 300, overflow:"hidden", flexShrink:0 }}>
+        <img src={cover} alt={program.title} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+        <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(11,17,32,0.92) 0%, rgba(11,17,32,0.3) 60%, transparent 100%)" }} />
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, padding: isMobile ? "20px 20px" : "32px 40px" }}>
+          <span style={{ fontFamily:"var(--font-display)", fontSize:"clamp(22px,3.5vw,40px)", fontWeight:300, color:"var(--text)", lineHeight:1.15, display:"block" }}>{program.title}</span>
+        </div>
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 280px", gap:1, background:"rgba(10,239,255,0.06)" }}>
+        <div style={{ background:"var(--surface)", padding: isMobile ? "24px 20px" : "36px 40px" }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:12 }}>About this Programme</div>
+          <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--muted)", lineHeight:1.8, margin:0 }}>{program.description}</p>
+          <div style={{ display:"flex", gap:24, marginTop:24, flexWrap:"wrap" }}>
+            <div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:4 }}>Courses</div>
+              <div style={{ fontFamily:"var(--font-display)", fontSize:22, fontWeight:300, color:"var(--text)" }}>{courses.length}</div>
+            </div>
+            <div>
+              <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:4 }}>Price</div>
+              <div style={{ fontFamily:"var(--font-display)", fontSize:22, fontWeight:300, color: isFree ? "var(--green)" : "var(--cyan)" }}>{isFree ? "FREE" : `$${program.price}`}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background:"var(--surface)", padding:"28px 24px", display:"flex", flexDirection:"column", gap:16 }}>
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--muted-2)" }}>Enrolment</div>
+          {enrolled ? (
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"14px 16px", background:"rgba(14,203,129,0.06)", border:"1px solid rgba(14,203,129,0.2)" }}>
+              <CheckCircle2 size={16} style={{ color:"var(--green)", flexShrink:0 }} />
+              <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--green)" }}>Enrolled</span>
+            </div>
+          ) : (
+            <button onClick={handleEnroll} disabled={enrolling || !isFree} className="btn-primary"
+              style={{ justifyContent:"center", cursor: enrolling || !isFree ? "not-allowed" : "pointer", opacity: enrolling ? 0.6 : 1 }}>
+              {enrolling ? "Enrolling..." : isFree ? "Enrol Now" : "Purchase Required"}
+            </button>
+          )}
+          {!isFree && !enrolled && (
+            <p style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.08em", color:"var(--muted-2)", lineHeight:1.7, margin:0 }}>
+              Go back and click "Buy and Access" to purchase this programme.
+            </p>
           )}
         </div>
+      </div>
 
-        {/* Content + Sidebar */}
-        <div className="grid lg:grid-cols-3 gap-12">
-
-          {/* Description */}
-          <div className="lg:col-span-2">
-            <div className="p-8 rounded-2xl border" style={{ background: "var(--surface)", borderColor: "var(--surface-3)" }}>
-              {renderDescription(program.description || "")}
-            </div>
-          </div>
-
-          {/* Sticky Enroll Panel */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-24 p-6 rounded-2xl border" style={{ background: "var(--surface)", borderColor: "var(--surface-3)" }}>
-              {/* Price */}
-              <p className="text-3xl font-bold mb-4" style={{ color: "var(--cyan)" }}>
-                {isFree ? "FREE" : `$${program.price}`}
-              </p>
-
-              {enrolled ? (
-                <div className="w-full text-center py-3 rounded-lg border flex items-center justify-center gap-2 font-medium"
-                  style={{ background: "var(--green-dim)", borderColor: "var(--green)", color: "var(--green)" }}>
-                  <CheckCircle2 className="w-5 h-5" />
-                  You are enrolled
-                </div>
-              ) : (
-                <button
-                  onClick={handleEnroll}
-                  disabled={enrolling || !isFree}
-                  className="w-full font-semibold py-3 rounded-lg shadow-lg transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border-0"
-                  style={{
-                    background: isFree
-                      ? "linear-gradient(to right, var(--cyan), #67e8f9)"
-                      : "var(--surface-3)",
-                    color: isFree ? "#000" : "var(--muted)",
-                  }}
-                >
-                  {enrolling
-                    ? "Enrolling..."
-                    : isFree
-                    ? "Enroll in Program"
-                    : "Purchase Required"}
-                </button>
-              )}
-
-              {!isFree && !enrolled && (
-                <p className="mt-3 text-xs text-center" style={{ color: "var(--muted)" }}>
-                  Go back to programs and click "Buy & Access" to purchase.
-                </p>
-              )}
-
-              <p className="mt-6 text-sm" style={{ color: "var(--muted)" }}>
-                Full access to all included courses and lessons.
-              </p>
-            </div>
-          </div>
+      <div style={{ background:"var(--surface)", borderTop:"1px solid rgba(10,239,255,0.08)", padding: isMobile ? "20px" : "32px 40px" }}>
+        <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:6 }}>Included Courses</div>
+        <div style={{ fontFamily:"var(--font-display)", fontSize: isMobile ? 20 : 26, fontWeight:300, color:"var(--text)", marginBottom:24 }}>
+          {`${courses.length} Course${courses.length !== 1 ? "s" : ""} in this Programme`}
         </div>
 
-        {/* Courses Section */}
-        <div className="mt-20">
-          <h2 className="text-3xl font-bold mb-10" style={{ color: "var(--text)" }}>
-            Courses Included
-          </h2>
+        {courses.length === 0 ? (
+          <div style={{ padding:"40px 0", textAlign:"center", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)" }}>
+            No courses yet
+          </div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:1, background:"rgba(10,239,255,0.06)" }}>
+            {courses.map((c, idx) => (
+              <motion.div key={c.id}
+                initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay: idx * 0.05 }}
+                style={{ background:"var(--surface)", padding: isMobile ? "18px 16px" : "20px 24px", display:"flex", alignItems:"center", gap:16, position:"relative" }}>
+                {c.enrolled && <div style={{ position:"absolute", left:0, top:0, bottom:0, width:2, background:"var(--green)" }} />}
 
-          {courses.length === 0 ? (
-            <p style={{ color: "var(--muted)" }}>No courses available for this program yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.map((c) => (
-                <div
-                  key={c.id}
-                  className="p-6 rounded-2xl border transition hover:shadow-xl"
-                  style={{
-                    background: "var(--surface)",
-                    borderColor: c.enrolled ? "var(--green)" : "var(--surface-3)",
-                  }}
-                >
-                  <h4 className="text-lg font-semibold mb-3" style={{ color: "var(--text)" }}>
-                    {c.title}
-                  </h4>
+                <div style={{ width:40, height:40, background: c.enrolled ? "rgba(14,203,129,0.08)" : "rgba(10,239,255,0.06)", border:`1px solid ${c.enrolled ? "rgba(14,203,129,0.2)" : "rgba(10,239,255,0.12)"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  {c.enrolled ? <PlayCircle size={16} style={{ color:"var(--green)" }} /> : enrolled ? <BookOpen size={16} style={{ color:"var(--cyan)" }} /> : <Lock size={14} style={{ color:"var(--muted-2)" }} />}
+                </div>
 
-                  <p className="text-sm mb-4 line-clamp-3" style={{ color: "var(--muted)" }}>
-                    {c.description}
-                  </p>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontFamily:"var(--font-sans)", fontSize:14, color:"var(--text)", fontWeight:400, marginBottom: c.description ? 4 : 0, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.title}</div>
+                  {c.description && (
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--muted)", lineHeight:1.6, margin:0, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{c.description}</p>
+                  )}
+                </div>
 
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="font-semibold" style={{ color: "var(--gold)" }}>
-                      {Number(c.price) === 0 ? "Included" : `$${c.price}`}
-                    </span>
-
-                    {c.enrolled ? (
-                      <span className="flex items-center gap-1 text-sm" style={{ color: "var(--green)" }}>
-                        <CheckCircle2 className="w-4 h-4" />
-                        Enrolled
-                      </span>
-                    ) : (
-                      <button
-                        disabled={!enrolled || enrollingCourseId === c.id}
-                        onClick={() => handleCourseEnroll(c.id)}
-                        className="px-4 py-1.5 rounded text-sm font-medium transition border-0"
-                        style={{
-                          background: enrolled ? "var(--cyan)" : "var(--surface-3)",
-                          color: enrolled ? "#000" : "var(--muted)",
-                          cursor: enrolled ? "pointer" : "not-allowed",
-                          opacity: enrolled ? 1 : 0.6,
-                        }}
-                      >
-                        {enrollingCourseId === c.id ? "Enrolling..." : enrolled ? "Enroll" : <><Lock className="w-3 h-3 inline mr-1" />Locked</>}
-                      </button>
-                    )}
-                  </div>
-
-                  {c.enrolled && (
-                    <button
-                      onClick={() => onViewCourse?.(c.id)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition hover:opacity-80 border-0"
-                      style={{
-                        background: "linear-gradient(to right, var(--cyan), #67e8f9)",
-                        color: "#000",
-                      }}
-                    >
-                      <PlayCircle className="w-4 h-4" />
-                      Enter Course
+                <div style={{ flexShrink:0 }}>
+                  {c.enrolled ? (
+                    <button onClick={() => onViewCourse(c.id)} className="btn-primary" style={{ padding:"9px 18px", whiteSpace:"nowrap" }}>
+                      <PlayCircle size={12} />
+                      {"Enter"}
+                    </button>
+                  ) : (
+                    <button onClick={() => handleCourseEnroll(c.id)}
+                      disabled={!enrolled || enrollingCourseId === c.id}
+                      style={{ display:"flex", alignItems:"center", gap:6, padding:"9px 18px", background: enrolled ? "rgba(10,239,255,0.06)" : "transparent", border:`1px solid ${enrolled ? "rgba(10,239,255,0.2)" : "rgba(10,239,255,0.06)"}`, color: enrolled ? "var(--cyan)" : "var(--muted-2)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor: enrolled ? "pointer" : "not-allowed", whiteSpace:"nowrap" }}>
+                      {enrollingCourseId === c.id ? "Enrolling..." : enrolled ? "Enrol" : <><Lock size={10} /> {"Locked"}</>}
                     </button>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

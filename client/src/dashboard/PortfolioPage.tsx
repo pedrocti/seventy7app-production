@@ -35,7 +35,7 @@ export default function PortfolioPage() {
 
   async function submitRequest() {
     const amount = Number(reqAmount);
-    if (isNaN(amount) || amount < 50000) { alert('Minimum amount is $50,000'); return; }
+    if (isNaN(amount) || amount < 25000) { alert('Minimum amount is $25,000'); return; }
     if (balance < amount) { alert('Insufficient balance. Please fund your account.'); return; }
     const r = await fetch('/api/portfolio/request', {
       method:'POST',
@@ -56,7 +56,7 @@ export default function PortfolioPage() {
     <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
       <div style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.08)', padding:'36px' }}>
         <span style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--cyan)', background:'rgba(10,239,255,0.06)', border:'1px solid rgba(10,239,255,0.15)', padding:'3px 10px', display:'inline-block', marginBottom:20 }}>
-          Managed Portfolios · Min. $50,000
+          Managed Portfolios · Min. $25,000
         </span>
         <div style={{ fontFamily:'var(--font-display)', fontSize:'clamp(24px,3vw,40px)', fontWeight:300, color:'var(--text)', lineHeight:1.1, marginBottom:16 }}>
           Private Portfolio<br/><em>Management</em>
@@ -108,10 +108,10 @@ export default function PortfolioPage() {
               <>
                 <div style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)', marginBottom:8 }}>Enter Investment Amount</div>
                 <p style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:20 }}>Available balance: ${balance.toLocaleString()}</p>
-                <input type="number" value={reqAmount} onChange={e => setReqAmount(e.target.value)} placeholder="Minimum $50,000"
+                <input type="number" value={reqAmount} onChange={e => setReqAmount(e.target.value)} placeholder="Minimum $25,000"
                   style={{ width:'100%', background:'var(--surface)', border:'1px solid rgba(10,239,255,0.12)', padding:'12px 16px', color:'var(--text)', fontFamily:'var(--font-sans)', fontSize:14, outline:'none', marginBottom:12, boxSizing:'border-box' as const }}/>
-                <button onClick={submitRequest} disabled={Number(reqAmount) < 50000 || balance < Number(reqAmount)}
-                  className="btn-primary" style={{ width:'100%', justifyContent:'center', cursor:'pointer', opacity: Number(reqAmount) >= 50000 && balance >= Number(reqAmount) ? 1 : 0.5 }}>
+                <button onClick={submitRequest} disabled={Number(reqAmount) < 25000 || balance < Number(reqAmount)}
+                  className="btn-primary" style={{ width:'100%', justifyContent:'center', cursor:'pointer', opacity: Number(reqAmount) >= 25000 && balance >= Number(reqAmount) ? 1 : 0.5 }}>
                   Confirm Portfolio Management
                 </button>
               </>

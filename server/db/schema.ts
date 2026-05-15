@@ -25,6 +25,7 @@ export const users = pgTable("users", {
   last_name: text("last_name"),
   created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   email_verified_at: timestamp("email_verified_at"),
+  google_id: text("google_id").unique(),
   admin_investment_balance: numeric("admin_investment_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
   admin_programs_balance: numeric("admin_programs_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
   admin_mentorship_balance: numeric("admin_mentorship_balance", { precision: 20, scale: 2 }).notNull().default("0.00"),
@@ -38,13 +39,19 @@ export const plans = pgTable("plans", {
   min_amount: numeric("min_amount", { precision: 20, scale: 2 }).notNull(),
   max_amount: numeric("max_amount", { precision: 20, scale: 2 }),
   description: text("description").default(""),
-  // duration_days is always 365 for annual plans — kept for backward compat
   duration_days: integer("duration_days").notNull().default(365),
   progress_percent: numeric("progress_percent", { precision: 6, scale: 2 }).notNull().default("0.00"),
   profit_loss: numeric("profit_loss", { precision: 10, scale: 2 }).notNull().default("0.00"),
   last_update: timestamp("last_update", { withTimezone: true }).notNull().defaultNow(),
-  // ── NEW: expected monthly ROI % admin sets per plan ──
+
+  // Original single-value ROI — kept so payout job fallback still works
   monthly_roi_percent: numeric("monthly_roi_percent", { precision: 8, scale: 4 }).notNull().default("0.0000"),
+
+  // NEW: ROI range — admin sets these, mid-point used for projections
+  min_monthly_roi: numeric("min_monthly_roi", { precision: 8, scale: 4 }).notNull().default("0.0000"),
+  max_monthly_roi: numeric("max_monthly_roi", { precision: 8, scale: 4 }).notNull().default("0.0000"),
+  min_total_roi:   numeric("min_total_roi",   { precision: 8, scale: 4 }).notNull().default("0.0000"),
+  max_total_roi:   numeric("max_total_roi",   { precision: 8, scale: 4 }).notNull().default("0.0000"),
 });
 
 /* ======================= INVESTMENTS ====================== */
@@ -70,6 +77,7 @@ export const investments = pgTable("investments", {
   current_month: integer("current_month").notNull().default(0),
   total_earned: numeric("total_earned", { precision: 20, scale: 2 }).notNull().default("0.00"),
   next_payout_at: timestamp("next_payout_at", { withTimezone: true }),
+  monthly_roi_rate: numeric("monthly_roi_rate", { precision: 8, scale: 4 }).notNull().default("0.0000"),
 });
 
 /* ================== INVESTMENT MONTHLY PAYOUTS ================== */

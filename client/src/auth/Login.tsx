@@ -1,82 +1,66 @@
-// src/pages/Login.tsx
+// src/auth/Login.tsx
 import { useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useLocation } from "wouter";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
-import logo from "@/assets/logo.jpeg"; // ← Your system logo
+import logo from "@/assets/logo.jpeg";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function Login() {
-  const { login, requestPasswordReset } = useAuth(); // add password reset method
+  const { login, requestPasswordReset, googleAuth } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username,      setUsername]      = useState("");
+  const [password,      setPassword]      = useState("");
   const [emailForReset, setEmailForReset] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState(""); // For success messages
-  const [loading, setLoading] = useState(false);
-  const [resetMode, setResetMode] = useState(false); // toggles login / forgot password form
+  const [showPassword,  setShowPassword]  = useState(false);
+  const [error,         setError]         = useState("");
+  const [info,          setInfo]          = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [resetMode,     setResetMode]     = useState(false);
 
-  // ----------------------
-  // Login Handler
-  // ----------------------
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setInfo("");
+    setError(""); setInfo("");
     setLoading(true);
-
     try {
-      console.log("→ Frontend sending login request:", { username, password });
       const response = await login(username.trim(), password.trim());
-      console.log("→ Backend response:", response);
-
       if (response.success && response.user) {
-        // Redirect based on role
-        const role = response.user.role?.toLowerCase();
-        setLocation(role === "admin" ? "/admin" : "/dashboard", { replace: true });
+        setLocation(response.user.role?.toLowerCase() === "admin" ? "/admin" : "/dashboard", { replace: true });
       } else {
-        // Error already returned from backend (including email verification)
         setError(response.error || "Invalid credentials or server error");
       }
     } catch (err: any) {
       setError(err.message || "Connection error. Please try again.");
-      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  async function handleGoogle(credential: string) {
+    setLoading(true); setError(""); setInfo("");
+    try {
+      const result = await googleAuth(credential);
+      if (result.success && result.user) {
+        setLocation(result.user.role?.toLowerCase() === "admin" ? "/admin" : "/dashboard", { replace: true });
+      } else {
+        setError(result.error || "Google sign-in failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
-
-  // ----------------------
-  // Password Reset Handler
-  // ----------------------
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setInfo("");
+    setError(""); setInfo("");
     setLoading(true);
-
     try {
-      if (!emailForReset.trim()) {
-        setError("Please enter your email address");
-        setLoading(false);
-        return;
-      }
-
+      if (!emailForReset.trim()) { setError("Please enter your email address"); return; }
       const response = await requestPasswordReset(emailForReset.trim());
-      console.log("→ Password reset response:", response);
-
-      if (response.success) {
-        setInfo("If an account exists for this email, a password reset has been sent.");
-        setEmailForReset("");
-      } else {
-        setError(response.error || "Failed to send password reset email");
-      }
+      if (response.success) { setInfo("If an account exists for this email, a password reset has been sent."); setEmailForReset(""); }
+      else { setError(response.error || "Failed to send password reset email"); }
     } catch (err: any) {
-      console.error("Password reset error:", err);
       setError(err.message || "Connection error. Please try again.");
     } finally {
       setLoading(false);
@@ -84,161 +68,104 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1120] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 relative overflow-hidden">
-      {/* Subtle background glows */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#0AEFFF]/5 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#7E22CE]/5 rounded-full blur-3xl animate-pulse-slow delay-1000" />
-      </div>
+    <main style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "48px 16px", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 30% 30%, rgba(10,239,255,0.04) 0%, transparent 60%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 50% 40% at 70% 70%, rgba(126,34,206,0.04) 0%, transparent 60%)", pointerEvents: "none" }} />
 
-      {/* Form container */}
-      <div className="relative z-10 w-full max-w-lg">
-        {/* Back link */}
-        <button
-          type="button"
-          onClick={() => setLocation("/")}
-          className="mb-8 text-gray-400 hover:text-[#0AEFFF] transition flex items-center gap-2 text-sm font-medium mx-auto"
-        >
-          ← Back to Homepage
+      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480 }}>
+        <button type="button" onClick={() => setLocation("/")}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", marginBottom: 32, padding: 0 }}>
+          Back to Homepage
         </button>
 
-        {/* Card */}
-        <div className="bg-[#0F172A]/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8 md:p-10">
-          {/* Logo & Title */}
-          <div className="text-center mb-8">
-            <img
-              src={logo}
-              alt="77KAPITAL Logo"
-              className="w-20 h-20 mx-auto mb-6 rounded-full object-cover shadow-lg shadow-cyan-500/30"
-              loading="lazy"
-            />
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] bg-clip-text text-transparent">
+        <div style={{ background: "var(--surface)", border: "1px solid rgba(10,239,255,0.14)", padding: "40px 36px" }}>
+
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <img src={logo} alt="77KAPITAL" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block", margin: "0 auto 20px" }} />
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 4vw, 36px)", fontWeight: 300, background: "linear-gradient(135deg, var(--cyan), var(--purple))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: 0 }}>
               77KAPITAL
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">
+            <p className="body-text-sm" style={{ marginTop: 8 }}>
               {resetMode ? "Enter your email to reset password" : "Sign in to your account"}
             </p>
           </div>
 
-          {/* Info / Error Messages */}
           {(error || info) && (
-            <div
-              className={`mb-6 p-4 border rounded-xl text-center text-sm ${
-                error ? "bg-red-500/15 border-red-500/30 text-red-300" : "bg-green-500/15 border-green-500/30 text-green-300"
-              }`}
-            >
+            <div style={{ marginBottom: 20, padding: "12px 16px", border: error ? "1px solid rgba(246,70,93,0.3)" : "1px solid rgba(14,203,129,0.3)", background: error ? "rgba(246,70,93,0.06)" : "rgba(14,203,129,0.06)", color: error ? "var(--red)" : "var(--green)", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.08em", textAlign: "center" }}>
               {error || info}
             </div>
           )}
 
-          {/* Form */}
-          <form
-            onSubmit={resetMode ? handlePasswordReset : handleLogin}
-            className="space-y-6"
-          >
+          {!resetMode && (
+            <div style={{ marginBottom: 24 }}>
+              <GoogleAuthButton onCredential={handleGoogle} text="signin_with" />
+              <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0 0" }}>
+                <div style={{ flex: 1, height: 1, background: "rgba(10,239,255,0.1)" }} />
+                <span className="data-label">or sign in with email</span>
+                <div style={{ flex: 1, height: 1, background: "rgba(10,239,255,0.1)" }} />
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={resetMode ? handlePasswordReset : handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {resetMode ? (
-              // ---------------------- Password Reset Form ----------------------
-              <input
-                type="email"
-                placeholder="Email address"
-                value={emailForReset}
-                onChange={(e) => setEmailForReset(e.target.value)}
-                className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-                required
-              />
+              <input type="email" placeholder="Email address" value={emailForReset}
+                onChange={e => setEmailForReset(e.target.value)}
+                className="form-input" required />
             ) : (
               <>
-                {/* Username */}
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition"
-                  required
-                  autoFocus
-                />
-
-                {/* Password */}
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0AEFFF] transition"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                <input type="text" placeholder="Username" value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  className="form-input" required autoFocus />
+                <div style={{ position: "relative" }}>
+                  <input type={showPassword ? "text" : "password"} placeholder="Password" value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="form-input" style={{ paddingRight: 48 }} required />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--muted)", cursor: "pointer", display: "flex" }}>
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </>
             )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] text-[#0B1120] font-bold py-5 rounded-2xl hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {resetMode ? "Sending..." : "Signing In..."}
-                </>
-              ) : (
-                resetMode ? "Send Reset Link" : "Sign In"
-              )}
+            <button type="submit" disabled={loading}
+              className="btn-primary"
+              style={{ justifyContent: "center", marginTop: 4, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}>
+              {loading ? <Loader2 size={14} className="animate-spin" /> : null}
+              {loading ? (resetMode ? "Sending..." : "Signing In...") : (resetMode ? "Send Reset Link" : "Sign In")}
             </button>
           </form>
 
-          {/* Switch between login / forgot password */}
-          <p className="text-center mt-6 text-gray-400 text-sm">
+          <p style={{ textAlign: "center", marginTop: 20, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", color: "var(--muted-2)" }}>
             {resetMode ? (
-              <>
-                Remembered your password?{" "}
-                <button
-                  type="button"
-                  onClick={() => { setResetMode(false); setError(""); setInfo(""); }}
-                  className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
-                >
+              <span>Remembered your password?{" "}
+                <button type="button" onClick={() => { setResetMode(false); setError(""); setInfo(""); }}
+                  style={{ background: "none", border: "none", color: "var(--cyan)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em" }}>
                   Login here
                 </button>
-              </>
+              </span>
             ) : (
-              <>
-                Forgot your password?{" "}
-                <button
-                  type="button"
-                  onClick={() => { setResetMode(true); setError(""); setInfo(""); }}
-                  className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
-                >
+              <span>Forgot your password?{" "}
+                <button type="button" onClick={() => { setResetMode(true); setError(""); setInfo(""); }}
+                  style={{ background: "none", border: "none", color: "var(--cyan)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em" }}>
                   Reset here
                 </button>
-              </>
+              </span>
             )}
           </p>
 
-          {/* Register link */}
           {!resetMode && (
-            <p className="text-center mt-8 text-gray-400 text-sm">
-              Don’t have an account?{" "}
-              <button
-                type="button"
-                onClick={() => setLocation("/register")}
-                className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
-              >
+            <p style={{ textAlign: "center", marginTop: 16, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em", color: "var(--muted-2)" }}>
+              {"No account? "}
+              <button type="button" onClick={() => setLocation("/register")}
+                style={{ background: "none", border: "none", color: "var(--cyan)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.08em" }}>
                 Register here
               </button>
             </p>
           )}
+
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -10,7 +10,7 @@ function authHeader() {
   return { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) };
 }
 
-interface Loan {
+interface Lend {
   id: number; user_id: number; amount: string; interest_rate: string;
   duration_months: number; status: string; purpose: string; admin_notes: string;
   approved_at: string | null; created_at: string; username: string; email: string;
@@ -21,7 +21,7 @@ interface Settings {
 }
 
 export default function AdminLoanManager() {
-  const [loans,    setLoans]    = useState<Loan[]>([]);
+  const [loans,    setLends]    = useState<Lend[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [msg,      setMsg]      = useState<{ type:'ok'|'err'; text:string } | null>(null);
@@ -43,7 +43,7 @@ export default function AdminLoanManager() {
         fetch('/api/admin/loans',          { headers: authHeader() }).then(r=>r.json()),
         fetch('/api/admin/loans/settings', { headers: authHeader() }).then(r=>r.json()),
       ]);
-      if (lRes.success) setLoans(lRes.loans || []);
+      if (lRes.success) setLends(lRes.loans || []);
       if (sRes.success && sRes.settings) {
         setSettings(sRes.settings);
         setIntRate(sRes.settings.interest_rate);
@@ -63,7 +63,7 @@ export default function AdminLoanManager() {
         body: JSON.stringify({ status, admin_notes: notes[id] || null }),
       });
       const d = await r.json();
-      if (d.success) { showMsg('ok', `Loan ${status}`); load(); }
+      if (d.success) { showMsg('ok', `Lend ${status}`); load(); }
       else showMsg('err', d.error || 'Failed');
     } catch { showMsg('err', 'Network error'); }
   }
@@ -99,8 +99,8 @@ export default function AdminLoanManager() {
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24, paddingBottom:20, borderBottom:'1px solid rgba(10,239,255,0.10)' }}>
         <div>
-          <span style={{ ...lbl, marginBottom:4 }}>Capital Loan Programme</span>
-          <h2 style={{ fontFamily:'var(--font-display)', fontSize:24, fontWeight:300, color:'var(--text)', margin:0 }}>Loan Management</h2>
+          <span style={{ ...lbl, marginBottom:4 }}>Capital Lend Programme</span>
+          <h2 style={{ fontFamily:'var(--font-display)', fontSize:24, fontWeight:300, color:'var(--text)', margin:0 }}>Lend Management</h2>
         </div>
         {/* Tab toggle */}
         <div style={{ display:'flex', gap:1, background:'rgba(10,239,255,0.08)' }}>
@@ -199,7 +199,7 @@ export default function AdminLoanManager() {
               <input type="number" value={minInv} onChange={e => setMinInv(e.target.value)} style={inp} min="0" />
             </div>
             <div>
-              <label style={lbl}>Maximum Loan as % of Stake</label>
+              <label style={lbl}>Maximum Lend as % of Stake</label>
               <input type="number" value={maxPct} onChange={e => setMaxPct(e.target.value)} style={inp} min="0" max="100" />
             </div>
             <div style={{ padding:'16px', background:'rgba(10,239,255,0.04)', border:'1px solid rgba(10,239,255,0.10)' }}>

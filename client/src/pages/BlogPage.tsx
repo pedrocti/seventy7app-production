@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
-import Navbar from '@/components/Navbar';
+import Navbar from '@/components/InnerNavbar';
 
 interface Post {
   id: number; title: string; slug: string; tag: string;

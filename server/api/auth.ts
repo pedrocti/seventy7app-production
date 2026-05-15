@@ -4,7 +4,8 @@ import { eq, and, sql } from "drizzle-orm";
 import { transactions, email_verification_tokens } from "../db/schema";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-// ── CHANGED: import Brevo functions instead of sendEmail ──
+import { OAuth2Client } from "google-auth-library";
+import { addBrevoContact } from "../services/brevo.service.js";
 import {
   sendBrevoEmail,
   welcomeEmail,
@@ -17,7 +18,7 @@ import { Router, Request, Response, NextFunction } from "express";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "supersecret";
-
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // ✅ Safe FRONTEND_URL
 const FRONTEND_URL = process.env.FRONTEND_URL;
 if (!FRONTEND_URL) {
@@ -189,6 +190,12 @@ router.post("/register", async (req, res) => {
         verifyUrl: `${FRONTEND_URL}/verify-email?token=${verifyToken}`,
       }),
     }).catch(err => console.error("[Auth] Welcome email error:", err));
+
+    addBrevoContact({
+      email:     insertedUser.email,
+      firstName: insertedUser.first_name ?? "",
+      lastName:  insertedUser.last_name  ?? "",
+    }).catch(err => console.error("[Auth] Brevo contact sync error:", err));
 
     const token = jwt.sign({ id: insertedUser.id, role: insertedUser.role }, JWT_SECRET, {
       expiresIn: "7d",
@@ -448,6 +455,171 @@ router.post("/login", async (req, res) => {
       success: false,
       error: "Server error",
     });
+  }
+});
+
+// ==============================
+// GOOGLE OAUTH
+// ==============================
+router.post("/google", async (req, res) => {
+  try {
+    const { credential, ref } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ success: false, error: "Google credential required" });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken:  credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload?.email) {
+      return res.status(400).json({ success: false, error: "Invalid Google token" });
+    }
+
+    const { email, given_name, family_name, sub: googleId } = payload;
+
+    // Check if user exists by google_id
+    let [existingUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.google_id, googleId))
+      .limit(1);
+
+    // If not, try matching by email (links existing account)
+    if (!existingUser) {
+      const [byEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (byEmail) {
+        await db
+          .update(users)
+          .set({ google_id: googleId })
+          .where(eq(users.id, byEmail.id));
+        existingUser = { ...byEmail, google_id: googleId };
+      }
+    }
+
+    // Returning user — issue JWT
+    if (existingUser) {
+      const token = jwt.sign(
+        { id: existingUser.id, role: existingUser.role },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id:                existingUser.id,
+          username:          existingUser.username,
+          email:             existingUser.email,
+          firstName:         existingUser.first_name,
+          lastName:          existingUser.last_name,
+          role:              existingUser.role,
+          balance:           parseFloat(existingUser.balance),
+          bonusBalance:      parseFloat(existingUser.bonus_balance),
+          referral_code:     existingUser.referral_code ?? "",
+          referredBy:        existingUser.referred_by,
+          email_verified_at: existingUser.email_verified_at ?? new Date(),
+        },
+      });
+    }
+
+    // New user — create account
+    const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const baseUsername = email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
+    let username = baseUsername;
+    let suffix = 1;
+    while (true) {
+      const [taken] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+      if (!taken) break;
+      username = `${baseUsername}${suffix++}`;
+    }
+
+    let referred_by: number | null = null;
+    if (ref?.trim()) {
+      const [lookup] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.referral_code, ref.trim().toUpperCase()))
+        .limit(1);
+      if (lookup) referred_by = lookup.id;
+    }
+
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        first_name:        given_name  ?? "",
+        last_name:         family_name ?? "",
+        username,
+        email,
+        password_hash:     "",
+        google_id:         googleId,
+        role:              "client",
+        balance:           "0.00",
+        bonus_balance:     "0.00",
+        referral_code:     referralCode,
+        referred_by,
+        email_verified_at: new Date(),
+      })
+      .returning();
+
+    if (!newUser) throw new Error("Failed to create user");
+
+    // Welcome email
+    sendBrevoEmail({
+      to: [{ email: newUser.email, name: newUser.username }],
+      subject: "Welcome to Seventy7 Kapital",
+      htmlContent: welcomeEmail({
+        username:  newUser.username,
+        verifyUrl: `${FRONTEND_URL}/dashboard`,
+      }),
+    }).catch(err => console.error("[Auth] Google welcome email error:", err));
+
+    // Add to Brevo contact list
+    addBrevoContact({
+      email:     newUser.email,
+      firstName: newUser.first_name ?? "",
+      lastName:  newUser.last_name  ?? "",
+    }).catch(err => console.error("[Auth] Brevo contact sync error:", err));
+
+    const token = jwt.sign(
+      { id: newUser.id, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id:                newUser.id,
+        username:          newUser.username,
+        email:             newUser.email,
+        firstName:         newUser.first_name,
+        lastName:          newUser.last_name,
+        role:              newUser.role,
+        balance:           parseFloat(newUser.balance),
+        bonusBalance:      parseFloat(newUser.bonus_balance),
+        referral_code:     newUser.referral_code ?? "",
+        referredBy:        newUser.referred_by,
+        email_verified_at: newUser.email_verified_at,
+      },
+    });
+
+  } catch (err) {
+    console.error("[Auth] Google OAuth error:", err);
+    return res.status(500).json({ success: false, error: "Google authentication failed" });
   }
 });
 

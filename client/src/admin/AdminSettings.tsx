@@ -1,184 +1,66 @@
 // client/src/admin/AdminSettings.tsx
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { API_BASE } from "@/api/http";
+import { Search, ChevronRight, CheckCircle2, XCircle, Mail, RefreshCw } from "lucide-react";
 
-// ----------------------A
-// Types
-// ----------------------
 type EmailUser = {
-  id: number;
-  username: string;
-  email: string;
-  email_verified_at: string | null;
-  role: string;
+  id: number; username: string; email: string;
+  email_verified_at: string | null; role: string;
 };
-
 type SmtpSettings = {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  from_name: string;
-  from_email: string;
-  encryption: "tls" | "ssl";
+  host: string; port: number; username: string; password: string;
+  from_name: string; from_email: string; encryption: "tls" | "ssl";
 };
+type EmailTemplate = { id: number; name: string; subject: string; body: string; };
 
-const EMPTY_SMTP: SmtpSettings = {
-  host: "",
-  port: 587,
-  username: "",
-  password: "",
-  from_name: "",
-  from_email: "",
-  encryption: "tls",
-};
+const EMPTY_SMTP: SmtpSettings = { host:"", port:587, username:"", password:"", from_name:"", from_email:"", encryption:"tls" };
+const SYSTEM_TEMPLATES = ["verify_email", "reset_password"];
 
-type EmailTemplate = {
-  id: number;
-  name: string;
-  subject: string;
-  body: string;
-};
+const inp = { width:"100%", background:"var(--bg)", border:"1px solid rgba(10,239,255,0.12)", padding:"10px 14px", color:"var(--text)", fontFamily:"var(--font-sans)", fontSize:13, fontWeight:300, outline:"none", borderRadius:0, boxSizing:"border-box" as const };
+const lbl = { fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase" as const, color:"var(--muted-2)", display:"block", marginBottom:6 };
 
-// ----------------------
-// Component
-// ----------------------
+type Tab = "referral" | "payments" | "users" | "templates" | "smtp";
+
 export default function AdminSettings() {
+  const [tab, setTab] = useState<Tab>("referral");
+
   // Referral
-  const [referralPercent, setReferralPercent] = useState<number>(10);
+  const [referralPercent, setReferralPercent] = useState(10);
   const [referralLoading, setReferralLoading] = useState(true);
-  const [referralSaving, setReferralSaving] = useState(false);
+  const [referralSaving,  setReferralSaving]  = useState(false);
 
   // Payments
-  const [stripeSecret, setStripeSecret] = useState("");
-  const [stripeWebhook, setStripeWebhook] = useState("");
-  const [nowpaymentsIpn, setNowpaymentsIpn] = useState("");
+  const [stripeSecret,      setStripeSecret]      = useState("");
+  const [stripeWebhook,     setStripeWebhook]     = useState("");
   const [nowpaymentsApiKey, setNowpaymentsApiKey] = useState("");
-  const [paymentSaving, setPaymentSaving] = useState(false);
-  
+  const [nowpaymentsIpn,    setNowpaymentsIpn]    = useState("");
+  const [paymentSaving,     setPaymentSaving]     = useState(false);
 
-  // Email
-  const [emailTab, setEmailTab] = useState<"users" | "templates" | "smtp">("users");
-  const [emailUsers, setEmailUsers] = useState<EmailUser[]>([]);
+  // Users
+  const [emailUsers,   setEmailUsers]   = useState<EmailUser[]>([]);
   const [emailLoading, setEmailLoading] = useState(true);
+  const [search,       setSearch]       = useState("");
+  const [selectedUser, setSelectedUser] = useState<EmailUser | null>(null);
 
-  const [smtpSettings, setSmtpSettings] = useState<SmtpSettings>(EMPTY_SMTP);
-  const [smtpLoading, setSmtpLoading] = useState(true);
-  const [smtpSaving, setSmtpSaving] = useState(false);
-
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
-  const [activeTemplate, setActiveTemplate] = useState<EmailTemplate | null>(null);
-  const [templateLoading, setTemplateLoading] = useState(true);
-  const [templateSaving, setTemplateSaving] = useState(false);
-
+  // Templates
+  const [templates,        setTemplates]        = useState<EmailTemplate[]>([]);
+  const [activeTemplate,   setActiveTemplate]   = useState<EmailTemplate | null>(null);
+  const [templateLoading,  setTemplateLoading]  = useState(true);
+  const [templateSaving,   setTemplateSaving]   = useState(false);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [testEmailTo, setTestEmailTo] = useState("");
-  const [testSending, setTestSending] = useState(false);
+  const [newTemplateName,  setNewTemplateName]  = useState("");
+  const [testEmailTo,      setTestEmailTo]      = useState("");
+  const [testSending,      setTestSending]      = useState(false);
 
-  const SYSTEM_TEMPLATES = ["verify_email", "reset_password"];
+  // SMTP
+  const [smtpSettings, setSmtpSettings] = useState<SmtpSettings>(EMPTY_SMTP);
+  const [smtpLoading,  setSmtpLoading]  = useState(true);
+  const [smtpSaving,   setSmtpSaving]   = useState(false);
 
-  const token = localStorage.getItem("token");
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
-
-  // ===============================
-  // Loaders
-  // ===============================
-  const loadReferralSettings = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/admin/referral-settings`, { headers });
-      if (res.data?.success) setReferralPercent(Number(res.data.percent ?? 10));
-    } catch (err) {
-      console.error("Load referral settings error:", err);
-    } finally {
-      setReferralLoading(false);
-    }
-  };
-
-  const loadPaymentSettings = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/admin/payment-settings`, { headers });
-      const s = res.data?.settings || {};
-      setStripeSecret(s.stripe_secret_key ?? "");
-      setStripeWebhook(s.stripe_webhook_secret ?? "");
-      setNowpaymentsIpn(s.nowpayments_ipn_secret ?? "");
-      setNowpaymentsApiKey(s.nowpayments_api_key ?? "");
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        console.info("Payment settings endpoint not implemented yet (404)");
-      } else {
-        console.error("Load payment settings error:", err);
-      }
-    }
-  };
-
-  const loadEmailTemplates = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/admin/email/templates`, { headers });
-      const list = Array.isArray(res.data?.templates) ? res.data.templates : [];
-      setTemplates(list);
-      if (list.length > 0 && !activeTemplate) setActiveTemplate(list[0]);
-    } catch (err) {
-      toast.error("Failed to load email templates");
-    } finally {
-      setTemplateLoading(false);
-    }
-  };
-
-  const loadEmailUsers = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/admin/email/users`, { headers });
-      setEmailUsers(Array.isArray(res.data?.users) ? res.data.users : []);
-    } catch (err) {
-      toast.error("Failed to load email users");
-    } finally {
-      setEmailLoading(false);
-    }
-  };
-
-  const loadSmtpSettings = async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/admin/email/smtp`, { headers });
-      if (res.data?.success && res.data.settings) {
-        setSmtpSettings({
-          host: res.data.settings.host ?? "",
-          port: Number(res.data.settings.port ?? 587),
-          username: res.data.settings.username ?? "",
-          password: "",
-          from_name: res.data.settings.from_name ?? "",
-          from_email: res.data.settings.from_email ?? "",
-          encryption: res.data.settings.encryption === "ssl" ? "ssl" : "tls",
-        });
-      }
-    } catch (err) {
-      console.error("Load SMTP settings error:", err);
-    } finally {
-      setSmtpLoading(false);
-    }
-  };
-
-  const saveSmtpSettings = async () => {
-    setSmtpSaving(true);
-    try {
-      await axios.patch(
-        `${API_BASE}/admin/email/smtp`,
-        { ...smtpSettings, password: smtpSettings.password || undefined },
-        { headers }
-      );
-      toast.success("SMTP settings saved");
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to save SMTP settings");
-    } finally {
-      setSmtpSaving(false);
-    }
-  };
+  const token   = localStorage.getItem("token");
+  const headers = { Authorization:`Bearer ${token}`, "Content-Type":"application/json" };
 
   useEffect(() => {
     loadReferralSettings();
@@ -188,406 +70,427 @@ export default function AdminSettings() {
     loadEmailTemplates();
   }, []);
 
-  useEffect(() => {
-    if (!activeTemplate && templates.length > 0) {
-      setActiveTemplate(templates[0]);
-    }
-  }, [templates]);
+  async function loadReferralSettings() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/referral-settings`, { headers });
+      if (r.data?.success) setReferralPercent(Number(r.data.percent ?? 10));
+    } catch {} finally { setReferralLoading(false); }
+  }
+  async function loadPaymentSettings() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/payment-settings`, { headers });
+      const s = r.data?.settings || {};
+      setStripeSecret(s.stripe_secret_key ?? "");
+      setStripeWebhook(s.stripe_webhook_secret ?? "");
+      setNowpaymentsIpn(s.nowpayments_ipn_secret ?? "");
+      setNowpaymentsApiKey(s.nowpayments_api_key ?? "");
+    } catch {}
+  }
+  async function loadEmailUsers() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/email/users`, { headers });
+      setEmailUsers(Array.isArray(r.data?.users) ? r.data.users : []);
+    } catch { toast.error("Failed to load users"); } finally { setEmailLoading(false); }
+  }
+  async function loadEmailTemplates() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/email/templates`, { headers });
+      const list = Array.isArray(r.data?.templates) ? r.data.templates : [];
+      setTemplates(list);
+      if (list.length > 0) setActiveTemplate(list[0]);
+    } catch { toast.error("Failed to load templates"); } finally { setTemplateLoading(false); }
+  }
+  async function loadSmtpSettings() {
+    try {
+      const r = await axios.get(`${API_BASE}/admin/email/smtp`, { headers });
+      if (r.data?.success && r.data.settings) {
+        const s = r.data.settings;
+        setSmtpSettings({ host:s.host??"", port:Number(s.port??587), username:s.username??"", password:"", from_name:s.from_name??"", from_email:s.from_email??"", encryption:s.encryption==="ssl"?"ssl":"tls" });
+      }
+    } catch {} finally { setSmtpLoading(false); }
+  }
 
-  // ===============================
-  // Actions (unchanged from original)
-  // ===============================
-  const saveReferralPercent = async () => {
+  async function saveReferralPercent() {
     if (referralPercent < 0 || referralPercent > 100) return toast.error("Percentage must be 0-100");
     setReferralSaving(true);
-    try {
-      await axios.patch(`${API_BASE}/admin/referral-settings`, { percent: referralPercent }, { headers });
-      toast.success("Referral percentage updated");
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to save referral settings");
-    } finally {
-      setReferralSaving(false);
-    }
-  };
-
-  const savePaymentSettings = async () => {
+    try { await axios.patch(`${API_BASE}/admin/referral-settings`, { percent:referralPercent }, { headers }); toast.success("Referral percentage updated"); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); } finally { setReferralSaving(false); }
+  }
+  async function savePaymentSettings() {
     setPaymentSaving(true);
-    try {
-      await axios.patch(
-        `${API_BASE}/admin/payment-settings`,
-        {
-          stripe_secret_key: stripeSecret,
-          stripe_webhook_secret: stripeWebhook,
-          nowpayments_api_key: nowpaymentsApiKey,
-          nowpayments_ipn_secret: nowpaymentsIpn,
-        },
-        { headers }
-      );
-      toast.success("Payment provider keys updated");
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to save payment settings");
-    } finally {
-      setPaymentSaving(false);
-    }
-  };
-
-  const saveEmailTemplate = async () => {
+    try { await axios.patch(`${API_BASE}/admin/payment-settings`, { stripe_secret_key:stripeSecret, stripe_webhook_secret:stripeWebhook, nowpayments_api_key:nowpaymentsApiKey, nowpayments_ipn_secret:nowpaymentsIpn }, { headers }); toast.success("Payment keys updated"); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); } finally { setPaymentSaving(false); }
+  }
+  async function saveEmailTemplate() {
     if (!activeTemplate) return;
     setTemplateSaving(true);
-    try {
-      await axios.put(
-        `${API_BASE}/admin/email/templates/${activeTemplate.id}`,
-        { subject: activeTemplate.subject, body: activeTemplate.body },
-        { headers }
-      );
-      toast.success("Email template updated");
-      loadEmailTemplates();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to save template");
-    } finally {
-      setTemplateSaving(false);
-    }
-  };
-
-  const createEmailTemplate = async () => {
-    if (!newTemplateName.trim()) return toast.error("Template name required");
-    try {
-      await axios.post(
-        `${API_BASE}/admin/email/templates`,
-        { name: newTemplateName.trim(), subject: "New Template", body: "<p>Hello {{username}}</p>" },
-        { headers }
-      );
-      toast.success("Template created");
-      setNewTemplateName("");
-      setCreatingTemplate(false);
-      loadEmailTemplates();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to create template");
-    }
-  };
-
-  const deleteTemplate = async (id: number, name: string) => {
+    try { await axios.put(`${API_BASE}/admin/email/templates/${activeTemplate.id}`, { subject:activeTemplate.subject, body:activeTemplate.body }, { headers }); toast.success("Template saved"); loadEmailTemplates(); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); } finally { setTemplateSaving(false); }
+  }
+  async function createEmailTemplate() {
+    if (!newTemplateName.trim()) return toast.error("Name required");
+    try { await axios.post(`${API_BASE}/admin/email/templates`, { name:newTemplateName.trim(), subject:"New Template", body:"<p>Hello {{username}}</p>" }, { headers }); toast.success("Template created"); setNewTemplateName(""); setCreatingTemplate(false); loadEmailTemplates(); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); }
+  }
+  async function deleteTemplate(id:number, name:string) {
     if (SYSTEM_TEMPLATES.includes(name)) return toast.error("System templates cannot be deleted");
     if (!confirm("Delete this template?")) return;
-    try {
-      await axios.delete(`${API_BASE}/admin/email/templates/${id}`, { headers });
-      toast.success("Template deleted");
-      setActiveTemplate(null);
-      loadEmailTemplates();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Delete failed");
-    }
-  };
-
-const sendTestEmail = async () => {
-  if (!activeTemplate) return toast.error("No template selected");
-  if (!testEmailTo.trim()) return toast.error("Please enter a recipient email");
-
-  setTestSending(true);
-
-  try {
-    const fullUrl = `${API_BASE}/admin/email/templates/test/${activeTemplate.id}`;
-    console.log("Attempting POST to:", fullUrl);  // debug
-
-    await axios.post(
-      fullUrl,
-      {
-        to: testEmailTo.trim(),
-        // Optional: send custom variables to override defaults
-        // variables: {
-        //   verify_link: "https://seventy7hub.com/verify?token=real-test-token",
-        //   username: "Test User",
-        //   site_name: "77kapital",
-        // }
-      },
-      { headers }
-    );
-
-    toast.success("Test email sent successfully");
-    setTestEmailTo("");
-  } catch (err: any) {
-    console.error("Send test failed:", err);
-    toast.error(err.response?.data?.error || "Failed to send test email");
-  } finally {
-    setTestSending(false);
+    try { await axios.delete(`${API_BASE}/admin/email/templates/${id}`, { headers }); toast.success("Deleted"); setActiveTemplate(null); loadEmailTemplates(); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); }
   }
-};
+  async function sendTestEmail() {
+    if (!activeTemplate) return toast.error("No template selected");
+    if (!testEmailTo.trim()) return toast.error("Enter recipient email");
+    setTestSending(true);
+    try { await axios.post(`${API_BASE}/admin/email/templates/test/${activeTemplate.id}`, { to:testEmailTo.trim() }, { headers }); toast.success("Test email sent"); setTestEmailTo(""); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); } finally { setTestSending(false); }
+  }
+  async function resendVerification(userId:number) {
+    try { await axios.post(`${API_BASE}/admin/email/resend-verification/${userId}`, {}, { headers }); toast.success("Verification email resent"); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); }
+  }
+  async function revokeVerification(userId:number) {
+    try { await axios.post(`${API_BASE}/admin/email/revoke-verification/${userId}`, {}, { headers }); toast.success("Verification revoked"); loadEmailUsers(); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); }
+  }
+  async function saveSmtpSettings() {
+    setSmtpSaving(true);
+    try { await axios.patch(`${API_BASE}/admin/email/smtp`, { ...smtpSettings, password:smtpSettings.password||undefined }, { headers }); toast.success("SMTP settings saved"); }
+    catch (e:any) { toast.error(e.response?.data?.error || "Failed"); } finally { setSmtpSaving(false); }
+  }
 
-  const resendVerification = async (userId: number) => {
-    try {
-      await axios.post(`${API_BASE}/admin/email/resend-verification/${userId}`, {}, { headers });
-      toast.success("Verification email resent");
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to resend email");
-    }
-  };
+  const TABS: { key:Tab; label:string }[] = [
+    { key:"referral",  label:"Referral"  },
+    { key:"payments",  label:"Payments"  },
+    { key:"users",     label:"Users"     },
+    { key:"templates", label:"Templates" },
+    { key:"smtp",      label:"SMTP"      },
+  ];
 
-  const revokeVerification = async (userId: number) => {
-    try {
-      await axios.post(`${API_BASE}/admin/email/revoke-verification/${userId}`, {}, { headers });
-      toast.success("Email verification revoked");
-      loadEmailUsers();
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Failed to revoke verification");
-    }
-  };
+  const filteredUsers = emailUsers.filter(u =>
+    u.username.toLowerCase().includes(search.toLowerCase()) ||
+    u.email.toLowerCase().includes(search.toLowerCase())
+  );
 
-  // ===============================
-  // Render
-  // ===============================
   return (
-    <div className="p-8 text-white space-y-10">
-      <h1 className="text-3xl font-bold">Platform Settings</h1>
+    <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
 
-      {/* Referral */}
-      <section className="bg-[#1E293B] p-6 rounded-xl border border-[#334155] max-w-3xl">
-        <h2 className="text-xl font-semibold mb-4 text-[#0AEFFF]">Referral Bonus</h2>
-        {referralLoading ? (
-          <p className="text-gray-400">Loading...</p>
-        ) : (
-          <div className="flex items-center gap-4">
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={referralPercent}
-              onChange={(e) => setReferralPercent(Number(e.target.value) || 0)}
-              className="w-24 bg-[#0F172A] border-[#334155] text-center font-bold text-white"
-            />
-            <span className="text-xl">%</span>
-            <Button
-              onClick={saveReferralPercent}
-              disabled={referralSaving}
-              className="bg-[#7E22CE] hover:bg-purple-600 text-white font-medium"
-            >
-              {referralSaving ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        )}
-      </section>
+      {/* Header */}
+      <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"20px 24px" }}>
+        <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:300, color:"var(--text)" }}>Platform Settings</div>
+      </div>
 
-      {/* Payments */}
-      <section className="bg-[#1E293B] p-6 rounded-xl border border-[#334155] max-w-3xl">
-        <h2 className="text-xl font-semibold mb-4 text-[#0AEFFF]">Payment Providers</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Input placeholder="Stripe Secret Key" value={stripeSecret} onChange={(e) => setStripeSecret(e.target.value)} className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400" />
-          <Input placeholder="Stripe Webhook Secret" value={stripeWebhook} onChange={(e) => setStripeWebhook(e.target.value)} className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400" />
-          <Input placeholder="NOWPayments API Key (optional)" value={nowpaymentsApiKey} onChange={(e) => setNowpaymentsApiKey(e.target.value)} className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400" />
-          <Input placeholder="NOWPayments IPN Secret" value={nowpaymentsIpn} onChange={(e) => setNowpaymentsIpn(e.target.value)} className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400" />
-        </div>
-        <Button onClick={savePaymentSettings} disabled={paymentSaving} className="mt-4 bg-[#7E22CE] hover:bg-purple-600 text-white font-medium">
-          {paymentSaving ? "Saving..." : "Save Payment Keys"}
-        </Button>
-      </section>
+      {/* Tab strip */}
+      <div style={{ display:"flex", gap:1, background:"rgba(10,239,255,0.06)" }}>
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{ flex:1, padding:"12px 8px", background: tab===t.key ? "var(--surface)" : "transparent", border:"none", borderBottom: tab===t.key ? "2px solid var(--cyan)" : "2px solid transparent", color: tab===t.key ? "var(--cyan)" : "var(--muted-2)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", transition:"all 0.2s" }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Email Management */}
-      <section className="bg-[#1E293B] p-6 rounded-xl border border-[#334155]">
-        <h2 className="text-2xl font-semibold mb-6 text-[#0AEFFF]">Email Management</h2>
-
-        <div className="flex gap-4 mb-8 flex-wrap">
-          {(["users", "templates", "smtp"] as const).map((tab) => (
-            <Button
-              key={tab}
-              onClick={() => setEmailTab(tab)}
-              className={
-                emailTab === tab
-                  ? "bg-[#7E22CE] hover:bg-purple-600 text-white"
-                  : "bg-transparent border border-[#334155] text-gray-300 hover:bg-[#0F172A]"
-              }
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Button>
-          ))}
-        </div>
-
-        {/* Users */}
-        {emailTab === "users" && (
-          <div className="space-y-3">
-            {emailLoading ? (
-              <p className="text-gray-400">Loading users...</p>
-            ) : emailUsers.length === 0 ? (
-              <p className="text-gray-400">No users found.</p>
-            ) : (
-              emailUsers.map((u) => (
-                <div key={u.id} className="flex justify-between items-center bg-[#0F172A] p-4 rounded-lg border border-[#334155]">
-                  <div>
-                    <div className="font-semibold text-white">{u.username}</div>
-                    <div className="text-sm text-gray-400">{u.email}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    {!u.email_verified_at ? (
-                      <Button size="sm" onClick={() => resendVerification(u.id)} className="bg-[#0AEFFF] text-black hover:bg-cyan-400 font-medium">
-                        Resend
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => revokeVerification(u.id)} className="border-yellow-500 text-yellow-400 hover:bg-yellow-500/10">
-                        Revoke
-                      </Button>
-                    )}
-                  </div>
+      {/* ── Referral ── */}
+      {tab === "referral" && (
+        <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"28px 24px", maxWidth:480 }}>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)", marginBottom:24 }}>Referral Bonus</div>
+          {referralLoading ? (
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-2)" }}>Loading...</div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <div>
+                <label style={lbl}>Referral Percentage (%)</label>
+                <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                  <input type="number" min={0} max={100} value={referralPercent}
+                    onChange={e => setReferralPercent(Number(e.target.value) || 0)}
+                    style={{ ...inp, maxWidth:120, textAlign:"center", fontSize:18, fontFamily:"var(--font-display)", fontWeight:300 }} />
+                  <span style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--muted)" }}>%</span>
                 </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {/* Templates */}
-        {emailTab === "templates" && (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="space-y-3">
-              <Button size="sm" onClick={() => setCreatingTemplate(!creatingTemplate)} className="w-full bg-[#0AEFFF] text-black hover:bg-cyan-400 font-medium">
-                + New Template
-              </Button>
-
-              {creatingTemplate && (
-                <div className="bg-[#0F172A] p-4 rounded-lg border border-[#334155] space-y-3">
-                  <Input
-                    placeholder="template_name (snake_case)"
-                    value={newTemplateName}
-                    onChange={(e) => setNewTemplateName(e.target.value)}
-                    className="bg-[#0F172A] border-[#334155] text-white"
-                  />
-                  <Button size="sm" onClick={createEmailTemplate} className="w-full bg-[#7E22CE] hover:bg-purple-600 text-white">
-                    Create
-                  </Button>
-                </div>
-              )}
-
-              <div className="space-y-2 mt-4">
-                {templateLoading ? (
-                  <p className="text-gray-400 text-sm">Loading...</p>
-                ) : (
-                  templates.map((t) => (
-                    <Button
-                      key={t.id}
-                      onClick={() => setActiveTemplate(t)}
-                      className={
-                        activeTemplate?.id === t.id
-                          ? "w-full justify-start bg-[#7E22CE] hover:bg-purple-600 text-white"
-                          : "w-full justify-start bg-[#0F172A] border border-[#334155] text-gray-300 hover:bg-[#1E293B]"
-                      }
-                    >
-                      {(t.name ?? "").replace(/_/g, " ").toUpperCase().trim()}
-                    </Button>
-                  ))
-                )}
               </div>
+              <div style={{ padding:"14px 16px", background:"rgba(10,239,255,0.04)", border:"1px solid rgba(10,239,255,0.1)" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)", lineHeight:1.7 }}>
+                  {`Every referred user generates ${referralPercent}% commission for the referrer on their first deposit.`}
+                </div>
+              </div>
+              <button onClick={saveReferralPercent} disabled={referralSaving} className="btn-primary"
+                style={{ alignSelf:"flex-start", cursor: referralSaving ? "not-allowed" : "pointer", opacity: referralSaving ? 0.6 : 1 }}>
+                {referralSaving ? "Saving..." : "Save Referral Setting"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Payments ── */}
+      {tab === "payments" && (
+        <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"28px 24px", maxWidth:600 }}>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)", marginBottom:24 }}>Payment Providers</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ padding:"1px", background:"rgba(10,239,255,0.06)", marginBottom:8 }}>
+              <div style={{ padding:"12px 16px", background:"var(--surface)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--cyan)" }}>Stripe</div>
+            </div>
+            <div>
+              <label style={lbl}>Secret Key</label>
+              <input type="password" style={inp} value={stripeSecret} onChange={e => setStripeSecret(e.target.value)} placeholder="sk_live_..." />
+            </div>
+            <div>
+              <label style={lbl}>Webhook Secret</label>
+              <input type="password" style={inp} value={stripeWebhook} onChange={e => setStripeWebhook(e.target.value)} placeholder="whsec_..." />
+            </div>
+            <div style={{ padding:"1px", background:"rgba(10,239,255,0.06)", margin:"8px 0" }}>
+              <div style={{ padding:"12px 16px", background:"var(--surface)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--cyan)" }}>NOWPayments (optional)</div>
+            </div>
+            <div>
+              <label style={lbl}>API Key</label>
+              <input type="password" style={inp} value={nowpaymentsApiKey} onChange={e => setNowpaymentsApiKey(e.target.value)} placeholder="API key..." />
+            </div>
+            <div>
+              <label style={lbl}>IPN Secret</label>
+              <input type="password" style={inp} value={nowpaymentsIpn} onChange={e => setNowpaymentsIpn(e.target.value)} placeholder="IPN secret..." />
+            </div>
+            <button onClick={savePaymentSettings} disabled={paymentSaving} className="btn-primary"
+              style={{ alignSelf:"flex-start", cursor: paymentSaving ? "not-allowed" : "pointer", opacity: paymentSaving ? 0.6 : 1 }}>
+              {paymentSaving ? "Saving..." : "Save Payment Keys"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Users ── */}
+      {tab === "users" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
+          {/* Search + count */}
+          <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"16px 24px", display:"flex", alignItems:"center", gap:12, flexWrap:"wrap" }}>
+            <div style={{ position:"relative", flex:1, minWidth:200 }}>
+              <Search size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"var(--muted-2)" }} />
+              <input style={{ ...inp, paddingLeft:36 }} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by username or email..." />
+            </div>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)", flexShrink:0 }}>
+              {filteredUsers.length} / {emailUsers.length} users
+            </div>
+            <button onClick={loadEmailUsers} style={{ background:"none", border:"1px solid rgba(10,239,255,0.15)", color:"var(--cyan)", padding:"8px 14px", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer", display:"flex", alignItems:"center", gap:6 }}>
+              <RefreshCw size={11} /> Refresh
+            </button>
+          </div>
+
+          {/* List + detail split */}
+          <div style={{ display:"grid", gridTemplateColumns: selectedUser ? "1fr 1fr" : "1fr", gap:1, background:"rgba(10,239,255,0.06)", minHeight:400 }}>
+
+            {/* User list */}
+            <div style={{ background:"var(--surface)", overflow:"auto", maxHeight:600 }}>
+              {emailLoading ? (
+                <div style={{ padding:40, fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-2)", textTransform:"uppercase" }}>Loading...</div>
+              ) : filteredUsers.length === 0 ? (
+                <div style={{ padding:40, textAlign:"center", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-2)", textTransform:"uppercase" }}>No users found</div>
+              ) : filteredUsers.map(u => (
+                <div key={u.id} onClick={() => setSelectedUser(selectedUser?.id === u.id ? null : u)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", borderBottom:"1px solid rgba(10,239,255,0.05)", cursor:"pointer", background: selectedUser?.id === u.id ? "rgba(10,239,255,0.04)" : "transparent", borderLeft: selectedUser?.id === u.id ? "2px solid var(--cyan)" : "2px solid transparent", transition:"all 0.15s" }}>
+                  <div style={{ width:32, height:32, background:"rgba(10,239,255,0.08)", border:"1px solid rgba(10,239,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontFamily:"var(--font-display)", fontSize:14, fontWeight:300, color:"var(--cyan)" }}>
+                    {u.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:"var(--font-sans)", fontSize:13, color:"var(--text)", fontWeight:400, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{u.username}</div>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--muted-2)", letterSpacing:"0.06em" }}>{u.email}</div>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                    {u.email_verified_at
+                      ? <CheckCircle2 size={13} style={{ color:"var(--green)" }} />
+                      : <XCircle size={13} style={{ color:"var(--red)" }} />
+                    }
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:7, letterSpacing:"0.1em", textTransform:"uppercase", color: u.role === "admin" ? "var(--gold)" : "var(--muted-2)" }}>{u.role}</span>
+                    <ChevronRight size={12} style={{ color:"var(--muted-2)" }} />
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {activeTemplate && (
-              <div className="lg:col-span-3 space-y-6">
-                <Input
-                  value={activeTemplate.subject}
-                  onChange={(e) => setActiveTemplate({ ...activeTemplate, subject: e.target.value })}
-                  placeholder="Email Subject"
-                  className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400"
-                />
+            {/* User detail panel */}
+            {selectedUser && (
+              <div style={{ background:"var(--surface)", padding:"28px 24px", display:"flex", flexDirection:"column", gap:20 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:300, color:"var(--text)" }}>{selectedUser.username}</div>
+                  <button onClick={() => setSelectedUser(null)} style={{ background:"none", border:"none", color:"var(--muted-2)", cursor:"pointer", fontFamily:"var(--font-mono)", fontSize:16 }}>×</button>
+                </div>
 
-                <textarea
-                  rows={12}
-                  value={activeTemplate.body}
-                  onChange={(e) => setActiveTemplate({ ...activeTemplate, body: e.target.value })}
-                  placeholder="Email body (HTML supported)"
-                  className="w-full rounded-lg bg-[#0F172A] border border-[#334155] p-4 text-white placeholder:text-gray-400 
-                           focus:outline-none focus:ring-2 focus:ring-purple-600 resize-none font-mono text-sm leading-relaxed"
-                />
-
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <p className="text-xs text-gray-400">
-                    Available variables:{" "}
-                    <code className="mx-1 bg-[#334155] px-2 py-1 rounded text-cyan-300 font-medium">{"{{username}}"}</code>
-                    <code className="mx-1 bg-[#334155] px-2 py-1 rounded text-cyan-300 font-medium">{"{{verify_link}}"}</code>
-                    <code className="mx-1 bg-[#334155] px-2 py-1 rounded text-cyan-300 font-medium">{"{{site_name}}"}</code>
-                  </p>
-
-                  <div className="flex gap-2">
-                    {!SYSTEM_TEMPLATES.includes(activeTemplate.name) && (
-                      <Button size="sm" variant="destructive" onClick={() => deleteTemplate(activeTemplate.id, activeTemplate.name)}>
-                        Delete
-                      </Button>
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  <div style={{ padding:"14px 16px", background:"var(--bg)", border:"1px solid rgba(10,239,255,0.08)" }}>
+                    <label style={lbl}>Email</label>
+                    <div style={{ fontFamily:"var(--font-sans)", fontSize:13, color:"var(--text)" }}>{selectedUser.email}</div>
+                  </div>
+                  <div style={{ padding:"14px 16px", background:"var(--bg)", border:"1px solid rgba(10,239,255,0.08)" }}>
+                    <label style={lbl}>Role</label>
+                    <div style={{ fontFamily:"var(--font-mono)", fontSize:11, color: selectedUser.role === "admin" ? "var(--gold)" : "var(--text)", textTransform:"uppercase" }}>{selectedUser.role}</div>
+                  </div>
+                  <div style={{ padding:"14px 16px", background: selectedUser.email_verified_at ? "rgba(14,203,129,0.06)" : "rgba(246,70,93,0.06)", border:`1px solid ${selectedUser.email_verified_at ? "rgba(14,203,129,0.2)" : "rgba(246,70,93,0.2)"}` }}>
+                    <label style={lbl}>Email Verification</label>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      {selectedUser.email_verified_at
+                        ? <><CheckCircle2 size={14} style={{ color:"var(--green)" }} /><span style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--green)", letterSpacing:"0.1em", textTransform:"uppercase" }}>Verified</span></>
+                        : <><XCircle size={14} style={{ color:"var(--red)" }} /><span style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--red)", letterSpacing:"0.1em", textTransform:"uppercase" }}>Not Verified</span></>
+                      }
+                    </div>
+                    {selectedUser.email_verified_at && (
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:8, color:"var(--muted-2)", marginTop:6 }}>
+                        {new Date(selectedUser.email_verified_at).toLocaleString()}
+                      </div>
                     )}
-                    <Button
-                      onClick={saveEmailTemplate}
-                      disabled={templateSaving}
-                      className="bg-[#7E22CE] hover:bg-purple-600 text-white font-medium"
-                    >
-                      {templateSaving ? "Saving..." : "Save Template"}
-                    </Button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="border border-[#334155] rounded-lg overflow-hidden">
-                    <div className="bg-[#020617] px-4 py-2 text-sm text-gray-300 font-medium">Preview</div>
-                    <iframe
-                      title="Email Preview"
-                      srcDoc={activeTemplate.body}
-                      sandbox="allow-scripts allow-same-origin allow-modals allow-popups"
-                      className="w-full h-96 bg-white rounded-b-lg"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Input
-                      placeholder="test@example.com"
-                      value={testEmailTo}
-                      onChange={(e) => setTestEmailTo(e.target.value)}
-                      className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-400"
-                    />
-                    <Button
-                      onClick={sendTestEmail}
-                      disabled={testSending || !testEmailTo.trim()}
-                      className="bg-[#7E22CE] hover:bg-purple-600 text-white font-medium"
-                    >
-                      {testSending ? "Sending..." : "Send Test Email"}
-                    </Button>
-                  </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {!selectedUser.email_verified_at ? (
+                    <button onClick={() => resendVerification(selectedUser.id)}
+                      style={{ display:"flex", alignItems:"center", gap:8, padding:"11px 18px", background:"rgba(10,239,255,0.06)", border:"1px solid rgba(10,239,255,0.2)", color:"var(--cyan)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                      <Mail size={12} /> Resend Verification Email
+                    </button>
+                  ) : (
+                    <button onClick={() => revokeVerification(selectedUser.id)}
+                      style={{ display:"flex", alignItems:"center", gap:8, padding:"11px 18px", background:"rgba(246,70,93,0.06)", border:"1px solid rgba(246,70,93,0.2)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                      <XCircle size={12} /> Revoke Verification
+                    </button>
+                  )}
                 </div>
               </div>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* SMTP */}
-        {emailTab === "smtp" && (
-          <div className="max-w-md space-y-4">
-            {smtpLoading ? (
-              <p className="text-gray-400">Loading SMTP settings...</p>
-            ) : (
-              <>
-                <Input value={smtpSettings.host} onChange={(e) => setSmtpSettings({ ...smtpSettings, host: e.target.value })} placeholder="Host" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-                <Input type="number" value={smtpSettings.port} onChange={(e) => setSmtpSettings({ ...smtpSettings, port: Number(e.target.value) || 587 })} placeholder="Port" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-                <Input value={smtpSettings.username} onChange={(e) => setSmtpSettings({ ...smtpSettings, username: e.target.value })} placeholder="Username" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-                <Input type="password" value={smtpSettings.password} onChange={(e) => setSmtpSettings({ ...smtpSettings, password: e.target.value })} placeholder="Password (leave blank to keep current)" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-                <Input value={smtpSettings.from_name} onChange={(e) => setSmtpSettings({ ...smtpSettings, from_name: e.target.value })} placeholder="From Name" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-                <Input value={smtpSettings.from_email} onChange={(e) => setSmtpSettings({ ...smtpSettings, from_email: e.target.value })} placeholder="From Email" className="bg-[#0F172A] border-[#334155] text-white placeholder:text-gray-500" />
-
-                <div className="flex gap-3">
-                  <Button
-                    variant={smtpSettings.encryption === "tls" ? "default" : "outline"}
-                    onClick={() => setSmtpSettings({ ...smtpSettings, encryption: "tls" })}
-                    className={smtpSettings.encryption === "tls" ? "bg-[#7E22CE] hover:bg-purple-600 text-white" : "text-gray-300 border-[#334155] hover:bg-[#0F172A]"}
-                  >
-                    TLS
-                  </Button>
-                  <Button
-                    variant={smtpSettings.encryption === "ssl" ? "default" : "outline"}
-                    onClick={() => setSmtpSettings({ ...smtpSettings, encryption: "ssl" })}
-                    className={smtpSettings.encryption === "ssl" ? "bg-[#7E22CE] hover:bg-purple-600 text-white" : "text-gray-300 border-[#334155] hover:bg-[#0F172A]"}
-                  >
-                    SSL
-                  </Button>
+      {/* ── Templates ── */}
+      {tab === "templates" && (
+        <div style={{ display:"grid", gridTemplateColumns:"220px 1fr", gap:1, background:"rgba(10,239,255,0.06)", minHeight:500 }}>
+          {/* Sidebar */}
+          <div style={{ background:"var(--surface)", display:"flex", flexDirection:"column" }}>
+            <div style={{ padding:"14px 16px", borderBottom:"1px solid rgba(10,239,255,0.07)" }}>
+              <button onClick={() => setCreatingTemplate(!creatingTemplate)} className="btn-primary" style={{ width:"100%", justifyContent:"center", fontSize:9, padding:"8px" }}>
+                + New Template
+              </button>
+              {creatingTemplate && (
+                <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:8 }}>
+                  <input style={{ ...inp, fontSize:11, padding:"8px 10px" }} value={newTemplateName} onChange={e => setNewTemplateName(e.target.value)} placeholder="template_name" />
+                  <button onClick={createEmailTemplate} className="btn-primary" style={{ justifyContent:"center", fontSize:9, padding:"8px" }}>Create</button>
                 </div>
-
-                <Button onClick={saveSmtpSettings} disabled={smtpSaving} className="w-full bg-[#7E22CE] hover:bg-purple-600 text-white font-medium">
-                  {smtpSaving ? "Saving..." : "Save SMTP Settings"}
-                </Button>
-              </>
-            )}
+              )}
+            </div>
+            <div style={{ flex:1, overflow:"auto" }}>
+              {templateLoading ? (
+                <div style={{ padding:20, fontFamily:"var(--font-mono)", fontSize:9, color:"var(--muted-2)" }}>Loading...</div>
+              ) : templates.map(t => (
+                <button key={t.id} onClick={() => setActiveTemplate(t)}
+                  style={{ width:"100%", textAlign:"left", padding:"12px 16px", background: activeTemplate?.id===t.id ? "rgba(10,239,255,0.06)" : "transparent", borderLeft: activeTemplate?.id===t.id ? "2px solid var(--cyan)" : "2px solid transparent", border:"none", borderBottom:"1px solid rgba(10,239,255,0.05)", color: activeTemplate?.id===t.id ? "var(--cyan)" : "var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                  {(t.name ?? "").replace(/_/g, " ")}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
-      </section>
+
+          {/* Editor */}
+          {activeTemplate ? (
+            <div style={{ background:"var(--surface)", padding:"24px", display:"flex", flexDirection:"column", gap:16 }}>
+              <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)" }}>
+                {(activeTemplate.name ?? "").replace(/_/g, " ")}
+              </div>
+              <div>
+                <label style={lbl}>Subject</label>
+                <input style={inp} value={activeTemplate.subject} onChange={e => setActiveTemplate({...activeTemplate, subject:e.target.value})} placeholder="Email subject..." />
+              </div>
+              <div>
+                <label style={lbl}>Body (HTML)</label>
+                <textarea rows={10} value={activeTemplate.body} onChange={e => setActiveTemplate({...activeTemplate, body:e.target.value})}
+                  style={{ ...inp, resize:"vertical", minHeight:200, lineHeight:1.6, fontFamily:"var(--font-mono)", fontSize:12 }} />
+              </div>
+              <div style={{ padding:"12px 16px", background:"rgba(10,239,255,0.04)", border:"1px solid rgba(10,239,255,0.1)" }}>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.08em", color:"var(--muted-2)", lineHeight:1.8 }}>
+                  Variables: <code style={{ color:"var(--cyan)" }}>{"{{username}}"}</code>  <code style={{ color:"var(--cyan)" }}>{"{{verify_link}}"}</code>  <code style={{ color:"var(--cyan)" }}>{"{{site_name}}"}</code>
+                </div>
+              </div>
+              <div style={{ borderTop:"1px solid rgba(10,239,255,0.07)", paddingTop:16 }}>
+                <label style={lbl}>Preview</label>
+                <iframe title="Email Preview" srcDoc={activeTemplate.body} sandbox="allow-scripts allow-same-origin"
+                  style={{ width:"100%", height:300, background:"white", border:"1px solid rgba(10,239,255,0.1)" }} loading="lazy" />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                <input style={{ ...inp, maxWidth:240, fontSize:11 }} value={testEmailTo} onChange={e => setTestEmailTo(e.target.value)} placeholder="test@example.com" />
+                <button onClick={sendTestEmail} disabled={testSending || !testEmailTo.trim()}
+                  style={{ padding:"10px 18px", background:"rgba(10,239,255,0.06)", border:"1px solid rgba(10,239,255,0.2)", color:"var(--cyan)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor: testSending || !testEmailTo.trim() ? "not-allowed" : "pointer", opacity: testSending || !testEmailTo.trim() ? 0.6 : 1 }}>
+                  {testSending ? "Sending..." : "Send Test"}
+                </button>
+                {!SYSTEM_TEMPLATES.includes(activeTemplate.name) && (
+                  <button onClick={() => deleteTemplate(activeTemplate.id, activeTemplate.name)}
+                    style={{ padding:"10px 18px", background:"rgba(246,70,93,0.06)", border:"1px solid rgba(246,70,93,0.2)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    Delete
+                  </button>
+                )}
+                <button onClick={saveEmailTemplate} disabled={templateSaving} className="btn-primary"
+                  style={{ marginLeft:"auto", cursor: templateSaving ? "not-allowed" : "pointer", opacity: templateSaving ? 0.6 : 1 }}>
+                  {templateSaving ? "Saving..." : "Save Template"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ background:"var(--surface)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-2)", textTransform:"uppercase" }}>
+              Select a template to edit
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SMTP ── */}
+      {tab === "smtp" && (
+        <div style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.08)", padding:"28px 24px", maxWidth:520 }}>
+          <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)", marginBottom:24 }}>SMTP Configuration</div>
+          {smtpLoading ? (
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-2)" }}>Loading...</div>
+          ) : (
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 120px", gap:12 }}>
+                <div>
+                  <label style={lbl}>Host</label>
+                  <input style={inp} value={smtpSettings.host} onChange={e => setSmtpSettings({...smtpSettings, host:e.target.value})} placeholder="smtp.example.com" />
+                </div>
+                <div>
+                  <label style={lbl}>Port</label>
+                  <input type="number" style={inp} value={smtpSettings.port} onChange={e => setSmtpSettings({...smtpSettings, port:Number(e.target.value)||587})} placeholder="587" />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Username</label>
+                <input style={inp} value={smtpSettings.username} onChange={e => setSmtpSettings({...smtpSettings, username:e.target.value})} placeholder="smtp username" />
+              </div>
+              <div>
+                <label style={lbl}>Password (leave blank to keep current)</label>
+                <input type="password" style={inp} value={smtpSettings.password} onChange={e => setSmtpSettings({...smtpSettings, password:e.target.value})} placeholder="••••••••" />
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                <div>
+                  <label style={lbl}>From Name</label>
+                  <input style={inp} value={smtpSettings.from_name} onChange={e => setSmtpSettings({...smtpSettings, from_name:e.target.value})} placeholder="Seventy7Hub" />
+                </div>
+                <div>
+                  <label style={lbl}>From Email</label>
+                  <input style={inp} value={smtpSettings.from_email} onChange={e => setSmtpSettings({...smtpSettings, from_email:e.target.value})} placeholder="no-reply@..." />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Encryption</label>
+                <div style={{ display:"flex", gap:1, background:"rgba(10,239,255,0.06)" }}>
+                  {(["tls","ssl"] as const).map(enc => (
+                    <button key={enc} onClick={() => setSmtpSettings({...smtpSettings, encryption:enc})}
+                      style={{ flex:1, padding:"10px", background: smtpSettings.encryption===enc ? "rgba(10,239,255,0.1)" : "var(--surface)", border:"none", borderBottom: smtpSettings.encryption===enc ? "2px solid var(--cyan)" : "2px solid transparent", color: smtpSettings.encryption===enc ? "var(--cyan)" : "var(--muted-2)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer" }}>
+                      {enc.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={saveSmtpSettings} disabled={smtpSaving} className="btn-primary"
+                style={{ alignSelf:"flex-start", cursor: smtpSaving ? "not-allowed" : "pointer", opacity: smtpSaving ? 0.6 : 1 }}>
+                {smtpSaving ? "Saving..." : "Save SMTP Settings"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }

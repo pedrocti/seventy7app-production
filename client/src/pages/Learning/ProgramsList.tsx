@@ -1,206 +1,159 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { apiRequest } from "@/api/http";
-import { BookOpen, Clock, Star, ArrowRight, CheckCircle2 } from "lucide-react";
+// client/src/pages/Learning/ProgramsList.tsx
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+import { useMobile } from '@/hooks/useMobile';
+import { LearningAPI } from '@/api/learning';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { BookOpen, Clock, CheckCircle2, ArrowRight, Lock } from 'lucide-react';
 
 interface Program {
-  id: number;
-  title: string;
-  description: string | null;
-  price: string;
-  duration_days: number;
+  id: number; title: string; description: string | null;
+  price: string; duration_days: number; thumbnail_url?: string | null;
 }
+interface Props { onSelect: (programId: number) => void; }
 
-export default function ProgramsList({
-  onSelect,
-}: {
-  onSelect?: (id: number) => void;
-}) {
-  const [programs, setPrograms] = useState<Program[]>([]);
+const FALLBACK = 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80';
+
+export default function ProgramsList({ onSelect }: Props) {
+  const { token } = useAuth();
+  const isMobile  = useMobile();
+  const [programs,  setPrograms]  = useState<Program[]>([]);
   const [purchased, setPurchased] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [buyingId, setBuyingId] = useState<number | null>(null);
+  const [loading,   setLoading]   = useState(true);
+  const [buyingId,  setBuyingId]  = useState<number | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      const res = await apiRequest("/learning/programs");
-      if (res.success) {
-        setPrograms((res as any).programs || []);
-        setPurchased((res as any).purchased || []);
-      } else {
-        toast.error(res.error || "Failed to load programs");
-      }
-      setLoading(false);
-    };
-    load();
-  }, []);
+    if (!token) return;
+    LearningAPI.getPrograms(token)
+      .then(d => {
+        if (d.success) { setPrograms(d.programs || []); setPurchased(d.purchased || []); }
+        else toast.error(d.error || 'Failed to load programmes');
+      })
+      .catch(() => toast.error('Network error'))
+      .finally(() => setLoading(false));
+  }, [token]);
 
-  const accessOrBuy = async (program: Program) => {
-    const price = Number(program.price);
-    const isPurchased = purchased.includes(program.id);
-
-    // Already purchased or free — navigate directly
-    if (isPurchased || price === 0) {
-      onSelect?.(program.id);
-      return;
-    }
-
-    // Paid + not yet purchased — buy first
-    setBuyingId(program.id);
+  async function accessOrBuy(p: Program) {
+    if (!token) return;
+    const isOwned = purchased.includes(p.id);
+    if (isOwned || Number(p.price) === 0) { onSelect(p.id); return; }
+    setBuyingId(p.id);
     try {
-      const res = await apiRequest(`/learning/programs/buy/${program.id}`, { method: "POST" });
-      if (res.success) {
-        toast.success("Payment successful! Access granted.");
-        setPurchased((prev) => [...prev, program.id]);
-        onSelect?.(program.id);
-      } else {
-        toast.error(res.error || "Payment failed");
-      }
-    } catch {
-      toast.error("Network error");
-    } finally {
-      setBuyingId(null);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--bg)" }}>
-        <div className="text-center animate-pulse">
-          <BookOpen className="w-16 h-16 mx-auto mb-4" style={{ color: "var(--cyan)" }} />
-          <p className="text-2xl" style={{ color: "var(--text-2)" }}>Loading programs...</p>
-        </div>
-      </div>
-    );
+      const d = await LearningAPI.buyProgram(p.id, token);
+      if (d.success) { toast.success('Payment successful!'); setPurchased(prev => [...prev, p.id]); onSelect(p.id); }
+      else toast.error(d.error || 'Payment failed');
+    } catch { toast.error('Network error'); }
+    finally { setBuyingId(null); }
   }
 
+  if (loading) return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:300, fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted-2)", letterSpacing:"0.1em", textTransform:"uppercase" }}>
+      Loading programmes...
+    </div>
+  );
+
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
+    <div style={{ display:"flex", flexDirection:"column", gap:1 }}>
 
-      {/* Hero */}
-      <section className="py-16 px-4 text-center">
-        <div className="max-w-5xl mx-auto">
-          <h1
-            className="text-5xl font-bold mb-6"
-            style={{
-              background: "linear-gradient(to right, var(--cyan), #67e8f9)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Unlock Your Potential
-          </h1>
-          <p className="text-xl max-w-3xl mx-auto" style={{ color: "var(--text-2)" }}>
-            Join successful learners, traders and investors through our premium certified programs.
-          </p>
-        </div>
-      </section>
+      <div style={{ background:"var(--surface)", borderBottom:"1px solid rgba(10,239,255,0.08)", padding: isMobile ? "28px 20px" : "48px 48px 40px", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:-80, right:-80, width:320, height:320, background:"radial-gradient(circle, rgba(10,239,255,0.04) 0%, transparent 70%)", pointerEvents:"none" }} />
+        <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--cyan)", background:"rgba(10,239,255,0.06)", border:"1px solid rgba(10,239,255,0.15)", padding:"3px 10px", display:"inline-block", marginBottom:16 }}>Learning Hub</span>
+        <h1 style={{ fontFamily:"var(--font-display)", fontSize:"clamp(28px,4vw,48px)", fontWeight:300, color:"var(--text)", lineHeight:1.1, margin:"0 0 14px" }}>
+          Elevate Your <em style={{ color:"var(--cyan)" }}>Trading Edge</em>
+        </h1>
+        <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--muted)", lineHeight:1.75, maxWidth:540, margin:0 }}>
+          Expert-led programmes in trading strategy, risk management and market analysis — built for serious investors at every level.
+        </p>
+      </div>
 
-      {/* Programs Grid */}
-      <section className="max-w-7xl mx-auto px-4 pb-20">
-        <h2 className="text-4xl font-bold text-center mb-16" style={{ color: "var(--cyan)" }}>
-          Premium Mentorship Programs
-        </h2>
-
-        {programs.length === 0 ? (
-          <div className="text-center py-20">
-            <BookOpen className="w-24 h-24 mx-auto mb-6" style={{ color: "var(--muted)" }} />
-            <p className="text-2xl" style={{ color: "var(--muted)" }}>No programs available yet</p>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:1, background:"rgba(10,239,255,0.06)" }}>
+        {[
+          { label:"Programmes", value: String(programs.length) },
+          { label:"Enrolled",   value: String(purchased.length) },
+          { label:"Format",     value:"Self-paced" },
+        ].map((item,i) => (
+          <div key={i} style={{ background:"var(--surface)", padding: isMobile ? "14px 16px" : "18px 24px" }}>
+            <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:6 }}>{item.label}</div>
+            <div style={{ fontFamily:"var(--font-display)", fontSize:"clamp(18px,2vw,26px)", fontWeight:300, color:"var(--text)" }}>{item.value}</div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            {programs.map((p) => {
-              const isFree = Number(p.price) === 0;
-              const isOwned = purchased.includes(p.id);
-              const isBuying = buyingId === p.id;
+        ))}
+      </div>
 
-              return (
-                <div
-                  key={p.id}
-                  className="rounded-3xl p-10 border flex flex-col transition-all duration-300 hover:scale-[1.01]"
-                  style={{
-                    background: "linear-gradient(135deg, var(--surface-4), var(--surface))",
-                    borderColor: isOwned ? "var(--cyan)" : "var(--surface-3)",
-                    boxShadow: isOwned ? "0 0 24px rgba(10, 239, 255, 0.12)" : undefined,
-                  }}
-                >
-                  <div className="flex-grow space-y-6">
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        {isOwned ? (
-                          <>
-                            <CheckCircle2 className="w-5 h-5" style={{ color: "var(--green)" }} />
-                            <span className="text-sm font-medium uppercase" style={{ color: "var(--green)" }}>
-                              Enrolled
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                            <span className="text-sm uppercase" style={{ color: "var(--cyan)" }}>Premium</span>
-                          </>
-                        )}
-                      </div>
-                      <h3 className="text-2xl font-bold" style={{ color: "var(--text)" }}>
-                        {p.title}
-                      </h3>
-                    </div>
+      {programs.length === 0 ? (
+        <div style={{ background:"var(--surface)", padding:"80px 24px", textAlign:"center" }}>
+          <BookOpen size={40} style={{ color:"var(--muted-2)", display:"block", margin:"0 auto 16px", opacity:0.3 }} />
+          <div style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted-2)" }}>No programmes available yet</div>
+        </div>
+      ) : (
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap:1, background:"rgba(10,239,255,0.06)" }}>
+          {programs.map((p, idx) => {
+            const isFree   = Number(p.price) === 0;
+            const isOwned  = purchased.includes(p.id);
+            const isBuying = buyingId === p.id;
+            const img      = p.thumbnail_url || FALLBACK;
+            return (
+              <motion.div key={p.id}
+                initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
+                transition={{ delay: idx * 0.07, duration:0.45 }}
+                style={{ background:"var(--surface)", display:"flex", flexDirection:"column", position:"relative", overflow:"hidden" }}>
 
-                    <div className="flex items-center gap-3" style={{ color: "var(--muted)" }}>
-                      <Clock className="w-5 h-5" />
-                      <span>{p.duration_days} days full access</span>
-                    </div>
+                {isOwned && <div style={{ position:"absolute", top:0, left:0, right:0, height:2, background:"linear-gradient(90deg, var(--cyan), var(--purple))", zIndex:2 }} />}
 
-                    {p.description && (
-                      <p className="line-clamp-3" style={{ color: "var(--text-2)" }}>
-                        {p.description}
-                      </p>
-                    )}
-
-                    {p.description && (
-                      <button
-                        onClick={() => onSelect?.(p.id)}
-                        className="flex items-center gap-2 font-medium transition-colors hover:opacity-80"
-                        style={{ color: "var(--cyan)" }}
-                      >
-                        View Full Details
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    )}
+                <div style={{ position:"relative", width:"100%", height:200, overflow:"hidden", flexShrink:0 }}>
+                  <img src={img} alt={p.title} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", transition:"transform 0.5s ease" }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLImageElement).style.transform="scale(1.04)")}
+                    onMouseLeave={e => ((e.currentTarget as HTMLImageElement).style.transform="scale(1)")} />
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(11,17,32,0.75) 0%, transparent 55%)" }} />
+                  <div style={{ position:"absolute", top:12, right:12, fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color: isFree ? "var(--green)" : "var(--cyan)", background:"rgba(11,17,32,0.88)", border:`1px solid ${isFree ? "rgba(14,203,129,0.3)" : "rgba(10,239,255,0.25)"}`, padding:"4px 10px", lineHeight:1 }}>
+                    {isFree ? "FREE" : `$${p.price}`}
                   </div>
-
-                  <div
-                    className="pt-6 mt-8 border-t"
-                    style={{ borderColor: "var(--surface-3)" }}
-                  >
-                    <p className="text-4xl font-bold mb-6" style={{ color: "var(--cyan)" }}>
-                      {isFree ? "FREE" : `$${p.price}`}
-                    </p>
-
-                    <Button
-                      onClick={() => accessOrBuy(p)}
-                      disabled={isBuying}
-                      className="w-full font-bold text-lg py-6 hover:scale-105 transition border-0"
-                      style={{
-                        background: "linear-gradient(to right, var(--cyan), #67e8f9)",
-                        color: "#000",
-                      }}
-                    >
-                      {isBuying
-                        ? "Processing..."
-                        : isFree || isOwned
-                        ? "Access Program"
-                        : "Buy & Access"}
-                      <ArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
+                  <div style={{ position:"absolute", top:12, left:12 }}>
+                    {isOwned ? (
+                      <span style={{ display:"flex", alignItems:"center", gap:5, fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--green)", background:"rgba(14,203,129,0.12)", border:"1px solid rgba(14,203,129,0.25)", padding:"3px 8px" }}>
+                        <CheckCircle2 size={9} />
+                        {"Enrolled"}
+                      </span>
+                    ) : !isFree ? (
+                      <span style={{ display:"flex", alignItems:"center", gap:5, fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--muted-2)", background:"rgba(11,17,32,0.7)", border:"1px solid rgba(240,237,230,0.1)", padding:"3px 8px" }}>
+                        <Lock size={9} />
+                        {"Premium"}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+
+                <div style={{ padding: isMobile ? "20px 18px" : "24px", flex:1, display:"flex", flexDirection:"column", gap:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:5, fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", color:"var(--muted-2)" }}>
+                    <Clock size={11} />
+                    {`${p.duration_days} days access`}
+                  </div>
+                  <h3 style={{ fontFamily:"var(--font-display)", fontSize:"clamp(18px,1.8vw,22px)", fontWeight:300, color:"var(--text)", lineHeight:1.25, margin:0 }}>
+                    {p.title}
+                  </h3>
+                  {p.description && (
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:13, fontWeight:300, color:"var(--muted)", lineHeight:1.75, margin:0 }}>
+                      {p.description.length > 140 ? p.description.slice(0,140) + "..." : p.description}
+                    </p>
+                  )}
+                  <button onClick={() => onSelect(p.id)}
+                    style={{ display:"inline-flex", alignItems:"center", gap:6, background:"none", border:"none", color:"var(--cyan)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer", padding:0, alignSelf:"flex-start", marginTop:"auto" }}>
+                    {"View Details"} <ArrowRight size={11} />
+                  </button>
+                </div>
+
+                <div style={{ padding: isMobile ? "14px 18px" : "16px 24px", borderTop:"1px solid rgba(10,239,255,0.07)" }}>
+                  <button onClick={() => accessOrBuy(p)} disabled={isBuying} className="btn-primary"
+                    style={{ width:"100%", justifyContent:"center", cursor: isBuying ? "not-allowed" : "pointer", opacity: isBuying ? 0.6 : 1 }}>
+                    {isBuying ? "Processing..." : isOwned || isFree ? "Access Programme" : "Buy & Access"}
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

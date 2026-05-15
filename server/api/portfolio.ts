@@ -32,10 +32,10 @@ router.post("/request", auth, async (req, res) => {
     const numericAmount = Number(amount);
 
     // Validate amount
-    if (!numericAmount || numericAmount < 50000) {
+    if (!numericAmount || numericAmount < 25000) {
       return res.status(400).json({
         success: false,
-        message: "Minimum amount is $50,000",
+        message: "Minimum amount is $25,000",
       });
     }
 

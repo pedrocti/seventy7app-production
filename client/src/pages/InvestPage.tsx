@@ -1,443 +1,357 @@
+// client/src/pages/InvestPage.tsx
 import { motion } from "framer-motion";
-import { Shield, Users, TrendingUp, Calendar, Lock, ArrowRight } from "lucide-react";
+import { Shield, Users, TrendingUp, Calendar, Lock, ArrowRight, CheckCircle } from "lucide-react";
 
-const InvestPage = () => {
+const plans = [
+  {
+    plan:     "Starter Pool",
+    min:      "$500",
+    max:      "$5,000",
+    roiLow:   2,
+    roiHigh:  5,
+    features: [
+      "Low entry participation",
+      "Long-term capital cycle",
+      "Monthly Returns and performance updates ",
+    ],
+    highlight: false,
+  },
+  {
+    plan:     "Growth Pool",
+    min:      "$5,000",
+    max:      "$15,000",
+    roiLow:   5,
+    roiHigh:  10,
+    features: [
+      "Long-term capital allocation",
+      "Enhanced performance participation",
+      "Monthly Returns and performance updates ",
+    ],
+    highlight: true,
+  },
+  {
+    plan:     "Strategic Pool",
+    min:      "$15,000",
+    max:      "$25,000",
+    roiLow:   10,
+    roiHigh:  15,
+    features: [
+      "Long-term capital allocation",
+      "Extended strategic trading cycles",
+      "Broader market opportunity exposure",
+    ],
+    highlight: false,
+  },
+];
+
+function projections(min: number, max: number, roiLow: number, roiHigh: number) {
+  const monthlyLow  = (min  * roiLow  / 100).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const monthlyHigh = (max  * roiHigh / 100).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const annualLow   = (min  * roiLow  / 100 * 12).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const annualHigh  = (max  * roiHigh / 100 * 12).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return { monthlyLow, monthlyHigh, annualLow, annualHigh };
+}
+
+const steps = [
+  { step: "01", title: "Stake Capital",        desc: "Allocate capital into the pool based on your selected plan." },
+  { step: "02", title: "Active Trading",        desc: "Pooled capital is actively traded by experienced professionals using structured strategies." },
+  { step: "03", title: "Performance Tracking",  desc: "Monitor activity through dashboards, live trade insights, and market analysis." },
+  { step: "04", title: "Profit Distribution",   desc: "Profits are distributed proportionally based on staked amounts and performance." },
+];
+
+const benefits = [
+  { icon: <TrendingUp size={22} />, title: "Performance-Driven Strategy",  desc: "Client stakes are pooled and actively traded using structured, data-driven systems supported by advanced technology and AI-assisted tools." },
+  { icon: <Calendar   size={22} />, title: "Professional Management",       desc: "Capital is managed by experienced professionals within defined trading frameworks, with outcomes determined by market performance." },
+  { icon: <Shield     size={22} />, title: "Transparent Monitoring",        desc: "Participants maintain visibility through a performance dashboard, live trade tracking, and ongoing market analysis." },
+];
+
+const trust = [
+  { icon: <Lock   size={22} />, title: "Structured Risk Framework", desc: "Trading activities operate within defined parameters. Capital is exposed to market risk and returns are not guaranteed." },
+  { icon: <Users  size={22} />, title: "Experienced Operators",     desc: "Strategies are executed by professionals using disciplined processes and institutional-grade tools." },
+  { icon: <Shield size={22} />, title: "Clear Reporting",           desc: "Participants receive transparent insights into performance metrics, trade activity, and portfolio status." },
+];
+
+export default function InvestPage() {
   return (
-    <div className="bg-[#0B1120] text-white min-h-screen overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120]/90 via-[#0B1120]/70 to-[#0B1120] z-10" />
-        <img
-          src="https://images.stockcake.com/public/3/b/4/3b4309ca-f1d9-46e3-8a1c-eacbaca1fc51_large/market-success-rising-stockcake.jpg"
-          alt="Professional trading desk"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="relative z-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="text-5xl sm:text-6xl lg:text-7xl font-extrabold mb-8 leading-tight"
-          >
-            Stake-to-Earn<br />
-            <span className="text-[#0AEFFF] bg-clip-text text-transparent bg-gradient-to-r from-[#0AEFFF] to-cyan-300">
-              Min. 2-15% Monthly Roi
-            </span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
-            className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-12 leading-relaxed"
-          >
-            Stake-to-Earn is a performance-driven growth product designed for busy professionals,
-            business owners, entrepreneurs, and creatives seeking capital exposure without the
-            demands of active trading. Your capital is professionally managed while you stay
-            focused on what matters most.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
-          >
-            <motion.a
-              href="/register"
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#0AEFFF] to-[#2563EB] text-[#0B1120] font-bold px-10 py-5 rounded-full shadow-2xl shadow-cyan-500/30 hover:shadow-cyan-500/50 transition-all text-lg"
-            >
-              Register to Participate
-              <ArrowRight className="w-6 h-6" />
-            </motion.a>
-            <p className="text-gray-400 text-base">
-              Minimum stake: <span className="text-[#0AEFFF] font-semibold">$500</span>
-            </p>
-            <p className="text-gray-400 text-base">
-              Minimum Roi: <span className="text-[#0AEFFF] font-semibold">2-15% Monthly</span>
-            </p>
-          </motion.div>
+    <main style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+
+      {/* ── HERO ── */}
+      <section style={{ position: "relative", padding: "120px 0 80px", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(10,239,255,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16" style={{ position: "relative", zIndex: 1 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 24 }}>
+
+            <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
+              <span className="eyebrow" style={{ background: "rgba(10,239,255,0.06)", border: "1px solid rgba(10,239,255,0.15)", padding: "3px 12px", display: "inline-block", marginBottom: 20 }}>
+                Stake-to-Earn Programme
+              </span>
+              <h1 className="section-heading" style={{ fontSize: "clamp(38px, 5vw, 72px)", marginBottom: 20 }}>
+                Grow wealth<br />
+                <em style={{ fontStyle: "italic", background: "linear-gradient(135deg, var(--cyan), var(--purple))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  the professional way.
+                </em>
+              </h1>
+            </motion.div>
+
+            <motion.p className="body-text" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }}
+              style={{ maxWidth: 620, fontSize: 15, lineHeight: 1.85 }}>
+              A performance-driven growth product designed for busy professionals, business owners,
+              entrepreneurs, and creatives seeking capital exposure without the demands of active trading.
+              Your capital is professionally managed while you stay focused on what matters most.
+            </motion.p>
+
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+              style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", alignItems: "center" }}>
+              <a href="/register" className="btn-primary" style={{ padding: "14px 36px", fontSize: 12 }}>
+                Register to Participate <ArrowRight size={14} />
+              </a>
+              <div style={{ display: "flex", gap: 24 }}>
+                <div style={{ textAlign: "center" }}>
+                  <div className="eyebrow" style={{ fontSize: 9 }}>Minimum Stake</div>
+                  <div className="section-heading" style={{ fontSize: 22, color: "var(--cyan)" }}>$500</div>
+                </div>
+                <div style={{ width: 1, background: "rgba(10,239,255,0.15)", alignSelf: "stretch" }} />
+                <div style={{ textAlign: "center" }}>
+                  <div className="eyebrow" style={{ fontSize: 9 }}>Monthly ROI</div>
+                  <div className="section-heading" style={{ fontSize: 22, color: "var(--cyan)" }}>2–15%</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Key Benefits */}
-      <section className="py-20 bg-[#0F172A]/50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-12">
-            What <span className="text-[#0AEFFF]">Stake-to-Earn</span> Offers
-          </h2>
-          <div className="grid md:grid-cols-3 gap-10">
-            {[
-              {
-                icon: <TrendingUp className="w-12 h-12" />,
-                title: "Performance-Driven Strategy",
-                desc: "Client stakes are pooled and actively traded using structured, data-driven systems supported by advanced technology and AI-assisted tools."
-              },
-              {
-                icon: <Calendar className="w-12 h-12" />,
-                title: "Professional Management",
-                desc: "Capital is managed by experienced professionals within defined trading frameworks, with outcomes determined by market performance."
-              },
-              {
-                icon: <Shield className="w-12 h-12" />,
-                title: "Transparent Monitoring",
-                desc: "Participants maintain visibility through a performance dashboard, live trade tracking, and ongoing market analysis."
-              },
-            ].map((item, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.15 }}
-                viewport={{ once: true }}
-                className="bg-[#111B2E]/80 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
-              >
-                <div className="flex justify-center mb-6 text-[#0AEFFF]">{item.icon}</div>
-                <h3 className="text-xl font-bold mb-4">{item.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{item.desc}</p>
+      {/* ── BENEFITS ── */}
+      <section className="section-base section-py">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <span className="eyebrow">What it offers</span>
+            <h2 className="section-heading" style={{ marginTop: 10 }}>
+              What <em>Stake-to-Earn</em> delivers
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 1, background: "rgba(10,239,255,0.06)" }}>
+            {benefits.map((b, i) => (
+              <motion.div key={i} className="flush-cell card-pad"
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }} viewport={{ once: true }}>
+                <div className="icon-box" style={{ color: "var(--cyan)", marginBottom: 20 }}>{b.icon}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 300, color: "var(--text)", marginBottom: 12 }}>{b.title}</div>
+                <p className="body-text-sm">{b.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Investment Plans */}
-      <section className="py-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-4">
-            Investment Participation Pools
-          </h2>
-          <p className="text-gray-400 text-lg max-w-3xl mx-auto">
-            Select a duration that fits your objectives. Performance outcomes are determined by
-            market conditions and trading results within each cycle.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-              {
-                plan: "Starter Pool",
-                duration: "30 Days",
-                min: "$500",
-                desc: "Low entry participation designed for individuals seeking short-term capital cycles with monthly performance updates. Target return range: 2–5% monthly.",
-                highlight: false
-              },
-              {
-                plan: "Growth Pool",
-                duration: "90 Days",
-                min: "$2,000",
-                desc: "Medium-term capital allocation providing enhanced participation in structured quarterly trading cycles. Target return range: 5–10% monthly.",
-                highlight: true
-              },
-              {
-                plan: "Strategic Pool",
-                duration: "365 Days",
-                min: "$5,000",
-                desc: "Long-term capital allocation offering exposure to extended strategic trading cycles aligned with broader market opportunities. Target return range: 10–15% monthly.",
-                highlight: false
-              },
-            ].map((plan, idx) => (
-            <motion.div
-              key={idx}
-              whileHover={{ y: -10, scale: 1.03 }}
-              className={`relative p-8 rounded-3xl border ${
-                plan.highlight
-                  ? "bg-[#111B2E]/90 border-[#0AEFFF] shadow-2xl shadow-cyan-500/20"
-                  : "bg-[#111B2E]/70 border-[#0AEFFF]/30"
-              } transition-all duration-300`}
-            >
-              {plan.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#0AEFFF] text-[#0B1120] px-4 py-1 rounded-full text-sm font-bold">
-                  Most Popular
-                </div>
-              )}
-              <h3 className="text-2xl font-bold mb-2">{plan.plan}</h3>
-              <p className="text-4xl font-extrabold text-[#0AEFFF] mb-4">{plan.duration}</p>
-              <p className="text-gray-400 mb-6">
-                Minimum Stake: <span className="text-white font-semibold">{plan.min}</span>
-              </p>
-              <p className="text-gray-300 mb-8">{plan.desc}</p>
-              <a
-                href="/register"
-                className="block w-full text-center py-3 rounded-full bg-[#0AEFFF]/20 text-[#0AEFFF] font-semibold hover:bg-[#0AEFFF]/30 transition-all"
-              >
-                Register to Participate
-              </a>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* Pool Benefits */}
-      <section className="py-20 bg-[#0F172A]/50">
+      {/* ── PLANS ── */}
+      <section className="section-py">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-center mb-16">
-            Key Benefits of Each Investment Pool
-          </h2>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <span className="eyebrow">Participation pools</span>
+            <h2 className="section-heading" style={{ marginTop: 10 }}>Choose your pool</h2>
+            <p className="body-text" style={{ maxWidth: 560, margin: "12px auto 0" }}>
+              Performance outcomes are determined by market conditions and trading results within each cycle.
+            </p>
+          </div>
 
-          <div className="grid md:grid-cols-3 gap-10">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 1, background: "rgba(10,239,255,0.06)" }}>
+            {plans.map((plan, i) => {
+              const { monthlyLow, monthlyHigh, annualLow, annualHigh } = projections(
+                parseFloat(plan.min.replace(/[$,]/g, "")),
+                parseFloat(plan.max.replace(/[$,]/g, "")),
+                plan.roiLow, plan.roiHigh
+              );
+              return (
+                <motion.div key={i}
+                  initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }} viewport={{ once: true }}
+                  style={{
+                    background:  plan.highlight ? "var(--surface-2)" : "var(--surface)",
+                    padding:     "36px 32px",
+                    position:    "relative",
+                    display:     "flex",
+                    flexDirection: "column",
+                    gap:         20,
+                  }}>
 
-            {/* Starter Pool */}
-            <div className="bg-[#111B2E]/70 p-8 rounded-3xl border border-[#0AEFFF]/20">
-              <h3 className="text-2xl font-bold mb-4 text-[#0AEFFF]">Starter Pool</h3>
-              <ul className="text-gray-400 space-y-2">
-                <li>• Low entry participation</li>
-                <li>• Short-term capital cycle</li>
-                <li>• Monthly performance updates</li>
-              </ul>
-            </div>
+                  {plan.highlight && (
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, var(--cyan), var(--purple))" }} />
+                  )}
 
-            {/* Growth Pool */}
-            <div className="bg-[#111B2E]/70 p-8 rounded-3xl border border-[#0AEFFF]/20">
-              <h3 className="text-2xl font-bold mb-4 text-[#0AEFFF]">Growth Pool</h3>
-              <ul className="text-gray-400 space-y-2">
-                <li>• Medium-term capital allocation</li>
-                <li>• Enhanced performance participation</li>
-                <li>• Structured quarterly trading cycles</li>
-              </ul>
-            </div>
+                  {plan.highlight && (
+                    <span className="eyebrow" style={{ color: "var(--cyan)", fontSize: 8, background: "rgba(10,239,255,0.06)", border: "1px solid rgba(10,239,255,0.2)", padding: "2px 8px", alignSelf: "flex-start" }}>
+                      Most Popular
+                    </span>
+                  )}
 
-            {/* Strategic Pool */}
-            <div className="bg-[#111B2E]/70 p-8 rounded-3xl border border-[#0AEFFF]/20">
-              <h3 className="text-2xl font-bold mb-4 text-[#0AEFFF]">Strategic Pool</h3>
-              <ul className="text-gray-400 space-y-2">
-                <li>• Long-term capital allocation</li>
-                <li>• Access to extended strategic trading cycles</li>
-                <li>• Strategic portfolio exposure aligned with broader market opportunities</li>
-              </ul>
-            </div>
+                  <div>
+                    <div className="eyebrow" style={{ fontSize: 9, marginBottom: 6 }}>{plan.duration}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 300, color: "var(--text)" }}>{plan.plan}</div>
+                  </div>
 
+                  {/* Range */}
+                  <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+                    <div>
+                      <div className="data-label">Capital Range</div>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 300, color: "var(--cyan)" }}>
+                        {plan.min} – {plan.max}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="data-label">Monthly ROI</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 16, color: "var(--green)" }}>
+                        {plan.roiLow}–{plan.roiHigh}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Projections */}
+                  <div style={{ background: "var(--bg)", border: "1px solid rgba(10,239,255,0.08)", padding: "14px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <div className="data-label">Est. Monthly</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>
+                        ${monthlyLow} – ${monthlyHigh}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="data-label">Est. Annual</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text)" }}>
+                        ${annualLow} – ${annualHigh}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+                    {plan.features.map((f, fi) => (
+                      <div key={fi} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <CheckCircle size={12} style={{ color: "var(--green)", flexShrink: 0 }} />
+                        <span className="body-text-sm" style={{ fontSize: 12 }}>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <a href="/register" className="btn-primary" style={{ justifyContent: "center", fontSize: 10 }}>
+                    Register to Participate
+                  </a>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 bg-[#0F172A]/50">
+      {/* ── HOW IT WORKS ── */}
+      <section className="section-base section-py">
         <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-center mb-16">
-            How Stake-to-Earn Works
-          </h2>
-          <div className="grid md:grid-cols-4 gap-8">
-            {[
-              {
-                step: "1",
-                title: "Stake Capital",
-                desc: "Participants allocate capital into the Stake-to-Earn pool based on their selected plan."
-              },
-              {
-                step: "2",
-                title: "Active Trading",
-                desc: "Pooled capital is actively traded by experienced professionals using structured strategies."
-              },
-              {
-                step: "3",
-                title: "Performance Tracking",
-                desc: "Participants monitor activity through dashboards, live trade insights, and market analysis."
-              },
-              {
-                step: "4",
-                title: "Profit Distribution",
-                desc: "Profits, if generated, are distributed proportionally based on staked amounts and performance."
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#0AEFFF]/20 text-[#0AEFFF] text-2xl font-bold mb-6">
-                  {item.step}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-gray-400">{item.desc}</p>
-              </div>
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <span className="eyebrow">Process</span>
+            <h2 className="section-heading" style={{ marginTop: 10 }}>How it works</h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 1, background: "rgba(10,239,255,0.06)" }}>
+            {steps.map((s, i) => (
+              <motion.div key={i} className="flush-cell card-pad"
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.08 }} viewport={{ once: true }}>
+                <span className="card-num">{s.step}</span>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 300, color: "var(--text)", marginBottom: 10 }}>{s.title}</div>
+                <p className="body-text-sm">{s.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Trust & Transparency */}
-      <section className="py-20 max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 text-center">
-        <h2 className="text-4xl lg:text-5xl font-bold mb-12">
-          Built on <span className="text-[#0AEFFF]">Trust & Transparency</span>
-        </h2>
-        <div className="grid md:grid-cols-3 gap-10">
-          {[
-            {
-              icon: <Lock className="w-12 h-12" />,
-              title: "Structured Risk Framework",
-              desc: "Trading activities operate within defined parameters. Capital is exposed to market risk and returns are not guaranteed."
-            },
-            {
-              icon: <Users className="w-12 h-12" />,
-              title: "Experienced Operators",
-              desc: "Strategies are executed by professionals using disciplined processes and institutional-grade tools."
-            },
-            {
-              icon: <Shield className="w-12 h-12" />,
-              title: "Clear Reporting",
-              desc: "Participants receive transparent insights into performance metrics, trade activity, and portfolio status."
-            },
-          ].map((item, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              viewport={{ once: true }}
-              className="bg-[#111B2E]/60 backdrop-blur-xl rounded-3xl p-8 border border-[#0AEFFF]/20"
-            >
-              <div className="flex justify-center mb-6 text-[#0AEFFF]">{item.icon}</div>
-              <h3 className="text-xl font-bold mb-4">{item.title}</h3>
-              <p className="text-gray-400">{item.desc}</p>
-            </motion.div>
-          ))}
+      {/* ── TRUST ── */}
+      <section className="section-py">
+        <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16">
+          <div style={{ textAlign: "center", marginBottom: 56 }}>
+            <span className="eyebrow">Our commitment</span>
+            <h2 className="section-heading" style={{ marginTop: 10 }}>
+              Built on <em>trust</em>
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 1, background: "rgba(10,239,255,0.06)" }}>
+            {trust.map((t, i) => (
+              <motion.div key={i} className="flush-cell card-pad"
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }} viewport={{ once: true }}>
+                <div className="icon-box" style={{ color: "var(--cyan)" }}>{t.icon}</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 300, color: "var(--text)", marginBottom: 12 }}>{t.title}</div>
+                <p className="body-text-sm">{t.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Risk Disclosure */}
-      <section className="py-16 bg-[#0B1120] border-t border-[#0AEFFF]/20">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h3 className="text-2xl font-bold mb-6 text-[#0AEFFF]">
-            Risk Disclosure
-          </h3>
-
-          <p className="text-gray-400 leading-relaxed">
-            Returns displayed represent target performance ranges based on historical trading models 
-            and strategic projections. Actual returns may vary depending on market conditions, 
-            liquidity, volatility, and trading performance. Participation in financial markets involves risk, 
-            and capital allocation decisions should be made with a clear understanding of these risks.
+      {/* ── RISK DISCLOSURE ── */}
+      <section className="section-base" style={{ padding: "48px 0" }}>
+        <div className="max-w-5xl mx-auto px-6" style={{ textAlign: "center" }}>
+          <span className="eyebrow" style={{ marginBottom: 12, display: "block" }}>Risk Disclosure</span>
+          <p className="body-text" style={{ maxWidth: 680, margin: "0 auto" }}>
+            Returns displayed represent target performance ranges based on historical trading models
+            and strategic projections. Actual returns may vary depending on market conditions,
+            liquidity, volatility, and trading performance. Participation in financial markets involves
+            risk, and capital allocation decisions should be made with a clear understanding of these risks.
           </p>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-24 text-center relative overflow-hidden bg-gradient-to-r from-[#0AEFFF]/10 via-[#2563EB]/5 to-[#0AEFFF]/10">
+      {/* ── FINAL CTA ── */}
+      <section className="section-py" style={{ textAlign: "center", borderTop: "1px solid rgba(10,239,255,0.12)" }}>
         <div className="max-w-5xl mx-auto px-6">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            className="text-4xl lg:text-6xl font-extrabold mb-8"
-          >
-            Join a Global Community<br />
-            <span className="text-[#0AEFFF]">Earning Through Shared Performance</span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-xl text-gray-300 mb-12 max-w-3xl mx-auto"
-          >
-            Stake-to-Earn is built for individuals who value professional management, performance
-            visibility, and time efficiency while remaining focused on personal and professional priorities.
-          </motion.p>
-          <motion.a
-            href="/register"
-            whileHover={{ scale: 1.1, boxShadow: "0 0 40px rgba(10,239,255,0.5)" }}
-            className="inline-flex items-center gap-4 bg-gradient-to-r from-[#0AEFFF] to-[#2563EB] text-[#0B1120] font-bold px-12 py-6 rounded-full text-xl shadow-2xl transition-all"
-          >
-            Register & Participate
-            <ArrowRight className="w-8 h-8" />
-          </motion.a>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <span className="eyebrow" style={{ marginBottom: 16, display: "block" }}>Get started</span>
+            <h2 className="section-heading" style={{ marginBottom: 20 }}>
+              Join a global community<br />
+              <em>earning through shared performance.</em>
+            </h2>
+            <p className="body-text" style={{ maxWidth: 560, margin: "0 auto 36px" }}>
+              Built for individuals who value professional management, performance visibility,
+              and time efficiency while remaining focused on personal and professional priorities.
+            </p>
+            <a href="/register" className="btn-primary" style={{ padding: "16px 48px", fontSize: 12, display: "inline-flex", gap: 10 }}>
+              Register and Participate <ArrowRight size={14} />
+            </a>
+          </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-16 border-t border-[#0AEFFF]/20 bg-black/20 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm text-[#848E9C]">
-
-          {/* Brand */}
+      {/* ── FOOTER ── */}
+      <footer style={{ borderTop: "1px solid rgba(10,239,255,0.12)", background: "rgba(0,0,0,0.2)", backdropFilter: "blur(16px)" }}>
+        <div className="max-w-7xl mx-auto px-6" style={{ padding: "48px 24px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 32 }}>
           <div>
-            <h4 className="text-[#0AEFFF] font-semibold text-lg mb-2">
-              Seventy7Hub
-            </h4>
-            <p className="text-xs leading-relaxed">
-              Smarter staking, learning, and portfolio management all in one platform.
-              <br />
-              <span className="text-[#9CA3AF]">
-                Earn 5–10% monthly, performance-based on market conditions.
-              </span>
-            </p>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 300, color: "var(--text)", marginBottom: 8 }}>
+              Seventy<span style={{ color: "var(--cyan)" }}>7</span>Hub
+            </div>
+            <p className="body-text-sm">Smarter staking, learning, and portfolio management all in one platform.</p>
           </div>
-
-          {/* Navigation */}
-          <div className="flex flex-col gap-2">
-            <a href="/dashboard" className="hover:text-[#0AEFFF]">
-              Dashboard
-            </a>
-
-            {/* Staking → Investment page */}
-            <a href="/dashboard/invest" className="hover:text-[#0AEFFF]">
-              Staking
-            </a>
-
-            {/* Transactions → Portfolio */}
-            <a href="/dashboard/portfolio" className="hover:text-[#0AEFFF]">
-              Transactions
-            </a>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[["Dashboard", "/dashboard"], ["Staking", "/invest"], ["Portfolio Management", "/portfolio"]].map(([label, href]) => (
+              <a key={label} href={href} className="footer-link">{label}</a>
+            ))}
           </div>
-
-          {/* Social */}
-          <div className="flex flex-col gap-2">
-            <a
-              href="https://t.me/seventy7hub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              Telegram
-            </a>
-
-            <a
-              href="https://discord.gg/seventy7hub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              Discord
-            </a>
-
-            <a
-              href="https://x.com/seventy7hub"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              X (Twitter)
-            </a>
-
-            <a
-              href="https://www.instagram.com/seventy7trading?igsh=ZmNmNTBtdWJqa3Ax&utm_source=qr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              Instagram
-            </a>
-
-            <a
-              href="https://www.facebook.com/share/1AiekpPNc3/?mibextid=wwXIfr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              Facebook
-            </a>
-
-            <a
-              href="https://www.linkedin.com/company/seventy7-trading-academy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#0AEFFF]"
-            >
-              LinkedIn
-            </a>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              ["Telegram",  "https://t.me/seventy7hub"],
+              ["Discord",   "https://discord.gg/seventy7hub"],
+              ["X (Twitter)", "https://x.com/seventy7hub"],
+              ["Instagram", "https://www.instagram.com/seventy7trading"],
+              ["Facebook",  "https://www.facebook.com/share/1AiekpPNc3/"],
+              ["LinkedIn",  "https://www.linkedin.com/company/seventy7-trading-academy"],
+            ].map(([label, href]) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="footer-social">{label}</a>
+            ))}
           </div>
-
         </div>
-
-        <div className="text-center text-xs text-[#6B7280] pb-6">
+        <div className="footer-copy" style={{ textAlign: "center", paddingBottom: 24 }}>
           © {new Date().getFullYear()} Seventy7Hub. All rights reserved.
         </div>
       </footer>
 
-    </div>
+    </main>
   );
-};
-
-export default InvestPage;
+}

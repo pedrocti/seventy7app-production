@@ -1,13 +1,6 @@
 // server/api/invest.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Investment creation — Annual model (12 months)
-//
-// Key changes from old version:
-//   - Snapshots plan's monthly_roi_percent onto investment at creation time
-//     so future plan changes don't affect existing investments
-//   - Sets term_months = 12, current_month = 0
-//   - duration_days = 365
-//   - Amounts stored in dollars (NOT cents — fixing the inconsistency)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Router } from "express";
@@ -77,12 +70,17 @@ router.post("/", async (req, res) => {
       });
     }
 
+    // ── Snapshot ROI rate at time of investment ───────────────────────────────
+    // Uses mid-point of range if range is set; falls back to monthly_roi_percent.
+    // Protects existing investors from future plan rate changes.
+    const lo = Number(plan.min_monthly_roi || 0);
+    const hi = Number(plan.max_monthly_roi || 0);
+    const snapshotRoiRate = (lo > 0 || hi > 0)
+      ? Number(((lo + hi) / 2).toFixed(4))
+      : Number(plan.monthly_roi_percent || 0);
+
     // ── Create investment ─────────────────────────────────────────────────────
     const startAt = new Date();
-
-    // Snapshot the plan's monthly ROI rate at time of investment
-    // This protects existing investors from future plan rate changes
-    const snapshotRoiRate = Number(plan.monthly_roi_percent || 0);
 
     const [inserted] = await db.transaction(async (tx) => {
       // Deduct from user balance(s)
@@ -94,25 +92,23 @@ router.post("/", async (req, res) => {
         })
         .where(eq(users.id, userId));
 
-      // Create the investment
+      // Create the investment record
       const inv = await tx
         .insert(investments)
         .values({
-          user_id:         userId,
-          plan_id:         plan.id,
-          amount:          numAmount.toFixed(2),
-          status:          "active",
-          progress:        "0.00",
-          profit_loss:     "0.00",
-          profit_paid:     "0.00",
-          // Annual model fields
-          term_months:     12,
-          current_month:   0,
-          total_earned:    "0.00",
+          user_id:          userId,
+          plan_id:          plan.id,
+          amount:           numAmount.toFixed(2),
+          status:           "active",
+          progress:         "0.00",
+          profit_loss:      "0.00",
+          profit_paid:      "0.00",
+          term_months:      12,
+          current_month:    0,
+          total_earned:     "0.00",
           monthly_roi_rate: snapshotRoiRate.toFixed(4),
-          // Timing
-          start_at:        startAt,
-          duration_days:   365,
+          start_at:         startAt,
+          duration_days:    365,
         })
         .returning();
 
@@ -140,7 +136,6 @@ router.post("/", async (req, res) => {
         .set({ bonus_balance: sql`COALESCE(${users.bonus_balance}, 0)::numeric + ${bonusAmount}::numeric` })
         .where(eq(users.id, user.referred_by));
 
-      // Log as dollars (fixing the cents inconsistency from old code)
       await db.insert(transactions).values({
         user_id:   user.referred_by,
         type:      "referral_bonus",
@@ -170,10 +165,14 @@ router.post("/", async (req, res) => {
       message: "Investment activated — your monthly returns will begin within 30 days",
       investment: {
         ...inserted,
-        plan_name:       plan.name,
+        plan_name:        plan.name,
         monthly_roi_rate: snapshotRoiRate,
-        term_months:     12,
-        end_date:        new Date(startAt.getTime() + 365 * 86400000).toISOString(),
+        min_monthly_roi:  lo,
+        max_monthly_roi:  hi,
+        min_total_roi:    Number(plan.min_total_roi || 0),
+        max_total_roi:    Number(plan.max_total_roi || 0),
+        term_months:      12,
+        end_date:         new Date(startAt.getTime() + 365 * 86400000).toISOString(),
       },
       balances: {
         balance:       Number(updated?.balance ?? 0),
@@ -187,7 +186,7 @@ router.post("/", async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/invest — List user's investments with progress details
+// GET /api/invest — List user's investments with progress + ROI range details
 // ─────────────────────────────────────────────────────────────────────────────
 router.get("/", async (req, res) => {
   const userId = req.user?.id;
@@ -196,33 +195,48 @@ router.get("/", async (req, res) => {
   try {
     const rows = await db
       .select({
-        id:              investments.id,
-        amount:          investments.amount,
-        status:          investments.status,
-        progress:        investments.progress,
-        profit_loss:     investments.profit_loss,
-        profit_paid:     investments.profit_paid,
-        term_months:     investments.term_months,
-        current_month:   investments.current_month,
-        total_earned:    investments.total_earned,
-        monthly_roi_rate: investments.monthly_roi_rate,
-        start_at:        investments.start_at,
-        duration_days:   investments.duration_days,
+        // ── investment fields ──────────────────────────────────────────────
+        id:                    investments.id,
+        amount:                investments.amount,
+        status:                investments.status,
+        progress:              investments.progress,
+        profit_loss:           investments.profit_loss,
+        profit_paid:           investments.profit_paid,
+        term_months:           investments.term_months,
+        current_month:         investments.current_month,
+        total_earned:          investments.total_earned,
+        monthly_roi_rate:      investments.monthly_roi_rate,
+        start_at:              investments.start_at,
+        duration_days:         investments.duration_days,
         last_profit_payout_at: investments.last_profit_payout_at,
-        plan_id:         plans.id,
-        plan_name:       plans.name,
-        min_amount:      plans.min_amount,
-        max_amount:      plans.max_amount,
+        // ── plan fields ───────────────────────────────────────────────────
+        plan_id:               plans.id,
+        plan_name:             plans.name,
+        min_amount:            plans.min_amount,
+        max_amount:            plans.max_amount,
+        // ROI range — these were missing, causing 0% display on frontend
+        min_monthly_roi:       plans.min_monthly_roi,
+        max_monthly_roi:       plans.max_monthly_roi,
+        min_total_roi:         plans.min_total_roi,
+        max_total_roi:         plans.max_total_roi,
       })
       .from(investments)
       .leftJoin(plans, eq(plans.id, investments.plan_id))
       .where(eq(investments.user_id, userId));
 
     const enriched = rows.map((inv) => {
-      const start     = inv.start_at ? new Date(inv.start_at) : null;
-      const endDate   = start ? new Date(start.getTime() + 365 * 86400000) : null;
+      const start      = inv.start_at ? new Date(inv.start_at) : null;
+      const endDate    = start ? new Date(start.getTime() + 365 * 86400000) : null;
       const termMonths = Number(inv.term_months ?? 12);
       const curMonth   = Number(inv.current_month ?? 0);
+
+      // Resolve ROI range — prefer plan range, fall back to snapshotted rate
+      // so investments created before ranges existed still display correctly
+      const snapshotRate = Number(inv.monthly_roi_rate ?? 0);
+      const minRoi = Number(inv.min_monthly_roi ?? 0) || snapshotRate;
+      const maxRoi = Number(inv.max_monthly_roi ?? 0) || snapshotRate;
+      const minTotal = Number(inv.min_total_roi ?? 0) || +(snapshotRate * termMonths).toFixed(2);
+      const maxTotal = Number(inv.max_total_roi ?? 0) || +(snapshotRate * termMonths).toFixed(2);
 
       // Next payout date
       const lastPayout = inv.last_profit_payout_at
@@ -234,11 +248,17 @@ router.get("/", async (req, res) => {
 
       return {
         ...inv,
+        // Resolved ROI range fields — always populated
+        min_monthly_roi:   minRoi,
+        max_monthly_roi:   maxRoi,
+        min_total_roi:     minTotal,
+        max_total_roi:     maxTotal,
+        // Computed fields
         end_at:            endDate?.toISOString() ?? null,
         next_payout_at:    nextPayout?.toISOString() ?? null,
         months_remaining:  Math.max(0, termMonths - curMonth),
-        projected_monthly: Number(inv.amount) * (Number(inv.monthly_roi_rate) / 100),
-        projected_total:   Number(inv.amount) * (Number(inv.monthly_roi_rate) / 100) * termMonths,
+        projected_monthly: Number(inv.amount) * (snapshotRate / 100),
+        projected_total:   Number(inv.amount) * (snapshotRate / 100) * termMonths,
       };
     });
 

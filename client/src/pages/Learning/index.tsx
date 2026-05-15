@@ -1,122 +1,56 @@
 // client/src/pages/Learning/index.tsx
-import { Route, Switch } from "wouter";
-import ProgramsList from "./ProgramsList";
-import ProgramView from "./ProgramView";
-import CoursesList from "./Courses"; // assuming CoursesList is an alias or old name for Courses
-import CourseView from "./CourseView";
-import LessonsList from "./LessonsList";
-import AssignmentsList from "./AssignmentsList";
-import SubmitModal from "./SubmitModal";
-import Progress from "./Progress";
+// ─────────────────────────────────────────────────────────────────────────────
+// State-machine router — no URL routing needed since Learning is rendered
+// inside the dashboard as a component, not via browser navigation.
+// ─────────────────────────────────────────────────────────────────────────────
+import { useState } from 'react';
+import ProgramsList from './ProgramsList';
+import ProgramView  from './ProgramView';
+import CourseView   from './CourseView';
+
+type View =
+  | { type: 'programs' }
+  | { type: 'program';  programId: number }
+  | { type: 'course';   courseId: number; programId?: number };
 
 export default function LearningRouter() {
-  return (
-    <Switch>
-      {/* Programs */}
-      <Route path="/learning" component={ProgramsList} />
+  const [view, setView] = useState<View>({ type: 'programs' });
 
-      {/* Program view */}
-      <Route path="/learning/program/:programId">
-        {(params: any) => {
-          if (!params?.programId) return null;
-          return (
-            <ProgramView
-              id={Number(params.programId)}
-              onBack={() => window.history.back()}
-              onViewCourses={() => {
-                console.log("View courses requested for program", params.programId);
-              }}
-            />
-          );
-        }}
-      </Route>
+  function navigate(v: View) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setView(v);
+  }
 
-      {/* Program view (plural for backward compatibility) */}
-      <Route path="/learning/programs/:programId">
-        {(params: any) => {
-          if (!params?.programId) return null;
-          return (
-            <ProgramView
-              id={Number(params.programId)}
-              onBack={() => window.history.back()}
-              onViewCourses={() => {
-                console.log("View courses requested for program (plural)", params.programId);
-              }}
-            />
-          );
-        }}
-      </Route>
+  if (view.type === 'programs') {
+    return (
+      <ProgramsList
+        onSelect={programId => navigate({ type: 'program', programId })}
+      />
+    );
+  }
 
-      {/* Courses */}
-      <Route path="/learning/program/:programId/courses">
-        {(params: any) => {
-          if (!params?.programId) return null;
-          return (
-            <CoursesList
-              programId={Number(params.programId)}
-              onBack={() => window.history.back()}
-            />
-          );
-        }}
-      </Route>
+  if (view.type === 'program') {
+    return (
+      <ProgramView
+        id={view.programId}
+        onBack={() => navigate({ type: 'programs' })}
+        onViewCourse={courseId => navigate({ type: 'course', courseId, programId: view.programId })}
+      />
+    );
+  }
 
-      {/* Backwards compatibility (plural) */}
-      <Route path="/learning/programs/:programId/courses">
-        {(params: any) => {
-          if (!params?.programId) return null;
-          return (
-            <CoursesList
-              programId={Number(params.programId)}
-              onBack={() => window.history.back()}
-            />
-          );
-        }}
-      </Route>
+  if (view.type === 'course') {
+    return (
+      <CourseView
+        courseId={view.courseId}
+        onBack={() =>
+          view.programId
+            ? navigate({ type: 'program', programId: view.programId })
+            : navigate({ type: 'programs' })
+        }
+      />
+    );
+  }
 
-      {/* Course View */}
-      <Route path="/learning/course/:courseId">
-        {(params: any) => {
-          if (!params?.courseId) return null;
-          return <CourseView courseId={Number(params.courseId)} />;
-        }}
-      </Route>
-
-      {/* Lessons */}
-      <Route path="/learning/course/:courseId/lessons">
-        {(params: any) => {
-          if (!params?.courseId) return null;
-          return <LessonsList courseId={Number(params.courseId)} />;
-        }}
-      </Route>
-
-      {/* Assignments */}
-      <Route path="/learning/lesson/:lessonId/assignments">
-        {(params: any) => {
-          if (!params?.lessonId) return null;
-          return <AssignmentsList lessonId={Number(params.lessonId)} />;
-        }}
-      </Route>
-
-      {/* Submit Work */}
-      <Route path="/learning/lesson/:lessonId/submit">
-        {(params: any) => {
-          if (!params?.lessonId) return null;
-          return <SubmitModal lessonId={Number(params.lessonId)} />;
-        }}
-      </Route>
-
-      {/* Progress */}
-      <Route path="/learning/course/:courseId/progress">
-        {(params: any) => {
-          if (!params?.courseId) return null;
-          return <Progress courseId={Number(params.courseId)} />;
-        }}
-      </Route>
-
-      {/* Catch-all - fallback to programs list */}
-      <Route path="/learning/:rest*">
-        <ProgramsList />
-      </Route>
-    </Switch>
-  );
+  return null;
 }
