@@ -15,3 +15,4 @@ logs
 coverage
 .tmp
 .cache
+client/dist-staging
