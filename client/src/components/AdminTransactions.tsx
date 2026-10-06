@@ -84,7 +84,7 @@ export default function AdminTransactions() {
   if (loading) return <div>Loading transactions...</div>;
 
   return (
-    <div className="p-4 bg-[#0F172A]/60 rounded-2xl border border-[#1E293B]/40">
+    <div className="p-4 bg-brand-secondary/60 rounded-2xl border border-[#1E293B]/40">
       <h2 className="text-lg font-bold mb-4">User Transactions</h2>
 
       {error && (

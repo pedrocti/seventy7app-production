@@ -109,7 +109,7 @@ const completed = investments.filter((i) => i.status?.toLowerCase() === "complet
   return (
     <div className="space-y-6">
       {/* Active Investments */}
-      <div className="p-4 bg-[#0F172A]/60 rounded-2xl border border-[#1E293B]/40">
+      <div className="p-4 bg-brand-secondary/60 rounded-2xl border border-[#1E293B]/40">
         <h2 className="text-lg font-bold mb-4">Active Investments ({active.length})</h2>
         {active.length === 0 ? (
           <p className="text-gray-400">No active investments.</p>
@@ -148,7 +148,7 @@ const completed = investments.filter((i) => i.status?.toLowerCase() === "complet
       </div>
 
       {/* Completed Investments */}
-      <div className="p-4 bg-[#0F172A]/60 rounded-2xl border border-[#1E293B]/40">
+      <div className="p-4 bg-brand-secondary/60 rounded-2xl border border-[#1E293B]/40">
         <h2 className="text-lg font-bold mb-4">Completed Investments ({completed.length})</h2>
 
         {completed.length === 0 ? (

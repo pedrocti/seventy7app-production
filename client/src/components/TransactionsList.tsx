@@ -176,7 +176,7 @@ export default function TransactionsList() {
                     <div className="flex gap-3">
                       <button
                         onClick={() => handleApprove(t.id)}
-                        className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold text-sm transition shadow-lg"
+                        className="px-6 py-3 bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold text-sm transition shadow-lg"
                       >
                         Approve & Send
                       </button>
@@ -197,7 +197,7 @@ export default function TransactionsList() {
 
       {/* Reject Modal */}
       {showModal && selectedTx && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-[#1E293B] p-8 rounded-3xl border-2 border-red-500/50 max-w-lg w-full shadow-2xl">
             <h3 className="text-3xl font-bold text-white mb-6">Reject Transaction</h3>
             <div className="space-y-3 text-gray-300">
@@ -216,7 +216,7 @@ export default function TransactionsList() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Enter rejection reason..."
-              className="w-full mt-6 p-4 bg-[#0F172A] border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-red-500 outline-none resize-none"
+              className="w-full mt-6 p-4 bg-brand-secondary border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-red-500 outline-hidden resize-none"
               rows={5}
             />
 
@@ -229,7 +229,7 @@ export default function TransactionsList() {
               </button>
               <button
                 onClick={confirmReject}
-                className="px-8 py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl font-bold transition shadow-lg"
+                className="px-8 py-4 bg-linear-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl font-bold transition shadow-lg"
               >
                 Confirm Reject
               </button>

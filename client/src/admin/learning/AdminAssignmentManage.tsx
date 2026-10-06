@@ -172,7 +172,7 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#020617] to-[#0B1628] p-8">
+    <div className="min-h-screen bg-linear-to-b from-[#020617] to-[#0B1628] p-8">
       <div className="max-w-6xl mx-auto">
         <button
           onClick={onBack}
@@ -185,7 +185,7 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
         <h2 className="text-5xl font-bold text-white mb-10">Course Assignments</h2>
 
         {/* Create/Edit Form */}
-        <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-10 border border-[#334155] shadow-2xl mb-12">
+        <div className="bg-linear-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-10 border border-[#334155] shadow-2xl mb-12">
           <h3 className="text-3xl font-bold text-[#0AEFFF] mb-8">
             {selectedAssignment ? "Edit Assignment" : "Create New Assignment"}
           </h3>
@@ -194,26 +194,26 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
               placeholder="Assignment Title (required)"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6"
             />
             <Textarea
               placeholder="Description / Instructions"
               rows={6}
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg"
+              className="bg-brand-secondary border-[#334155] text-white text-lg"
             />
             <Input
               type="date"
               value={form.due_date}
               onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6"
             />
             <div className="flex gap-4">
               <Button
                 onClick={handleSaveAssignment}
                 disabled={saving}
-                className="bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold text-xl py-8"
+                className="bg-linear-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold text-xl py-8"
               >
                 {saving ? "Saving..." : selectedAssignment ? "Update" : "Create Assignment"}
               </Button>
@@ -322,7 +322,7 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
                   )}
                 </div>
 
-                <div className="bg-[#0F172A]/50 rounded-xl p-6 mb-6">
+                <div className="bg-brand-secondary/50 rounded-xl p-6 mb-6">
                   <p className="text-gray-200 whitespace-pre-wrap leading-relaxed">{sub.content}</p>
                 </div>
 
@@ -340,7 +340,7 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
                           [sub.submission_id]: { grade: e.target.value, feedback: prev[sub.submission_id]?.feedback || "" },
                         }))
                       }
-                      className="bg-[#0F172A] border-[#334155]"
+                      className="bg-brand-secondary border-[#334155]"
                     />
                     <Textarea
                       placeholder="Feedback (optional)"
@@ -352,7 +352,7 @@ export default function AdminAssignmentManage({ lesson, onBack }: Props) {
                           [sub.submission_id]: { grade: prev[sub.submission_id]?.grade || "", feedback: e.target.value },
                         }))
                       }
-                      className="md:col-span-2 bg-[#0F172A] border-[#334155]"
+                      className="md:col-span-2 bg-brand-secondary border-[#334155]"
                     />
                     <Button
                       onClick={() => handleGrade(sub.submission_id)}

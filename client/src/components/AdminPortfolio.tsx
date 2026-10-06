@@ -70,7 +70,7 @@ export default function AdminPortfolio() {
   return (
     <div className="space-y-6">
       {/* Pending Requests */}
-      <div className="p-4 bg-[#0F172A]/60 rounded-2xl border border-[#1E293B]/40">
+      <div className="p-4 bg-brand-secondary/60 rounded-2xl border border-[#1E293B]/40">
         <h2 className="text-lg font-bold mb-4">Pending Portfolio Requests</h2>
         <table className="w-full text-left">
           <thead>
@@ -106,7 +106,7 @@ export default function AdminPortfolio() {
       </div>
 
       {/* Active Portfolios */}
-      <div className="p-4 bg-[#0F172A]/60 rounded-2xl border border-[#1E293B]/40">
+      <div className="p-4 bg-brand-secondary/60 rounded-2xl border border-[#1E293B]/40">
         <h2 className="text-lg font-bold mb-4">Active Portfolios</h2>
         <table className="w-full text-left">
           <thead>

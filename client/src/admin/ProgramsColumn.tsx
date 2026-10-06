@@ -88,12 +88,12 @@ export default function ProgramsColumn({ token }: Props) {
       <h3 className="text-xl font-semibold mb-3">Programs ({programs.length})</h3>
       <div className="space-y-3 mb-4">
         {programs.map(p => (
-          <div key={p.id} className="p-3 bg-[#071029] rounded border border-[#0F172A]">
+          <div key={p.id} className="p-3 bg-[#071029] rounded border border-brand-secondary">
             {editingId === p.id && draft ? (
               <div className="space-y-2">
-                <input className="w-full p-2 bg-[#0F172A] rounded" value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} />
-                <input className="w-full p-2 bg-[#0F172A] rounded" value={draft.price || ""} onChange={e => setDraft({ ...draft, price: Number(e.target.value) })} placeholder="Price" />
-                <input className="w-full p-2 bg-[#0F172A] rounded" value={draft.duration || ""} onChange={e => setDraft({ ...draft, duration: e.target.value })} placeholder="Duration" />
+                <input className="w-full p-2 bg-brand-secondary rounded" value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+                <input className="w-full p-2 bg-brand-secondary rounded" value={draft.price || ""} onChange={e => setDraft({ ...draft, price: Number(e.target.value) })} placeholder="Price" />
+                <input className="w-full p-2 bg-brand-secondary rounded" value={draft.duration || ""} onChange={e => setDraft({ ...draft, duration: e.target.value })} placeholder="Duration" />
                 <div className="flex gap-2">
                   <button onClick={saveEdit} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Save</button>
                   <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 rounded">Cancel</button>
@@ -114,11 +114,11 @@ export default function ProgramsColumn({ token }: Props) {
       </div>
 
       {/* Add program */}
-      <div className="p-3 bg-[#081022] rounded border border-[#0F172A]">
+      <div className="p-3 bg-[#081022] rounded border border-brand-secondary">
         <h4 className="font-semibold mb-2">Add Program</h4>
-        <input placeholder="Title" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-        <input placeholder="Price" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
-        <input placeholder="Duration" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
+        <input placeholder="Title" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+        <input placeholder="Price" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+        <input placeholder="Duration" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
         <button onClick={createProgram} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Add Program</button>
       </div>
     </div>

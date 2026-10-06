@@ -172,10 +172,10 @@ export default function AdminDashboard() {
             performance={`Users: ${stats.totalUsers} • Invested: $${stats.totalInvested.toFixed(2)}`}
             username={user?.username || "Admin"}
           />
-          <button onClick={fetchStats} className="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-xl shadow-lg hover:shadow-cyan-500/50 transition-all duration-300">
+          <button onClick={fetchStats} className="mt-4 px-6 py-3 bg-linear-to-r from-cyan-500 to-blue-600 text-white font-medium rounded-xl shadow-lg hover:shadow-cyan-500/50 transition-all duration-300">
             Refresh Stats
           </button>
-          <div className="bg-[#0F172A]/90 backdrop-blur-sm p-6 md:p-8 rounded-3xl border border-[#0AEFFF]/20 shadow-2xl">
+          <div className="bg-brand-secondary/90 backdrop-blur-xs p-6 md:p-8 rounded-3xl border border-[#0AEFFF]/20 shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold text-cyan-400">Balance Performance Trend</h3>
               <span className="text-sm text-gray-400">Last 6 months</span>
@@ -218,7 +218,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
               {balanceCards.map((card, idx) => (
                 <motion.div key={idx} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1, duration: 0.5 }}
-                  className="p-6 bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-2xl shadow-lg hover:shadow-[#0AEFFF]/30 transition-all duration-300 border border-[#0AEFFF]/20 text-center">
+                  className="p-6 bg-linear-to-br from-[#0F172A] to-[#1E293B] rounded-2xl shadow-lg hover:shadow-[#0AEFFF]/30 transition-all duration-300 border border-[#0AEFFF]/20 text-center">
                   <h3 className="text-lg font-semibold text-cyan-400 mb-3">{card.title}</h3>
                   <p className="text-3xl md:text-4xl font-bold text-white">${card.value.toFixed(2)}</p>
                 </motion.div>
@@ -246,7 +246,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#041026] to-[#071029] text-white flex">
+    <div className="min-h-screen bg-linear-to-b from-[#041026] to-[#071029] text-white flex">
       <AdminSidebar collapsed={collapsed} active={active} onNavigate={handleNavigate} />
       <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? "md:ml-16" : "md:ml-64"}`}>
         <Topbar active={active} onCollapse={() => setCollapsed((c) => !c)} />

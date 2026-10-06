@@ -18,7 +18,7 @@ const ServicePageLayout = ({
 }: ServicePageLayoutProps) => {
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center text-white bg-[#0F172A] px-6 py-16 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center text-white bg-brand-secondary px-6 py-16 relative overflow-hidden"
       style={{
         fontFamily: "Inter, sans-serif",
       }}
@@ -78,7 +78,7 @@ const ServicePageLayout = ({
         rel="noopener noreferrer"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="bg-[#0AEFFF] text-[#0F172A] font-semibold px-8 py-4 rounded-full shadow-lg transition-all hover:shadow-cyan-500/50"
+        className="bg-[#0AEFFF] text-brand-secondary font-semibold px-8 py-4 rounded-full shadow-lg transition-all hover:shadow-cyan-500/50"
       >
         {ctaText}
       </motion.a>

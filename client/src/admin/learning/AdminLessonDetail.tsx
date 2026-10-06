@@ -33,7 +33,7 @@ export default function AdminLessonDetail({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#020617] to-[#0B1628] p-8">
+    <div className="min-h-screen bg-linear-to-b from-[#020617] to-[#0B1628] p-8">
       <div className="max-w-6xl mx-auto">
         <button
           onClick={() => setSelectedLesson(null)}
@@ -43,7 +43,7 @@ export default function AdminLessonDetail({
           Back to Lessons
         </button>
 
-        <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-12 border border-[#334155] shadow-2xl">
+        <div className="bg-linear-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-12 border border-[#334155] shadow-2xl">
           <div className="flex justify-between items-start mb-10">
             <h2 className="text-5xl font-bold text-white">{selectedLesson.title}</h2>
             <div className="flex gap-4">
@@ -77,7 +77,7 @@ export default function AdminLessonDetail({
           {/* Links section */}
           <div className="grid md:grid-cols-2 gap-8 text-lg">
             {selectedLesson.video_url && (
-              <div className="flex items-center gap-4 p-4 bg-[#0F172A]/50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 bg-brand-secondary/50 rounded-xl">
                 <Video className="w-8 h-8 text-cyan-300" />
                 <a
                   href={selectedLesson.video_url}
@@ -90,7 +90,7 @@ export default function AdminLessonDetail({
               </div>
             )}
             {selectedLesson.pdf_url && (
-              <div className="flex items-center gap-4 p-4 bg-[#0F172A]/50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 bg-brand-secondary/50 rounded-xl">
                 <FileText className="w-8 h-8 text-cyan-300" />
                 <a
                   href={selectedLesson.pdf_url}
@@ -103,7 +103,7 @@ export default function AdminLessonDetail({
               </div>
             )}
             {selectedLesson.external_link && (
-              <div className="flex items-center gap-4 p-4 bg-[#0F172A]/50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 bg-brand-secondary/50 rounded-xl">
                 <Link2 className="w-8 h-8 text-cyan-300" />
                 <a
                   href={selectedLesson.external_link}

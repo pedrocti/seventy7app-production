@@ -68,7 +68,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0F172A] rounded-2xl p-8 max-w-md w-full border border-[#1E293B] shadow-2xl">
+      <div className="bg-brand-secondary rounded-2xl p-8 max-w-md w-full border border-[#1E293B] shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-2xl font-bold text-white">Deposit Funds</h2>
@@ -112,7 +112,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
             placeholder="Minimum $100"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-5 py-4 bg-[#1E293B] rounded-xl text-white text-lg font-medium focus:outline-none focus:ring-4 focus:ring-[#0AEFFF]/50 transition"
+            className="w-full px-5 py-4 bg-[#1E293B] rounded-xl text-white text-lg font-medium focus:outline-hidden focus:ring-4 focus:ring-[#0AEFFF]/50 transition"
           />
 
           {amount && !isMinAmountValid && (

@@ -333,7 +333,7 @@ export default function AdminCoursesView({
                       <p className="mt-2" style={{ color: "var(--text-2)" }}>{c.description}</p>
                     )}
                   </div>
-                  <div className="flex gap-4 flex-shrink-0 ml-6">
+                  <div className="flex gap-4 shrink-0 ml-6">
                     <Button
                       onClick={(e) => { e.stopPropagation(); handleDeleteCourse(c.id); }}
                       variant="destructive"

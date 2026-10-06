@@ -3,11 +3,11 @@ import logoImage from '../assets/logo.jpeg';
 
 const LoadingScreen = () => {
   return (
-    <div className="fixed top-0 left-0 w-full h-full bg-[#0F172A] flex justify-center items-center z-[9999]">
+    <div className="fixed top-0 left-0 w-full h-full bg-brand-secondary flex justify-center items-center z-9999">
       <div className="text-center">
         <div className="relative mx-auto mb-8">
           <motion.div 
-            className="absolute -inset-0.5 bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full blur-md"
+            className="absolute -inset-0.5 bg-linear-to-r from-[#0AEFFF] to-[#7E22CE] rounded-full blur-md"
             animate={{ 
               opacity: [0.5, 1, 0.5],
               scale: [1, 1.2, 1]

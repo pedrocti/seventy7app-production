@@ -70,7 +70,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300 }}
-          className="bg-gradient-to-br from-[#0F172A] to-[#1E293B] rounded-3xl p-12 max-w-md w-full border border-green-500/30 shadow-2xl shadow-green-500/20"
+          className="bg-linear-to-br from-[#0F172A] to-[#1E293B] rounded-3xl p-12 max-w-md w-full border border-green-500/30 shadow-2xl shadow-green-500/20"
         >
           <CheckCircle className="w-24 h-24 text-green-400 mx-auto mb-6" />
           <h2 className="text-3xl font-bold text-center text-white mb-4">Withdrawal Sent!</h2>
@@ -83,7 +83,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0F172A] rounded-2xl p-8 max-w-md w-full border border-[#1E293B]">
+      <div className="bg-brand-secondary rounded-2xl p-8 max-w-md w-full border border-[#1E293B]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Withdraw Funds</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -106,7 +106,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
               placeholder="0.00"
               step="0.01"
               min="1"
-              className="w-full px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-none text-white text-lg font-medium"
+              className="w-full px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-hidden text-white text-lg font-medium"
             />
             {hasInsufficientBalance && (
               <p className="text-red-400 text-sm mt-2 animate-pulse font-medium">
@@ -120,7 +120,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
             <select
               value={network}
               onChange={(e) => setNetwork(e.target.value)}
-              className="w-full mt-2 px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-none text-white"
+              className="w-full mt-2 px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-hidden text-white"
             >
               {networks.map((n) => (
                 <option key={n} value={n}>
@@ -137,7 +137,7 @@ export default function WithdrawalModal({ isOpen, onClose }: { isOpen: boolean; 
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="T... or 0x..."
-              className="w-full mt-2 px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-none font-mono text-sm"
+              className="w-full mt-2 px-4 py-4 bg-[#1E293B] rounded-lg focus:ring-2 focus:ring-green-400 outline-hidden font-mono text-sm"
             />
           </div>
 

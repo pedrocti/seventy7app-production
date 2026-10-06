@@ -65,14 +65,14 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-[#0B1120] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
-      <div className="w-full max-w-md bg-[#0F172A]/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8">
+      <div className="w-full max-w-md bg-brand-secondary/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl shadow-black/40 p-8">
         <div className="text-center mb-8">
           <img
             src={logo}
             alt="77KAPITAL Logo"
             className="w-20 h-20 mx-auto mb-6 rounded-full object-cover shadow-lg shadow-cyan-500/30"
           />
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE]">
+          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-[#0AEFFF] to-[#7E22CE]">
             Reset Password
           </h1>
           <p className="text-gray-400 mt-2 text-sm">Enter your new password below</p>
@@ -97,7 +97,7 @@ export default function ResetPassword() {
               placeholder="New Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
+              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-hidden focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
               required
             />
             <button
@@ -115,7 +115,7 @@ export default function ResetPassword() {
               placeholder="Confirm New Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
+              className="w-full px-5 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-hidden focus:border-[#0AEFFF]/60 focus:ring-2 focus:ring-[#0AEFFF]/20 transition pr-12"
               required
             />
           </div>
@@ -123,7 +123,7 @@ export default function ResetPassword() {
           <button
             type="submit"
             disabled={loading || !token}
-            className="w-full bg-gradient-to-r from-[#0AEFFF] to-[#7E22CE] text-[#0B1120] font-bold py-5 rounded-2xl hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-linear-to-r from-[#0AEFFF] to-[#7E22CE] text-[#0B1120] font-bold py-5 rounded-2xl hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Reset Password"}
           </button>
@@ -134,7 +134,7 @@ export default function ResetPassword() {
           <button
             type="button"
             onClick={() => setLocation("/login")}
-            className="text-[#0AEFFF] font-bold hover:underline focus:outline-none focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
+            className="text-[#0AEFFF] font-bold hover:underline focus:outline-hidden focus:ring-2 focus:ring-[#0AEFFF]/50 transition"
           >
             Login here
           </button>

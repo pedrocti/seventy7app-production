@@ -82,7 +82,7 @@ export default function AdminLessonsView({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#020617] to-[#0B1628] p-8">
+    <div className="min-h-screen bg-linear-to-b from-[#020617] to-[#0B1628] p-8">
       <div className="max-w-6xl mx-auto">
         <button
           onClick={() => setSelectedCourse(null)}
@@ -95,7 +95,7 @@ export default function AdminLessonsView({
         <h2 className="text-5xl font-bold text-white mb-8">{selectedCourse.title}</h2>
 
         {/* Add/Edit Lesson Form */}
-        <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-10 border border-[#334155] shadow-2xl mb-12">
+        <div className="bg-linear-to-br from-[#1E293B] to-[#0F172A] rounded-3xl p-10 border border-[#334155] shadow-2xl mb-12">
           <h3 className="text-3xl font-bold text-[#0AEFFF] mb-8">
             {editingLessonId ? "Edit Lesson" : "Add New Lesson"}
           </h3>
@@ -104,7 +104,7 @@ export default function AdminLessonsView({
               placeholder="Lesson Title"
               value={lessonForm.title}
               onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
               required
             />
 
@@ -113,28 +113,28 @@ export default function AdminLessonsView({
               rows={8}
               value={lessonForm.content}
               onChange={(e) => setLessonForm({ ...lessonForm, content: e.target.value })}
-              className="w-full p-6 bg-[#0F172A] border border-[#334155] rounded-2xl text-white text-lg placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50 resize-y min-h-[200px] leading-relaxed"
+              className="w-full p-6 bg-brand-secondary border border-[#334155] rounded-2xl text-white text-lg placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50 resize-y min-h-[200px] leading-relaxed"
             />
 
             <Input
               placeholder="Video URL (YouTube, Vimeo, etc.)"
               value={lessonForm.video_url}
               onChange={(e) => setLessonForm({ ...lessonForm, video_url: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
             />
 
             <Input
               placeholder="PDF URL"
               value={lessonForm.pdf_url}
               onChange={(e) => setLessonForm({ ...lessonForm, pdf_url: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
             />
 
             <Input
               placeholder="External Link (articles, resources, etc.)"
               value={lessonForm.external_link}
               onChange={(e) => setLessonForm({ ...lessonForm, external_link: e.target.value })}
-              className="bg-[#0F172A] border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
+              className="bg-brand-secondary border-[#334155] text-white text-lg py-6 placeholder:text-gray-500 focus:ring-4 focus:ring-[#0AEFFF]/50"
             />
 
             <div className="flex items-center gap-4">
@@ -143,7 +143,7 @@ export default function AdminLessonsView({
                 id="has_assignment"
                 checked={lessonForm.has_assignment}
                 onChange={(e) => setLessonForm({ ...lessonForm, has_assignment: e.target.checked })}
-                className="w-6 h-6 text-[#0AEFFF] bg-[#0F172A] border-gray-600 rounded focus:ring-[#0AEFFF]"
+                className="w-6 h-6 text-[#0AEFFF] bg-brand-secondary border-gray-600 rounded focus:ring-[#0AEFFF]"
               />
               <label htmlFor="has_assignment" className="text-white text-lg">
                 This lesson has an assignment
@@ -153,7 +153,7 @@ export default function AdminLessonsView({
             <div className="flex gap-4">
               <Button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold text-xl py-8 hover:from-cyan-400 hover:to-cyan-300 transition-all"
+                className="flex-1 bg-linear-to-r from-[#0AEFFF] to-cyan-400 text-black font-bold text-xl py-8 hover:from-cyan-400 hover:to-cyan-300 transition-all"
               >
                 {editingLessonId ? "Update Lesson" : "Create Lesson"}
               </Button>
@@ -211,7 +211,7 @@ export default function AdminLessonsView({
 
                 {/* Improved content display with paragraphs and spacing */}
                 {lesson.content && (
-                  <div className="text-gray-200 mb-6 text-base leading-relaxed whitespace-pre-wrap break-words">
+                  <div className="text-gray-200 mb-6 text-base leading-relaxed whitespace-pre-wrap wrap-break-word">
                     {lesson.content.split('\n\n').map((paragraph, idx) => (
                       <p key={idx} className="mb-4">
                         {paragraph.split('\n').map((line, i) => (

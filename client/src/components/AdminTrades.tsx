@@ -179,7 +179,7 @@ export default function AdminTrades() {
 
         <button
           onClick={createAndActivate}
-          className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-semibold rounded-xl hover:scale-105 transition shadow-lg"
+          className="flex items-center gap-3 px-6 py-3 bg-linear-to-r from-emerald-500 to-teal-500 text-black font-semibold rounded-xl hover:scale-105 transition shadow-lg"
         >
           <Plus className="w-5 h-5" />
           Open New Trade
@@ -270,7 +270,7 @@ export default function AdminTrades() {
                   step="0.01"
                   placeholder="PnL %"
                   className="w-20 px-2 py-1 bg-white/5 border border-white/10 rounded-md 
-                             text-[11px] text-white text-center focus:outline-none"
+                             text-[11px] text-white text-center focus:outline-hidden"
                   id={`pnl-${activeTrade.id}`}
                 />
                 <button
@@ -284,7 +284,7 @@ export default function AdminTrades() {
                   className="
                     px-3 py-1 bg-emerald-500 hover:bg-emerald-400 
                     text-black text-[11px] font-bold rounded-md 
-                    transition-all shadow-sm
+                    transition-all shadow-xs
                   "
                 >
                   Close
@@ -298,7 +298,7 @@ export default function AdminTrades() {
 
       {/* ========================= NO ACTIVE TRADES ========================= */}
       {trades.filter((t) => t.status === "active").length === 0 && (
-        <div className="text-center py-14 bg-[#0F172A]/60 rounded-xl border border-dashed border-gray-700 mt-8">
+        <div className="text-center py-14 bg-brand-secondary/60 rounded-xl border border-dashed border-gray-700 mt-8">
           <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400 text-sm">No active trades at the moment</p>
         </div>

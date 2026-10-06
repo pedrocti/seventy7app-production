@@ -78,12 +78,12 @@ export default function AssignmentsColumn({ assignments, setAssignments, courseI
       <h3 className="text-xl font-semibold mb-3">Assignments ({assignments.length})</h3>
       <div className="space-y-3 mb-4">
         {assignments.map(a => (
-          <div key={a.id} className="p-3 bg-[#071029] rounded border border-[#0F172A]">
+          <div key={a.id} className="p-3 bg-[#071029] rounded border border-brand-secondary">
             {editingId === a.id && draft ? (
               <div className="space-y-2">
-                <input className="w-full p-2 bg-[#0F172A] rounded" value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} />
-                <textarea className="w-full p-2 bg-[#0F172A] rounded" value={draft.description || ""} onChange={e => setDraft({ ...draft, description: e.target.value })} />
-                <input type="date" className="w-full p-2 bg-[#0F172A] rounded" value={draft.due_date || ""} onChange={e => setDraft({ ...draft, due_date: e.target.value })} />
+                <input className="w-full p-2 bg-brand-secondary rounded" value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+                <textarea className="w-full p-2 bg-brand-secondary rounded" value={draft.description || ""} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+                <input type="date" className="w-full p-2 bg-brand-secondary rounded" value={draft.due_date || ""} onChange={e => setDraft({ ...draft, due_date: e.target.value })} />
                 <div className="flex gap-2">
                   <button onClick={saveEdit} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Save</button>
                   <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 rounded">Cancel</button>
@@ -105,11 +105,11 @@ export default function AssignmentsColumn({ assignments, setAssignments, courseI
       </div>
 
       {/* Add Assignment */}
-      <div className="p-3 bg-[#081022] rounded border border-[#0F172A]">
+      <div className="p-3 bg-[#081022] rounded border border-brand-secondary">
         <h4 className="font-semibold mb-2">Add Assignment</h4>
-        <input placeholder="Title" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-        <textarea placeholder="Description" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-        <input type="date" placeholder="Due date" className="w-full p-2 bg-[#0F172A] rounded mb-2" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
+        <input placeholder="Title" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
+        <textarea placeholder="Description" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+        <input type="date" placeholder="Due date" className="w-full p-2 bg-brand-secondary rounded mb-2" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} />
         <button onClick={addAssignment} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Add Assignment</button>
       </div>
     </div>

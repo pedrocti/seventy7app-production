@@ -105,7 +105,7 @@ export default function AdminUsers() {
         <h2 className="text-lg font-bold mb-3">Users</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border border-gray-700">
-            <thead className="bg-[#0F172A]">
+            <thead className="bg-brand-secondary">
               <tr>
                 <th className="p-2 border-b">Username</th>
                 <th className="p-2 border-b">Email</th>

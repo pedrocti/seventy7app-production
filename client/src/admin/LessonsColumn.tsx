@@ -51,11 +51,11 @@ export default function LessonsColumn({ lessons, setLessons, courseId, token }: 
       <h3 className="text-xl font-semibold mb-3">Lessons ({lessons.length})</h3>
       <div className="space-y-3 mb-4">
         {lessons.map(l => (
-          <div key={l.id} className="p-3 bg-[#071029] rounded border border-[#0F172A]">
+          <div key={l.id} className="p-3 bg-[#071029] rounded border border-brand-secondary">
             {editingId === l.id && draft ? (
               <div className="space-y-2">
-                <input value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded" />
-                <textarea value={draft.content || ""} onChange={e => setDraft({ ...draft, content: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded" />
+                <input value={draft.title || ""} onChange={e => setDraft({ ...draft, title: e.target.value })} className="w-full p-2 bg-brand-secondary rounded" />
+                <textarea value={draft.content || ""} onChange={e => setDraft({ ...draft, content: e.target.value })} className="w-full p-2 bg-brand-secondary rounded" />
                 <div className="flex gap-2">
                   <button onClick={saveEdit} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Save</button>
                   <button onClick={cancelEdit} className="px-3 py-1 bg-gray-600 rounded">Cancel</button>
@@ -75,12 +75,12 @@ export default function LessonsColumn({ lessons, setLessons, courseId, token }: 
         ))}
       </div>
       {/* Add Lesson */}
-      <div className="p-3 bg-[#081022] rounded border border-[#0F172A]">
+      <div className="p-3 bg-[#081022] rounded border border-brand-secondary">
         <h4 className="font-semibold mb-2">Add Lesson</h4>
-        <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded mb-2" />
-        <input placeholder="Material link" value={form.material_link} onChange={e => setForm({ ...form, material_link: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded mb-2" />
-        <input placeholder="PDF URL" value={form.pdf_url} onChange={e => setForm({ ...form, pdf_url: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded mb-2" />
-        <textarea placeholder="Short content" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="w-full p-2 bg-[#0F172A] rounded mb-2" />
+        <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full p-2 bg-brand-secondary rounded mb-2" />
+        <input placeholder="Material link" value={form.material_link} onChange={e => setForm({ ...form, material_link: e.target.value })} className="w-full p-2 bg-brand-secondary rounded mb-2" />
+        <input placeholder="PDF URL" value={form.pdf_url} onChange={e => setForm({ ...form, pdf_url: e.target.value })} className="w-full p-2 bg-brand-secondary rounded mb-2" />
+        <textarea placeholder="Short content" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="w-full p-2 bg-brand-secondary rounded mb-2" />
         <button onClick={addLesson} className="px-3 py-1 bg-[#0AEFFF] rounded text-black">Add Lesson</button>
       </div>
     </div>

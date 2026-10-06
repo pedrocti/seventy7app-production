@@ -45,7 +45,7 @@ export default function InvestmentsList({ investments }: InvestmentsListProps) {
 
   if (!investments || investments.length === 0) {
     return (
-      <div className="text-gray-400 text-center py-10 border border-[#1E293B]/40 rounded-2xl bg-[#0F172A]/60">
+      <div className="text-gray-400 text-center py-10 border border-[#1E293B]/40 rounded-2xl bg-brand-secondary/60">
         <p className="text-lg">No active investments yet</p>
         <p className="text-sm mt-2">Your capital will appear here once invested</p>
       </div>
@@ -64,7 +64,7 @@ export default function InvestmentsList({ investments }: InvestmentsListProps) {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="bg-[#0F172A]/80 backdrop-blur-sm p-5 rounded-2xl border border-[#1E293B]/60 hover:border-[#0AEFFF]/40 transition-all duration-300 shadow-lg"
+            className="bg-brand-secondary/80 backdrop-blur-xs p-5 rounded-2xl border border-[#1E293B]/60 hover:border-[#0AEFFF]/40 transition-all duration-300 shadow-lg"
           >
             <div className="flex items-center justify-between">
               <div className="flex-1">
