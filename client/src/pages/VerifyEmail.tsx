@@ -4,25 +4,21 @@ import { useLocation } from "wouter";
 import { apiRequest } from "@/api/http";
 
 export default function VerifyEmail() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
-  // Extract token from query string
-  const params = new URLSearchParams(location.split("?")[1]);
-  const token = params.get("token");
+  const token = new URLSearchParams(window.location.search).get("token");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      return;
-    }
-
-    const verify = async () => {
+    if (!token) { setStatus("error"); return; }
+    (async () => {
       try {
-        const res = await apiRequest(`/auth/verify-email?token=${token}`);
-        if (res.success) {
+        const res = await apiRequest("/auth/verify-email", {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+        if ((res as any).success) {
           setStatus("success");
-          // redirect after 2.5s
           setTimeout(() => setLocation("/login"), 2500);
         } else {
           setStatus("error");
@@ -31,25 +27,14 @@ export default function VerifyEmail() {
         console.error("Email verification error:", err);
         setStatus("error");
       }
-    };
-
-    verify();
+    })();
   }, [token, setLocation]);
-
-  const renderMessage = () => {
-    switch (status) {
-      case "loading":
-        return <p>Verifying your email…</p>;
-      case "success":
-        return <p className="text-green-400">Email verified! Redirecting to login…</p>;
-      case "error":
-        return <p className="text-red-400">Invalid or expired verification link.</p>;
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0B0E11] text-white">
-      {renderMessage()}
+      {status === "loading" && <p>Verifying your email…</p>}
+      {status === "success" && <p className="text-green-400">Email verified! Redirecting to login…</p>}
+      {status === "error"   && <p className="text-red-400">Invalid or expired verification link.</p>}
     </div>
   );
 }

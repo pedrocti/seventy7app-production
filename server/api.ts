@@ -4,29 +4,29 @@ const router = Router();
 // ---------------------------
 // User-facing routes
 // ---------------------------
-import authRoutes from "./api/auth";
-import userRoutes from "./api/user";
-import depositRoutes from "./api/deposit";
-import investRoutes from "./api/invest";
-import withdrawalRoutes from "./api/withdrawal";
-import portfolioRoutes from "./api/portfolio";
-import plansRoutes from "./api/plans";
-import tradesRouter from "./api/trades";
-import mentorshipRouter from "./api/mentorship";
-import userOverview from "./api/userOverview";
-import notificationsRouter from "./api/user/notifications";
+import authRoutes from "./api/auth.js";
+import userRoutes from "./api/user.js";
+import depositRoutes from "./api/deposit.js";
+import investRoutes from "./api/invest.js";
+import withdrawalRoutes from "./api/withdrawal.js";
+import portfolioRoutes from "./api/portfolio.js";
+import plansRoutes from "./api/plans.js";
+import tradesRouter from "./api/trades.js";
+import mentorshipRouter from "./api/mentorship.js";
+import userOverview from "./api/userOverview.js";
+import notificationsRouter from "./api/user/notifications.js";
 // FORCE LOAD THE FOLDER
-import learningRouter from "./api/learning";
+import learningRouter from "./api/learning/index.js";
 import loanRoutes from './api/loans';
 // ---------------------------
 // Admin routes
 // ---------------------------
-import adminRoutes from "./api/adminRouter";
+import adminRoutes from "./api/adminRouter.js";
 // ---------------------------
 // Blog routes
 // ---------------------------
-import blogRoutes from "./api/blog";
-import adminBlogRoutes from "./api/admin/blog";
+import blogRoutes from "./api/blog.js";
+import adminBlogRoutes from "./api/admin/blog.js";
 // ---------------------------
 // Attach user-facing routes
 // ---------------------------

@@ -57,8 +57,11 @@ router.get("/", async (req, res) => {
     );
 
 
+    // Active stake value = principal only (locked capital)
+    // profit_loss on investment record is admin-set display value, not cash
+    // Actual paid ROI already credited to users.balance
     const activeValue = activeInv.reduce(
-      (sum, i) => sum + Number(i.amount ?? 0) + Number(i.profit_loss ?? 0),
+      (sum, i) => sum + Number(i.amount ?? 0),
       0
     );
 
@@ -71,7 +74,7 @@ router.get("/", async (req, res) => {
     const [investAgg] = await db
       .select({
         total_invested: sql<number>`COALESCE(SUM(${investments.amount}), 0)`,
-        total_profit: sql<number>`COALESCE(SUM(${investments.profit_loss}), 0)`,
+        total_profit: sql<number>`COALESCE(SUM(${investments.total_earned}), 0)`,
       })
       .from(investments)
       .where(eq(investments.user_id, userId));
@@ -83,8 +86,8 @@ router.get("/", async (req, res) => {
       ? 0
       : (totalProfit / totalInvested) * 100;
 
-    // portfolio value = cash + bonus + active investments value
-    const portfolio_value = userBalance + userBonus + activeValue;
+    // portfolio value = withdrawable cash + locked active stakes
+    const portfolio_value = userBalance + activeValue;
 
 
     

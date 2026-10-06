@@ -8,7 +8,7 @@
     "backend:dev": "tsx server/index.ts",
     "frontend:dev": "vite --config vite.config.ts --host 0.0.0.0 --port 5000",
     "build": "npm run build:frontend && npm run build:backend",
-    "build:frontend": "vite build",
+    "build:frontend": "cp .env.production client/.env.production 2>/dev/null; vite build",
     "build:backend": "tsc --project tsconfig.backend.json",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",

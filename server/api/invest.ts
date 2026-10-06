@@ -270,3 +270,69 @@ router.get("/", async (req, res) => {
 });
 
 export default router;
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/investments/:id/reinvest-earnings
+// Creates a new stake from the user's main balance
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/:id/reinvest-earnings", async (req, res) => {
+  const userId = req.user?.id;
+  const invId  = Number(req.params.id);
+  const { plan_id, amount: customAmount } = req.body;
+
+  if (!userId) return res.status(401).json({ success: false, error: "Unauthorized" });
+  if (!plan_id) return res.status(400).json({ success: false, error: "plan_id required" });
+
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const [plan] = await db.select().from(plans).where(eq(plans.id, plan_id));
+    if (!plan) return res.status(400).json({ success: false, error: "Plan not found" });
+
+    // Use custom amount or plan minimum
+    const amount = Number(customAmount ?? plan.min_amount);
+    const mainBalance = Number(user.balance ?? 0);
+
+    if (mainBalance < amount) {
+      return res.status(400).json({ success: false, error: `Insufficient balance. Available: $${mainBalance.toFixed(2)}` });
+    }
+    if (amount < Number(plan.min_amount)) {
+      return res.status(400).json({ success: false, error: `Minimum for this plan is $${Number(plan.min_amount).toLocaleString()}` });
+    }
+
+    const lo = Number(plan.min_monthly_roi || 0);
+    const hi = Number(plan.max_monthly_roi || 0);
+    const snapshotRoiRate = (lo > 0 || hi > 0)
+      ? Number(((lo + hi) / 2).toFixed(4))
+      : Number(plan.monthly_roi_percent || 0);
+
+    const startAt = new Date();
+
+    const [newInv] = await db.transaction(async (tx) => {
+      await tx.update(users)
+        .set({ balance: sql`COALESCE(${users.balance}, 0)::numeric - ${amount}::numeric` })
+        .where(eq(users.id, userId));
+
+      return tx.insert(investments).values({
+        user_id:          userId,
+        plan_id:          plan.id,
+        amount:           amount.toFixed(2),
+        status:           "active",
+        progress:         "0.00",
+        profit_loss:      "0.00",
+        profit_paid:      "0.00",
+        term_months:      12,
+        current_month:    0,
+        total_earned:     "0.00",
+        monthly_roi_rate: snapshotRoiRate.toFixed(4),
+        start_at:         startAt,
+        duration_days:    365,
+      }).returning();
+    });
+
+    res.json({ success: true, message: `$${amount.toFixed(2)} reinvested into ${plan.name}`, investment: newInv });
+  } catch (err) {
+    console.error("Reinvest error:", err);
+    res.status(500).json({ success: false, error: "Failed to reinvest" });
+  }
+});

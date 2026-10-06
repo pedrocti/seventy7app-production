@@ -516,3 +516,75 @@ export async function addBrevoContact(opts: {
     console.error(`[Brevo] Contact sync failed ${res.status}:`, err);
   }
 }
+/* ── 12. Trade opened — NON-INVESTOR CTA ── */
+export function tradeOpenedEmailCta(d: {
+  pair: string;
+  direction: string;
+  plan_name: string;
+  opened_at: string;
+}): string {
+  const { appUrl } = cfg();
+  return wrap(`
+    <p class="bt">Our trading desk just opened a live position — and right now, active investors are watching their capital work in real time.</p>
+    <div class="hbox">
+      <div class="hl">Live Trade — Active Now</div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Market Pair</td>
+            <td style="font-size:14px;color:#00AEEF;font-weight:700;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.pair}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Direction</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.direction.toUpperCase()}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Plan</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.plan_name}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0">Opened At</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0">${d.opened_at}</td></tr>
+      </table>
+    </div>
+    <div class="callout">
+      <p>Investors on the <strong>${d.plan_name}</strong> plan are already in this trade. Their capital is actively positioned in the market — yours could be too.</p>
+    </div>
+    <p class="bt">You have an account. You are one step away from having your money work while you sleep. Every trade we take, every return we book — you are currently watching from the sidelines.</p>
+    <p class="bt"><strong>That changes the moment you activate a plan.</strong></p>
+    <div style="text-align:center"><a href="${appUrl}/invest" class="btn">Start Investing Now</a></div>
+    <p class="note" style="text-align:center">Plans start from as little as $100. No lock-in surprises — everything is transparent on your dashboard.</p>
+  `, { tag: "Live Trade — You're Missing This" });
+}
+
+/* ── 13. Trade closed — NON-INVESTOR CTA ── */
+export function tradeClosedEmailCta(d: {
+  pair: string;
+  direction: string;
+  pnl_percent: number;
+  plan_name: string;
+  closed_at: string;
+}): string {
+  const { appUrl } = cfg();
+  const win = d.pnl_percent >= 0;
+  const pnlColor = win ? "#00C4F5" : "#ff4d4d";
+  const pnlLabel = `${win ? "+" : ""}${d.pnl_percent.toFixed(2)}%`;
+  return wrap(`
+    <p class="bt">A trade just closed on the <strong>${d.plan_name}</strong> plan. Investors in this plan just ${win ? "booked a profit" : "rode out a managed loss"}. Here is what the result looked like.</p>
+    <div class="hbox">
+      <div class="hl">Closed Trade — Result</div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Market Pair</td>
+            <td style="font-size:14px;color:#00AEEF;font-weight:700;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.pair}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Direction</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.direction.toUpperCase()}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Result</td>
+            <td style="font-size:16px;color:${pnlColor};font-weight:900;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${pnlLabel}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0;border-bottom:1px solid #0d2333">Plan</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0;border-bottom:1px solid #0d2333">${d.plan_name}</td></tr>
+        <tr><td style="font-size:14px;color:#888888;padding:9px 0">Closed At</td>
+            <td style="font-size:14px;color:#ffffff;font-weight:600;text-align:right;padding:9px 0">${d.closed_at}</td></tr>
+      </table>
+    </div>
+    ${win
+      ? `<div class="callout"><p>Investors on this plan just added <strong style="color:#00C4F5">${pnlLabel}</strong> to their monthly ROI. This return is being credited to their balances right now. <strong>You could have been part of this.</strong></p></div>`
+      : `<div class="callout"><p>Even on a loss, our risk management kept the drawdown controlled. Active investors trust our team to protect their capital with discipline — and that trust compounds over time.</p></div>`
+    }
+    <p class="bt">Every trade we take is a window. Some open. Some close. But if you are not invested, none of them count for you.</p>
+    <p class="bt"><strong>The next trade is already being prepared. Will you be in it?</strong></p>
+    <div style="text-align:center"><a href="${appUrl}/invest" class="btn">Activate My Investment</a></div>
+    <p class="note" style="text-align:center">Join hundreds of investors already growing with Seventy7 Kapital. It takes less than 2 minutes to get started.</p>
+  `, { tag: win ? "You Missed a Profitable Trade 📈" : "See How We Manage Risk 🛡️" });
+}

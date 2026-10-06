@@ -23,7 +23,7 @@ interface Payout {
 }
 interface Investment {
   id: number; plan_id: number; plan_name: string;
-  amount: number; status: string; earnings_balance: number;
+  amount: number; status: string;
   months_paid: number; last_payout_at: string | null;
   start_at: string; end_at: string; duration_days: number;
   progress: number; total_earned: number; payouts: Payout[] | null;
@@ -103,28 +103,29 @@ function ProjectionPanel({ amount, plan }: { amount: number; plan: Plan | null }
 }
 
 /* ─── Reinvest Modal ────────────────────────────────────────────────────── */
-function ReinvestModal({ inv, plans, token, onClose, onDone }: {
-  inv: Investment; plans: Plan[]; token: string | null;
+function ReinvestModal({ plans, token, mainBalance, onClose, onDone }: {
+  plans: Plan[]; token: string | null; mainBalance: number;
   onClose: () => void; onDone: () => void;
 }) {
   const isMobile = useMobile();
-  const earnings = Number(inv.earnings_balance);
-  const eligible = plans.filter(p => earnings >= p.minAmount);
+  const eligible = plans.filter(p => mainBalance >= p.minAmount);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(eligible[0]?.id ?? null);
+  const [customAmount, setCustomAmount] = useState<number>(eligible[0]?.minAmount ?? 0);
   const [acting, setActing] = useState(false);
+  const selectedPlan = plans.find(p => p.id === selectedPlanId) ?? null;
 
   async function confirm() {
     if (!selectedPlanId || !token) return;
     setActing(true);
     try {
-      const r = await fetch(`${API_BASE}/investments/${inv.id}/reinvest-earnings`, {
+      const r = await fetch(`${API_BASE}/investments/0/reinvest-earnings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan_id: selectedPlanId }),
+        body: JSON.stringify({ plan_id: selectedPlanId, amount: customAmount }),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d?.error ?? 'Reinvest failed');
-      toast.success(`$${earnings.toFixed(2)} reinvested successfully`);
+      toast.success(`$${customAmount.toFixed(2)} reinvested successfully`);
       onDone(); onClose();
     } catch (e: any) { toast.error(e.message); }
     finally { setActing(false); }
@@ -139,9 +140,14 @@ function ReinvestModal({ inv, plans, token, onClose, onDone }: {
           <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,237,230,0.12)', color: 'var(--muted)', width: 30, height: 30, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 16 }}>×</button>
         </div>
         <div style={{ padding: '20px 24px' }}>
-          <div style={{ padding: '12px 14px', background: 'rgba(14,203,129,0.04)', border: '1px solid rgba(14,203,129,0.15)', marginBottom: 20 }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-2)' }}>Available to reinvest</span>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 300, color: 'var(--green)', marginTop: 4 }}>${earnings.toFixed(2)}</div>
+          <div style={{ padding: '12px 14px', background: 'rgba(10,239,255,0.04)', border: '1px solid rgba(10,239,255,0.15)', marginBottom: 20 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted-2)' }}>Available in main balance</span>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 300, color: 'var(--cyan)', marginTop: 4 }}>${mainBalance.toFixed(2)}</div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted-2)', display: 'block', marginBottom: 6 }}>Amount to stake</span>
+            <input type="number" value={customAmount} onChange={e => setCustomAmount(Number(e.target.value) || 0)}
+              style={{ width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(10,239,255,0.12)', padding: '10px 14px', color: 'var(--text)', fontFamily: 'var(--font-sans)', fontSize: 13, outline: 'none', boxSizing: 'border-box' as any }} />
           </div>
 
           {eligible.length === 0 ? (
@@ -198,7 +204,7 @@ function ReinvestModal({ inv, plans, token, onClose, onDone }: {
                 <button onClick={confirm} disabled={!selectedPlanId || acting}
                   className="btn-primary"
                   style={{ flex: 2, justifyContent: 'center', cursor: selectedPlanId && !acting ? 'pointer' : 'not-allowed', opacity: selectedPlanId && !acting ? 1 : 0.5 }}>
-                  {acting ? 'Processing…' : `Reinvest $${earnings.toFixed(2)}`}
+                  {acting ? 'Processing…' : `Stake $${customAmount.toFixed(2)}`}
                 </button>
               </div>
             </>
@@ -213,33 +219,21 @@ function ReinvestModal({ inv, plans, token, onClose, onDone }: {
 function InvestmentCard({ inv, plans, onAction }: { inv: Investment; plans: Plan[]; onAction: () => void }) {
   const { token } = useAuth();
   const isMobile  = useMobile();
-  const [withdrawing,   setWithdrawing]   = useState(false);
   const [showReinvest,  setShowReinvest]  = useState(false);
   const [showPayouts,   setShowPayouts]   = useState(false);
 
+  const { user } = useAuth();
+  const mainBalance = Number(user?.balance ?? 0);
   const pct         = clamp(inv.progress);
   const months      = Math.max(1, Math.round(inv.duration_days / 30));
-  const earnings    = Number(inv.earnings_balance);
   const totalEarned = Number(inv.total_earned);
   const earnedPct   = inv.amount > 0 ? (totalEarned / inv.amount) * 100 : 0;
   const now         = new Date();
   const nextPayout  = new Date(now.getFullYear(), now.getMonth() + 1, 1);
   const daysUntil   = Math.ceil((nextPayout.getTime() - now.getTime()) / 86400000);
-  const hasEarnings = earnings > 0;
+  const canReinvest = mainBalance >= Math.min(...plans.map(p => p.minAmount));
 
-  async function withdraw() {
-    setWithdrawing(true);
-    try {
-      const r = await fetch(`${API_BASE}/investments/${inv.id}/withdraw-earnings`, {
-        method: 'POST', headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d?.error ?? 'Withdraw failed');
-      toast.success(`$${fmt(d.amount_withdrawn)} moved to your main balance`);
-      onAction();
-    } catch (e: any) { toast.error(e.message); }
-    finally { setWithdrawing(false); }
-  }
+
 
   return (
     <div style={{ background: 'var(--surface-2)', border: '1px solid rgba(10,239,255,0.06)', padding: isMobile ? 14 : 20 }}>
@@ -300,7 +294,7 @@ function InvestmentCard({ inv, plans, onAction }: { inv: Investment; plans: Plan
           { label: 'Earned',      value: `$${fmt(totalEarned)}`,         color: 'var(--green)' },
           { label: 'Months Paid', value: `${inv.months_paid}/${months}`, color: 'var(--text)'  },
           { label: 'Next Payout', value: `${daysUntil}d`,               color: 'var(--cyan)'  },
-          { label: 'Available',   value: `$${fmt(earnings)}`,            color: hasEarnings ? 'var(--cyan)' : 'var(--muted-2)' },
+          { label: 'Main Balance', value: `$${fmt(mainBalance)}`,        color: 'var(--cyan)'  },
         ].map((item, i) => (
           <div key={i} style={{ background: 'var(--surface)', padding: '10px 12px' }}>
             <Label>{item.label}</Label>
@@ -311,32 +305,20 @@ function InvestmentCard({ inv, plans, onAction }: { inv: Investment; plans: Plan
 
       {/* Earnings action panel — always visible for active investments */}
       {inv.status === 'active' && (
-        <div style={{ padding: '14px', background: hasEarnings ? 'rgba(14,203,129,0.04)' : 'rgba(10,239,255,0.03)', border: `1px solid ${hasEarnings ? 'rgba(14,203,129,0.15)' : 'rgba(10,239,255,0.08)'}`, marginBottom: 14 }}>
-          {hasEarnings ? (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--green)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-              ${fmt(earnings)} earnings ready — choose an action
-            </div>
-          ) : (
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
-              Earnings will appear here after the first monthly payout ({daysUntil}d away)
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, flexDirection: isMobile ? 'column' : 'row' }}>
-            <button onClick={withdraw} disabled={withdrawing || !hasEarnings}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px', background: hasEarnings ? 'rgba(14,203,129,0.08)' : 'var(--surface)', border: `1px solid ${hasEarnings ? 'rgba(14,203,129,0.25)' : 'rgba(10,239,255,0.08)'}`, color: hasEarnings ? 'var(--green)' : 'var(--muted-2)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: withdrawing || !hasEarnings ? 'not-allowed' : 'pointer', opacity: withdrawing ? 0.5 : 1 }}>
-              {withdrawing ? 'Processing…' : <><ArrowDownToLine size={12} /> Withdraw to Balance</>}
-            </button>
-            <button onClick={() => setShowReinvest(true)} disabled={!hasEarnings}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px', background: hasEarnings ? 'rgba(10,239,255,0.06)' : 'var(--surface)', border: `1px solid ${hasEarnings ? 'rgba(10,239,255,0.2)' : 'rgba(10,239,255,0.08)'}`, color: hasEarnings ? 'var(--cyan)' : 'var(--muted-2)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: !hasEarnings ? 'not-allowed' : 'pointer' }}>
-              <RefreshCw size={12} /> Reinvest Earnings
-            </button>
+        <div style={{ padding: '14px', background: 'rgba(10,239,255,0.03)', border: '1px solid rgba(10,239,255,0.08)', marginBottom: 14 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+            Monthly returns are credited directly to your main balance · Next payout in {daysUntil}d
           </div>
+          <button onClick={() => setShowReinvest(true)} disabled={!canReinvest}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 20px', background: canReinvest ? 'rgba(10,239,255,0.06)' : 'var(--surface)', border: `1px solid ${canReinvest ? 'rgba(10,239,255,0.2)' : 'rgba(10,239,255,0.08)'}`, color: canReinvest ? 'var(--cyan)' : 'var(--muted-2)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: canReinvest ? 'pointer' : 'not-allowed' }}>
+            <RefreshCw size={12} /> Stake Again from Balance
+          </button>
         </div>
       )}
 
       {/* Reinvest modal */}
       {showReinvest && (
-        <ReinvestModal inv={inv} plans={plans} token={token ?? null} onClose={() => setShowReinvest(false)} onDone={onAction} />
+        <ReinvestModal plans={plans} token={token ?? null} mainBalance={mainBalance} onClose={() => setShowReinvest(false)} onDone={onAction} />
       )}
 
       {/* Payout history */}
@@ -399,7 +381,7 @@ export default function InvestPage() {
     if (!token) return;
     const r = await fetch(`${API_BASE}/user/overview`, { headers: { Authorization: `Bearer ${token}` } });
     const d = await r.json();
-    if (d.success) setTotalAvail(Number(d.totals?.portfolio_value ?? 0));
+    if (d.success) setTotalAvail(Number(d.user?.balance ?? 0) + Number(d.user?.bonus_balance ?? 0));
   }
 
   async function fetchPlans() {
@@ -432,8 +414,7 @@ export default function InvestPage() {
         id: i.id, plan_id: i.plan_id, plan_name: i.plan_name ?? 'Investment Plan',
         amount:           Number(i.amount ?? 0),
         status:           i.status ?? 'active',
-        // earnings_balance = credited by payout job but not yet withdrawn
-        earnings_balance: Math.max(0, Number(i.total_earned ?? 0) - Number(i.profit_paid ?? 0)),
+        // total_earned = lifetime ROI credited to main balance by admin
         months_paid:      Number(i.current_month ?? 0),
         last_payout_at:   i.last_profit_payout_at ?? null,
         start_at:         i.start_at,
@@ -465,7 +446,7 @@ export default function InvestPage() {
     if (!selectedPlan || !agreed) return false;
     if (amount < selectedPlan.minAmount) return false;
     if (selectedPlan.maxAmount && amount > selectedPlan.maxAmount) return false;
-    return amount <= totalAvail;
+    return amount <= (mainBalance + bonusBalance);
   }, [amount, selectedPlan, agreed, totalAvail]);
 
   async function handleInvest() {

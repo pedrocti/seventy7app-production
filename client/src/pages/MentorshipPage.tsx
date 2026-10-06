@@ -29,7 +29,7 @@ const navLinks:    [string, string][] = [["Dashboard", "/dashboard"], ["Staking"
 const socialLinks: [string, string][] = [
   ["Telegram",    "https://t.me/seventy7hub"],
   ["Discord",     "https://discord.gg/seventy7hub"],
-  ["X (Twitter)", "https://x.com/seventy7hub"],
+  ["X (Twitter)", "https://x.com/seventy7Kapital"],
   ["Instagram",   "https://www.instagram.com/seventy7trading"],
   ["Facebook",    "https://www.facebook.com/share/1AiekpPNc3/"],
   ["LinkedIn",    "https://www.linkedin.com/company/seventy7-trading-academy"],

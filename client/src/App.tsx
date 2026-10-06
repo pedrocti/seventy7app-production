@@ -17,6 +17,7 @@ import Dashboard from "@/pages/Dashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 import PrivateRoute from "@/auth/PrivateRoute";
+import AdminRoute from "@/auth/AdminRoute";
 import LoadingScreen from "@/components/LoadingScreen";
 import DevErrorBoundary from "./DevErrorBoundary";
 import { useEffect, useState } from "react";
@@ -70,9 +71,9 @@ const App = () => {
                     </PrivateRoute>
                   </Route>
                   <Route path="/admin">
-                    <PrivateRoute>
+                    <AdminRoute>
                       <AdminDashboard />
-                    </PrivateRoute>
+                    </AdminRoute>
                   </Route>
 
                   <Route path="/:rest*" component={NotFound} />

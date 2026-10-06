@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 
 const socialLinks = [
   { name: 'Telegram',    href: 'https://t.me/seventy7hub' },
-  { name: 'X / Twitter', href: 'https://x.com/seventy7hub' },
+  { name: 'X / Twitter', href: 'https://x.com/seventy7Kapital' },
   { name: 'Instagram',   href: 'https://www.instagram.com/seventy7trading' },
   { name: 'LinkedIn',    href: 'https://www.linkedin.com/company/seventy7-trading-academy' },
   { name: 'Facebook',    href: 'https://www.facebook.com/share/1AiekpPNc3/' },

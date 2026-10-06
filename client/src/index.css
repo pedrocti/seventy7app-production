@@ -2006,3 +2006,12 @@
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+/* Restore content gutter — .container-s7 was referenced everywhere but never defined */
+.container-s7 {
+  width: 100%;
+  max-width: var(--container);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--px);
+  padding-right: var(--px);
+}

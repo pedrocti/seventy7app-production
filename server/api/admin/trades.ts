@@ -15,6 +15,8 @@ import {
   sendBrevoEmailBatch,
   tradeOpenedEmail,
   tradeClosedEmail,
+  tradeOpenedEmailCta,
+  tradeClosedEmailCta,
 } from "../../services/brevo.service";
 
 const router = Router();
@@ -169,22 +171,55 @@ router.patch("/:id/activate", async (req, res) => {
     // Fetch all users
     const allUsers = await getAllUsers();
 
-    // Build email HTML
-    const emailHtml = tradeOpenedEmail({
-      pair:        trade.pair,
-      direction:   trade.direction,
-      entry_price: trade.entry_price ? String(trade.entry_price) : null,
-      entry_notes: trade.entry_notes ?? "",
-      plan_name:   planName,
-      opened_at:   openedAt,
-    });
+    // Split: active investors vs non-investors
+    let investorUserIds = new Set<number>();
+    if (trade.plan_id) {
+      const activeInvs = await db
+        .select({ user_id: investments.user_id })
+        .from(investments)
+        .where(and(eq(investments.plan_id, trade.plan_id), eq(investments.status, "active")));
+      activeInvs.forEach(i => { if (i.user_id) investorUserIds.add(i.user_id); });
+    } else {
+      const activeInvs = await db
+        .select({ user_id: investments.user_id })
+        .from(investments)
+        .where(eq(investments.status, "active"));
+      activeInvs.forEach(i => { if (i.user_id) investorUserIds.add(i.user_id); });
+    }
+    const investorUsers    = allUsers.filter(u => investorUserIds.has(u.id));
+    const nonInvestorUsers = allUsers.filter(u => !investorUserIds.has(u.id));
 
-    // Send email batch asynchronously — don't block the response
-    sendBrevoEmailBatch(
-      allUsers.map(u => ({ email: u.email, name: u.username })),
-      `🚀 New Trade Live: ${trade.pair} ${trade.direction.toUpperCase()} | 77Kapital`,
-      emailHtml
-    ).catch(err => console.error("[Admin Trades] Activate email error:", err));
+    // Active investors — full trade details email
+    if (investorUsers.length > 0) {
+      const emailHtml = tradeOpenedEmail({
+        pair:        trade.pair,
+        direction:   trade.direction,
+        entry_price: trade.entry_price ? String(trade.entry_price) : null,
+        entry_notes: trade.entry_notes ?? "",
+        plan_name:   planName,
+        opened_at:   openedAt,
+      });
+      sendBrevoEmailBatch(
+        investorUsers.map(u => ({ email: u.email, name: u.username })),
+        `🚀 New Trade Live: ${trade.pair} ${trade.direction.toUpperCase()} | 77Kapital`,
+        emailHtml
+      ).catch(err => console.error("[Admin Trades] Activate investor email error:", err));
+    }
+
+    // Non-investors — FOMO / CTA email
+    if (nonInvestorUsers.length > 0) {
+      const ctaHtml = tradeOpenedEmailCta({
+        pair:      trade.pair,
+        direction: trade.direction,
+        plan_name: planName,
+        opened_at: openedAt,
+      });
+      sendBrevoEmailBatch(
+        nonInvestorUsers.map(u => ({ email: u.email, name: u.username })),
+        `📈 A Live Trade Just Opened — You're Not In It Yet | 77Kapital`,
+        ctaHtml
+      ).catch(err => console.error("[Admin Trades] Activate CTA email error:", err));
+    }
 
     // In-app notification for all users
     broadcastNotification(
@@ -195,7 +230,7 @@ router.patch("/:id/activate", async (req, res) => {
 
     res.json({
       success: true,
-      message: `Trade activated. Broadcast sent to ${allUsers.length} users.`,
+      message: `Trade activated. Investor emails: ${investorUsers.length}, CTA emails: ${nonInvestorUsers.length}.`,
     });
 
   } catch (err: any) {
@@ -309,22 +344,58 @@ router.patch("/:id/resolve", async (req, res) => {
       timeStyle: "short",
     });
 
-    // Build email HTML
-    const emailHtml = tradeClosedEmail({
-      pair:        trade.pair,
-      direction:   trade.direction,
-      pnl_percent: pnlPercent,
-      exit_notes,
-      plan_name:   planName,
-      closed_at:   closedAt,
-    });
+    // Split: active investors vs non-investors
+    let resolveInvestorIds = new Set<number>();
+    if (trade.plan_id) {
+      const activeInvs = await db
+        .select({ user_id: investments.user_id })
+        .from(investments)
+        .where(and(eq(investments.plan_id, trade.plan_id), eq(investments.status, "active")));
+      activeInvs.forEach(i => { if (i.user_id) resolveInvestorIds.add(i.user_id); });
+    } else {
+      const activeInvs = await db
+        .select({ user_id: investments.user_id })
+        .from(investments)
+        .where(eq(investments.status, "active"));
+      activeInvs.forEach(i => { if (i.user_id) resolveInvestorIds.add(i.user_id); });
+    }
+    const investorUsers    = allUsers.filter(u => resolveInvestorIds.has(u.id));
+    const nonInvestorUsers = allUsers.filter(u => !resolveInvestorIds.has(u.id));
 
-    // Send email batch asynchronously
-    sendBrevoEmailBatch(
-      allUsers.map(u => ({ email: u.email, name: u.username })),
-      `📊 Trade Closed: ${trade.pair} ${isWin ? "+" : ""}${pnlPercent.toFixed(2)}% | 77Kapital`,
-      emailHtml
-    ).catch(err => console.error("[Admin Trades] Resolve email error:", err));
+    // Active investors — full trade result email
+    if (investorUsers.length > 0) {
+      const emailHtml = tradeClosedEmail({
+        pair:        trade.pair,
+        direction:   trade.direction,
+        pnl_percent: pnlPercent,
+        exit_notes,
+        plan_name:   planName,
+        closed_at:   closedAt,
+      });
+      sendBrevoEmailBatch(
+        investorUsers.map(u => ({ email: u.email, name: u.username })),
+        `📊 Trade Closed: ${trade.pair} ${isWin ? "+" : ""}${pnlPercent.toFixed(2)}% | 77Kapital`,
+        emailHtml
+      ).catch(err => console.error("[Admin Trades] Resolve investor email error:", err));
+    }
+
+    // Non-investors — FOMO / CTA email
+    if (nonInvestorUsers.length > 0) {
+      const ctaHtml = tradeClosedEmailCta({
+        pair:        trade.pair,
+        direction:   trade.direction,
+        pnl_percent: pnlPercent,
+        plan_name:   planName,
+        closed_at:   closedAt,
+      });
+      sendBrevoEmailBatch(
+        nonInvestorUsers.map(u => ({ email: u.email, name: u.username })),
+        isWin
+          ? `💰 Investors Just Booked +${pnlPercent.toFixed(2)}% — Are You Next? | 77Kapital`
+          : `🛡️ See How We Protect Capital in Every Trade | 77Kapital`,
+        ctaHtml
+      ).catch(err => console.error("[Admin Trades] Resolve CTA email error:", err));
+    }
 
     // In-app notification
     broadcastNotification(

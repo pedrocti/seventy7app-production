@@ -8,9 +8,9 @@ import path from "path";
 import http from "http";
 import { WebSocketServer } from "ws";
 
-import apiRoutes from "./api";
-import { payoutProfitsJob } from "./jobs/profitPayout";
-import { marketService } from "./services/marketService";
+import apiRoutes from "./api.js";
+import { payoutProfitsJob } from "./jobs/profitPayout.js";
+import { marketService } from "./services/marketService.js";
 
 const app = express();
 
@@ -45,7 +45,12 @@ app.use(express.urlencoded({ extended: true }));
 // ---------------------------
 const allowedOrigins = [
   "http://localhost:5100",
+
   process.env.FRONTEND_URL,
+
+  "https://www.seventy7hub.com",
+  "https://seventy7hub.com",
+
   ...(isProd ? [] : [/^https:\/\/.*\.replit\.dev(:\d+)?$/]),
 ].filter(Boolean) as (string | RegExp)[];
 

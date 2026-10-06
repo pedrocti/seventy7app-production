@@ -16,7 +16,7 @@ const NAV = [
   { key:'trades',     label:'Trades',     icon: BarChart3     },
   { key:'mentorship', label:'Mentorship', icon: User          },
   { key:'learning',   label:'Learning',   icon: ClipboardList },
-  { key:'loan',       label:'Lends',      icon: CreditCard    },
+  { key:'loan',       label:'Lend',      icon: CreditCard    },
 ];
 
 export default function Sidebar({ collapsed, active, onNavigate, isMobile = false }: SidebarProps) {

@@ -19,7 +19,7 @@ const PAGE_LABELS: Record<string, string> = {
   trades:     'Trades & PnL',
   mentorship: 'Mentorship',
   learning:   'Learning',
-  loan:       'Lends',
+  loan:       'Lend',
 };
 
 export default function Topbar({ active, onCollapse, onProfileClick }: TopbarProps) {

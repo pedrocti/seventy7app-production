@@ -27,16 +27,28 @@ function fmt(v: any): string {
   return isNaN(n) ? '0.00' : n.toFixed(2);
 }
 
-function ActionBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+function ActionBtn({ icon, label, onClick, variant = 'default' }: {
+  icon: React.ReactNode; label: string; onClick: () => void;
+  variant?: 'deposit' | 'withdraw' | 'trades' | 'stake' | 'default';
+}) {
+  const variants = {
+    deposit:  { bg: 'rgba(10,239,255,0.08)',  border: 'rgba(10,239,255,0.35)',  color: 'var(--cyan)',   hoverBg: 'rgba(10,239,255,0.15)' },
+    withdraw: { bg: 'rgba(14,203,129,0.08)',  border: 'rgba(14,203,129,0.35)',  color: 'var(--green)',  hoverBg: 'rgba(14,203,129,0.15)' },
+    trades:   { bg: 'rgba(246,170,70,0.08)',  border: 'rgba(246,170,70,0.35)',  color: '#F6AA46',       hoverBg: 'rgba(246,170,70,0.15)' },
+    stake:    { bg: 'rgba(126,34,206,0.10)',  border: 'rgba(126,34,206,0.40)',  color: 'var(--purple)', hoverBg: 'rgba(126,34,206,0.18)' },
+    default:  { bg: 'var(--surface)',         border: 'rgba(10,239,255,0.10)',  color: 'var(--muted)',  hoverBg: 'rgba(10,239,255,0.04)' },
+  };
+  const v = variants[variant];
   return (
     <button onClick={onClick} style={{
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       gap:6, padding:'14px 8px',
-      background:'var(--surface)', border:'1px solid rgba(10,239,255,0.10)',
-      cursor:'pointer', transition:'all 0.2s ease', color:'var(--muted)', width:'100%',
+      background: v.bg,
+      border: `1px solid ${v.border}`,
+      cursor:'pointer', transition:'all 0.2s ease', color: v.color, width:'100%',
     }}
-    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor='rgba(10,239,255,0.30)'; el.style.background='rgba(10,239,255,0.04)'; el.style.color='var(--cyan)'; }}
-    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor='rgba(10,239,255,0.10)'; el.style.background='var(--surface)'; el.style.color='var(--muted)'; }}>
+    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.background = v.hoverBg; el.style.transform='translateY(-1px)'; }}
+    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.background = v.bg; el.style.transform='translateY(0)'; }}>
       <span style={{ display:'flex' }}>{icon}</span>
       <span style={{ fontFamily:'var(--font-mono)', fontSize:8, letterSpacing:'0.10em', textTransform:'uppercase' }}>{label}</span>
     </button>
@@ -268,10 +280,10 @@ export default function Dashboard() {
               />
               {/* Quick actions — 2 cols on mobile, 4 on desktop */}
               <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:1, marginBottom:1 }}>
-                <ActionBtn icon={<ArrowDownCircle size={18}/>} label="Deposit"     onClick={() => setDepositOpen(true)}         />
-                <ActionBtn icon={<ArrowUpRight    size={18}/>} label="Withdraw"    onClick={() => setWithdrawOpen(true)}         />
-                <ActionBtn icon={<TrendingUp      size={18}/>} label="View Trades" onClick={() => handleNavigate('trades')}      />
-                <ActionBtn icon={<TrendingUp      size={18}/>} label="Stake Now"   onClick={() => handleNavigate('invest')}      />
+                <ActionBtn icon={<ArrowDownCircle size={18}/>} label="Deposit"     onClick={() => setDepositOpen(true)}         variant="deposit"  />
+                <ActionBtn icon={<ArrowUpRight    size={18}/>} label="Withdraw"    onClick={() => setWithdrawOpen(true)}         variant="withdraw" />
+                <ActionBtn icon={<TrendingUp      size={18}/>} label="View Trades" onClick={() => handleNavigate('trades')}      variant="trades"   />
+                <ActionBtn icon={<TrendingUp      size={18}/>} label="Stake Now"   onClick={() => handleNavigate('invest')}      variant="stake"    />
               </div>
             </div>
           )}

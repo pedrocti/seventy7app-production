@@ -116,6 +116,7 @@ router.put("/:id", async (req, res) => {
   const {
     name, min_amount, max_amount, description,
     min_monthly_roi, max_monthly_roi, min_total_roi, max_total_roi,
+    duration_days, term_months,
   } = req.body ?? {};
 
   if (name !== undefined && String(name).trim() === "")
@@ -132,6 +133,14 @@ router.put("/:id", async (req, res) => {
       : Number(max_amount).toFixed(2);
   }
 
+  if (duration_days !== undefined) {
+    const v = Number(duration_days);
+    if (!isNaN(v) && v > 0) payload.duration_days = v;
+  }
+  if (term_months !== undefined) {
+    const v = Number(term_months);
+    if (!isNaN(v) && v > 0) payload.term_months = v;
+  }
   if (min_monthly_roi !== undefined) {
     const v = Number(min_monthly_roi);
     if (isNaN(v) || v < 0) return res.status(400).json({ error: "Invalid min_monthly_roi" });
