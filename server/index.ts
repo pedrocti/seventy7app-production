@@ -44,6 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS
 // ---------------------------
 const allowedOrigins = [
+  "https://staging.seventy7hub.com",
   "http://localhost:5100",
 
   process.env.FRONTEND_URL,
