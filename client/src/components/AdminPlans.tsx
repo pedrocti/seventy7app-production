@@ -148,11 +148,11 @@ function PlanForm({ initial, onSave, onCancel, saving }: {
         {/* Live preview */}
         {midMonthly > 0 && Number(form.min_amount) > 0 && (
           <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--surface-2)', border: '1px solid rgba(10,239,255,0.08)' }}>
-            <div style={{ ...lbl, marginBottom: 8, color: 'var(--muted)' }}>Projection Preview (on min amount over {months}mo)</div>
+            <div style={{ ...lbl, marginBottom: 8, color: 'var(--s7-muted)' }}>Projection Preview (on min amount over {months}mo)</div>
             <div style={{ display: 'flex', gap: 24 }}>
               <div>
                 <span style={{ ...lbl, marginBottom: 2 }}>Conservative</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)' }}>${projMin.toFixed(0)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--s7-muted)' }}>${projMin.toFixed(0)}</span>
               </div>
               <div>
                 <span style={{ ...lbl, marginBottom: 2 }}>Optimistic</span>
@@ -165,7 +165,7 @@ function PlanForm({ initial, onSave, onCancel, saving }: {
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
         <button onClick={onCancel}
-          style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
           Cancel
         </button>
         <button onClick={() => onSave(form)} disabled={saving}
@@ -252,7 +252,7 @@ function PayMonthlyModal({ plan, onClose, onPaid }: { plan: Plan; onClose: () =>
         {payouts.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <button onClick={() => setShowHistory(h => !h)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}>
               <History size={12} /> Payout History ({payouts.length} months)
               {showHistory ? <ChevronUp size={12}/> : <ChevronDown size={12}/>}
             </button>
@@ -265,7 +265,7 @@ function PayMonthlyModal({ plan, onClose, onPaid }: { plan: Plan; onClose: () =>
                 </div>
                 {payouts.sort((a,b) => b.month_number - a.month_number).map(p => (
                   <div key={p.month_number} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '8px 12px', borderTop: '1px solid rgba(10,239,255,0.05)' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>M{p.month_number}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--s7-muted)' }}>M{p.month_number}</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--cyan)' }}>{p.roi_percent}%</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text)' }}>{p.count}</span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green)' }}>${Number(p.total).toFixed(2)}</span>
@@ -278,7 +278,7 @@ function PayMonthlyModal({ plan, onClose, onPaid }: { plan: Plan; onClose: () =>
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onClose}
-            style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
             Cancel
           </button>
           <button onClick={pay} disabled={paying}
@@ -379,7 +379,7 @@ export default function AdminPlans() {
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 300, color: 'var(--text)' }}>Investment Plans</div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={() => load()}
-            style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            style={{ padding: '10px 16px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
             Reload
           </button>
           <button onClick={() => { setEditing(null); setShowForm(true); }} className="btn-primary">
@@ -453,7 +453,7 @@ export default function AdminPlans() {
                 {/* Min/Max investment */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                   <Wallet size={13} style={{ color: 'var(--cyan)' }} />
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--s7-muted)' }}>
                     ${plan.minAmount.toLocaleString()} – {plan.maxAmount ? `$${plan.maxAmount.toLocaleString()}` : 'No limit'}
                   </span>
                 </div>
@@ -466,7 +466,7 @@ export default function AdminPlans() {
                 {(plan.activeCount ?? 0) > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                     <DollarSign size={13} style={{ color: 'var(--green)' }} />
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--s7-muted)' }}>
                       {plan.activeCount} active investor{plan.activeCount !== 1 ? 's' : ''}
                     </span>
                   </div>

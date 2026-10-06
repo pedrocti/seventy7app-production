@@ -62,10 +62,10 @@ function SubmitModal({ assignment, token, onClose, onDone }: { assignment: Assig
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 300, color: 'var(--text)' }}>{assignment.title}</div>
             {assignment.description && (
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{assignment.description}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--s7-muted)', marginTop: 4 }}>{assignment.description}</div>
             )}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,237,230,0.12)', color: 'var(--muted)', width: 30, height: 30, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 16 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,237,230,0.12)', color: 'var(--s7-muted)', width: 30, height: 30, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 16 }}>×</button>
         </div>
         <div style={{ padding: '20px 24px' }}>
           {canEdit ? (
@@ -73,7 +73,7 @@ function SubmitModal({ assignment, token, onClose, onDone }: { assignment: Assig
               {isReject && (
                 <div style={{ padding: '12px 14px', background: 'rgba(246,70,93,0.06)', border: '1px solid rgba(246,70,93,0.2)', marginBottom: 14 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--red)', marginBottom: 4 }}>Needs revision</div>
-                  {sub?.feedback && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)' }}>{sub.feedback}</div>}
+                  {sub?.feedback && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)' }}>{sub.feedback}</div>}
                 </div>
               )}
               <textarea value={text} onChange={e => setText(e.target.value)} maxLength={5000}
@@ -95,7 +95,7 @@ function SubmitModal({ assignment, token, onClose, onDone }: { assignment: Assig
           )}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid rgba(10,239,255,0.08)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button onClick={onClose} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ padding: '10px 20px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
             {canEdit ? 'Cancel' : 'Close'}
           </button>
           {canEdit && (
@@ -226,7 +226,7 @@ export default function CourseView({ courseId, onBack }: Props) {
       <div style={{ background: 'var(--surface)', border: '1px solid rgba(10,239,255,0.08)', padding: isMobile ? '16px' : '24px 32px' }}>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: isMobile ? 20 : 26, fontWeight: 300, color: 'var(--text)', marginBottom: 6 }}>{course?.title}</div>
         {course?.description && (
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.65, marginBottom: 16 }}>{course.description}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--s7-muted)', lineHeight: 1.65, marginBottom: 16 }}>{course.description}</div>
         )}
         {/* Progress bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -269,7 +269,7 @@ export default function CourseView({ courseId, onBack }: Props) {
                       {lesson.completed && <CheckCircle size={14} style={{ color: 'var(--green)' }} />}
                     </button>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: lesson.completed ? 'var(--muted)' : 'var(--text)', fontWeight: 400, textDecoration: lesson.completed ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: lesson.completed ? 'var(--s7-muted)' : 'var(--text)', fontWeight: 400, textDecoration: lesson.completed ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {lesson.title}
                       </div>
                       {isMarking && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'var(--muted-2)', marginTop: 2 }}>Saving…</div>}
@@ -281,7 +281,7 @@ export default function CourseView({ courseId, onBack }: Props) {
                   {isOpen && (
                     <div style={{ padding: isMobile ? '0 14px 16px' : '0 20px 20px', borderTop: '1px solid rgba(10,239,255,0.05)' }}>
                       {lesson.content && (
-                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, whiteSpace: 'pre-line', padding: '16px 0' }}>
+                        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--s7-muted)', lineHeight: 1.7, whiteSpace: 'pre-line', padding: '16px 0' }}>
                           {lesson.content}
                         </div>
                       )}
@@ -344,7 +344,7 @@ export default function CourseView({ courseId, onBack }: Props) {
                 <div key={a.id} style={{ background: 'var(--surface)', padding: isMobile ? '14px' : '16px 20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--text)', fontWeight: 400, marginBottom: 4 }}>{a.title}</div>
-                    {a.description && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.6 }}>{a.description}</div>}
+                    {a.description && <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--s7-muted)', lineHeight: 1.6 }}>{a.description}</div>}
                     {a.due_date && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--muted-2)', marginTop: 4 }}>Due: {new Date(a.due_date).toLocaleDateString()}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>

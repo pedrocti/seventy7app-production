@@ -61,7 +61,7 @@ export default function PortfolioPage() {
         <div style={{ fontFamily:'var(--font-display)', fontSize:'clamp(24px,3vw,40px)', fontWeight:300, color:'var(--text)', lineHeight:1.1, marginBottom:16 }}>
           Private Portfolio<br/><em>Management</em>
         </div>
-        <p style={{ fontFamily:'var(--font-sans)', fontSize:13, fontWeight:300, color:'var(--muted)', lineHeight:1.8, maxWidth:560, marginBottom:32 }}>
+        <p style={{ fontFamily:'var(--font-sans)', fontSize:13, fontWeight:300, color:'var(--s7-muted)', lineHeight:1.8, maxWidth:560, marginBottom:32 }}>
           A bespoke portfolio management service designed exclusively for high-income and high-net-worth individuals seeking long-term wealth creation through disciplined, globally diversified investing.
         </p>
 
@@ -75,7 +75,7 @@ export default function PortfolioPage() {
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }}
             style={{ maxWidth:520, background:'var(--surface-2)', border:'1px solid rgba(10,239,255,0.10)', padding:'32px' }}>
             <div style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:300, color:'var(--text)', marginBottom:16 }}>Speak With an Advisor</div>
-            <p style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--muted)', lineHeight:1.7, marginBottom:24 }}>
+            <p style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--s7-muted)', lineHeight:1.7, marginBottom:24 }}>
               We recommend speaking with a financial professional before proceeding with portfolio management.
             </p>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
@@ -102,7 +102,7 @@ export default function PortfolioPage() {
               <div style={{ textAlign:'center', padding:'24px 0' }}>
                 <CheckCircle2 size={48} style={{ color:'var(--green)', marginBottom:16 }}/>
                 <div style={{ fontFamily:'var(--font-display)', fontSize:22, fontWeight:300, color:'var(--green)', marginBottom:8 }}>Request Submitted</div>
-                <p style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--muted)' }}>Our team will contact you shortly to discuss your portfolio.</p>
+                <p style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--s7-muted)' }}>Our team will contact you shortly to discuss your portfolio.</p>
               </div>
             ) : (
               <>
@@ -136,7 +136,7 @@ export default function PortfolioPage() {
     { name:'Equity',      value: portfolio.equity_percent      || 0, color:'var(--green)'  },
     { name:'Real Estate', value: portfolio.real_estate_percent || 0, color:'#8B5CF6'       },
     { name:'Commodities', value: portfolio.commodities_percent || 0, color:'#F59E0B'       },
-    { name:'Bonds',       value: portfolio.bonds_percent       || 0, color:'var(--muted)'  },
+    { name:'Bonds',       value: portfolio.bonds_percent       || 0, color:'var(--s7-muted)'  },
   ].filter(a => a.value > 0);
 
   const months = 7;
@@ -200,7 +200,7 @@ export default function PortfolioPage() {
                 {allocation.map(entry => (
                   <div key={entry.name} style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span style={{ width:8, height:8, background:entry.color, flexShrink:0, display:'inline-block' }}/>
-                    <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--muted)', letterSpacing:'0.06em' }}>{entry.name}</span>
+                    <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--s7-muted)', letterSpacing:'0.06em' }}>{entry.name}</span>
                     <span style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text)', marginLeft:'auto' }}>{entry.value}%</span>
                   </div>
                 ))}

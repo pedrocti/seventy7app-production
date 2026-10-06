@@ -94,7 +94,7 @@ export default function ProgramView({ id, onBack, onViewCourse }: Props) {
       <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 280px", gap:1, background:"rgba(10,239,255,0.06)" }}>
         <div style={{ background:"var(--surface)", padding: isMobile ? "24px 20px" : "36px 40px" }}>
           <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:12 }}>About this Programme</div>
-          <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--muted)", lineHeight:1.8, margin:0 }}>{program.description}</p>
+          <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--s7-muted)", lineHeight:1.8, margin:0 }}>{program.description}</p>
           <div style={{ display:"flex", gap:24, marginTop:24, flexWrap:"wrap" }}>
             <div>
               <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--muted-2)", marginBottom:4 }}>Courses</div>
@@ -153,7 +153,7 @@ export default function ProgramView({ id, onBack, onViewCourse }: Props) {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontFamily:"var(--font-sans)", fontSize:14, color:"var(--text)", fontWeight:400, marginBottom: c.description ? 4 : 0, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{c.title}</div>
                   {c.description && (
-                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--muted)", lineHeight:1.6, margin:0, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{c.description}</p>
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--s7-muted)", lineHeight:1.6, margin:0, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{c.description}</p>
                   )}
                 </div>
 

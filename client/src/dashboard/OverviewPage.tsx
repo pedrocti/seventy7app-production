@@ -69,7 +69,7 @@ function ProgramCard({ item, showMarketing, onClick }: { item: any; showMarketin
 
       {/* Description or progress */}
       {!isEvent && showMarketing && item.description && (
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--s7-muted)', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {item.description}
         </p>
       )}
@@ -290,7 +290,7 @@ export default function OverviewPage() {
                   {showMarketing ? 'Elevate Your Trading' : 'Continue Learning'}
                 </div>
                 {showMarketing && (
-                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginTop: 6, maxWidth: 420 }}>
+                  <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)', lineHeight: 1.6, marginTop: 6, maxWidth: 420 }}>
                     Expert-led programmes in trading strategy, risk management, and market analysis — designed for serious investors.
                   </p>
                 )}
@@ -422,7 +422,7 @@ export default function OverviewPage() {
                   : <>Unlock <em style={{ color: 'var(--cyan)' }}>Capital Access</em></>
                 }
               </div>
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: isMobile ? 12 : 13, fontWeight: 300, color: 'var(--muted)', lineHeight: 1.7, margin: 0, maxWidth: 480 }}>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: isMobile ? 12 : 13, fontWeight: 300, color: 'var(--s7-muted)', lineHeight: 1.7, margin: 0, maxWidth: 480 }}>
                 {loanEligible
                   ? `Borrow up to ${maxLendPct}% of your qualifying capital at ${intRate}% annual interest — approved within 48 hours and credited directly to your main balance.`
                   : `Stake $${minInvestment.toLocaleString()}+ or enrol in portfolio management to access our exclusive member loan facility. Borrow capital at ${intRate}% annual interest to amplify your investing.`

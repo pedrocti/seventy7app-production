@@ -104,7 +104,7 @@ export default function TradesPage() {
                     </div>
 
                     {trade.entry_notes && (
-                      <p style={{ marginTop:12, fontFamily:'var(--font-sans)', fontSize:11, color:'var(--muted)', lineHeight:1.6 }}>{trade.entry_notes}</p>
+                      <p style={{ marginTop:12, fontFamily:'var(--font-sans)', fontSize:11, color:'var(--s7-muted)', lineHeight:1.6 }}>{trade.entry_notes}</p>
                     )}
                   </motion.div>
                 );

@@ -72,7 +72,7 @@ export default function BlogPostPage() {
             <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6, delay:0.1 }}>
               <span className="data-label" style={{ display:'block', marginBottom:16 }}>{formatDate(post.published_at)} · {post.author}</span>
               <h1 style={{ fontFamily:'var(--font-display)', fontSize:'clamp(28px,4vw,48px)', fontWeight:300, color:'var(--text)', lineHeight:1.1, letterSpacing:'-0.02em', marginBottom:24 }}>{post.title}</h1>
-              <p style={{ fontFamily:'var(--font-display)', fontSize:'clamp(16px,1.5vw,20px)', fontWeight:300, fontStyle:'italic', color:'var(--muted)', lineHeight:1.7, marginBottom:40, paddingLeft:20, borderLeft:'2px solid var(--cyan)' }}>{post.excerpt}</p>
+              <p style={{ fontFamily:'var(--font-display)', fontSize:'clamp(16px,1.5vw,20px)', fontWeight:300, fontStyle:'italic', color:'var(--s7-muted)', lineHeight:1.7, marginBottom:40, paddingLeft:20, borderLeft:'2px solid var(--cyan)' }}>{post.excerpt}</p>
               <div style={{ height:1, background:'rgba(10,239,255,0.12)', marginBottom:40 }} />
             </motion.div>
             <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6, delay:0.2 }} style={{ display:'flex', flexDirection:'column', gap:24 }}>

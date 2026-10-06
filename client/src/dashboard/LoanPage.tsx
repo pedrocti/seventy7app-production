@@ -107,7 +107,7 @@ export default function LoanPage() {
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px,2.5vw,32px)', fontWeight: 300, color: 'var(--text)', marginBottom: 10 }}>
           Member <em>Lend Facility</em>
         </div>
-        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 300, color: 'var(--muted)', lineHeight: 1.7, maxWidth: 620, margin: 0 }}>
+        <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 300, color: 'var(--s7-muted)', lineHeight: 1.7, maxWidth: 620, margin: 0 }}>
           Exclusive to members with an active stake of ${el?.minInvestment?.toLocaleString() ?? '5,000'}+
           or an approved Portfolio Management account of $25,000+.
           Borrow up to {el?.maxLendPct ?? 50}% of your qualifying capital at {el?.interestRate ?? 1.5}% annual interest.
@@ -138,7 +138,7 @@ export default function LoanPage() {
               </span>
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 300, color: 'var(--text)', marginBottom: 6 }}>{path.title}</div>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 12 }}>{path.desc}</p>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)', lineHeight: 1.6, marginBottom: 12 }}>{path.desc}</p>
             <Label>{path.label}</Label>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 300, color: path.qualified ? 'var(--cyan)' : 'var(--text)' }}>{path.value}</div>
           </div>
@@ -255,7 +255,7 @@ export default function LoanPage() {
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--red)', flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
           <div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--red)', marginBottom: 8 }}>How to Qualify</div>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 8 }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--s7-muted)', lineHeight: 1.7, marginBottom: 8 }}>
               You need one of the following:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -265,7 +265,7 @@ export default function LoanPage() {
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                   <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(246,70,93,0.5)', flexShrink: 0, marginTop: 6, display: 'inline-block' }} />
-                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)' }}>{item}</span>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)' }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -290,7 +290,7 @@ export default function LoanPage() {
                   {loan.duration_months}mo · {loan.interest_rate}% p.a. · Applied {format(new Date(loan.created_at), 'MMM d, yyyy')}
                 </div>
                 {loan.admin_notes && (
-                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--muted)', padding: '8px 12px', background: 'rgba(10,239,255,0.03)', borderLeft: '2px solid rgba(10,239,255,0.2)', marginTop: 8 }}>
+                  <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--s7-muted)', padding: '8px 12px', background: 'rgba(10,239,255,0.03)', borderLeft: '2px solid rgba(10,239,255,0.2)', marginTop: 8 }}>
                     {loan.admin_notes}
                   </div>
                 )}

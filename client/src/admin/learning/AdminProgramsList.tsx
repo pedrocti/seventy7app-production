@@ -153,7 +153,7 @@ export default function AdminProgramsList({ programs, selectedProgram, programFo
           <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
             {editingProgramId && (
               <button type="button" onClick={cancelEdit}
-                style={{ padding:"10px 24px", background:"transparent", border:"1px solid rgba(10,239,255,0.15)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                style={{ padding:"10px 24px", background:"transparent", border:"1px solid rgba(10,239,255,0.15)", color:"var(--s7-muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
                 Cancel
               </button>
             )}
@@ -194,7 +194,7 @@ export default function AdminProgramsList({ programs, selectedProgram, programFo
                   </div>
                   <div style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:500, color:"var(--text)", lineHeight:1.3 }}>{p.title}</div>
                   {p.description && (
-                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--muted)", lineHeight:1.65, margin:0, display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--s7-muted)", lineHeight:1.65, margin:0, display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
                       {p.description}
                     </p>
                   )}

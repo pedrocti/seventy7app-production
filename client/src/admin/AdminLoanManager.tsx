@@ -147,7 +147,7 @@ export default function AdminLoanManager() {
                       Applied {format(new Date(loan.created_at), 'MMM d, yyyy HH:mm')}
                     </div>
                     {loan.purpose && (
-                      <div style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--muted)', lineHeight:1.6, marginBottom:12 }}>
+                      <div style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--s7-muted)', lineHeight:1.6, marginBottom:12 }}>
                         Purpose: {loan.purpose}
                       </div>
                     )}
@@ -160,7 +160,7 @@ export default function AdminLoanManager() {
                       </div>
                     )}
                     {loan.admin_notes && loan.status !== 'pending' && (
-                      <div style={{ fontFamily:'var(--font-sans)', fontSize:11, color:'var(--muted)', padding:'8px 12px', background:'rgba(10,239,255,0.03)', borderLeft:'2px solid rgba(10,239,255,0.2)', marginTop:8 }}>
+                      <div style={{ fontFamily:'var(--font-sans)', fontSize:11, color:'var(--s7-muted)', padding:'8px 12px', background:'rgba(10,239,255,0.03)', borderLeft:'2px solid rgba(10,239,255,0.2)', marginTop:8 }}>
                         Note: {loan.admin_notes}
                       </div>
                     )}

@@ -76,7 +76,7 @@ export default function MentorshipPage() {
         <h1 style={{ fontFamily:'var(--font-display)', fontSize:'clamp(22px,3vw,36px)', fontWeight:300, color:'var(--text)', lineHeight:1.1, margin:'0 0 12px' }}>
           Exclusive <em>Events & Sessions</em>
         </h1>
-        <p style={{ fontFamily:'var(--font-sans)', fontSize:13, fontWeight:300, color:'var(--muted)', lineHeight:1.75, maxWidth:520, margin:0 }}>
+        <p style={{ fontFamily:'var(--font-sans)', fontSize:13, fontWeight:300, color:'var(--s7-muted)', lineHeight:1.75, maxWidth:520, margin:0 }}>
           Live, interactive mentorship sessions with industry professionals — career-accelerating and market-focused.
         </p>
       </div>
@@ -124,15 +124,15 @@ export default function MentorshipPage() {
                         {ev.title}
                       </div>
                       <div style={{ display:'flex', flexWrap:'wrap', gap:'6px 20px', marginBottom: ev.description ? 10 : 0 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:5, fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--muted)' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:5, fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--s7-muted)' }}>
                           <Clock size={11} style={{ color:'var(--cyan)', flexShrink:0 }} /> {ev.time}
                         </div>
-                        <div style={{ display:'flex', alignItems:'center', gap:5, fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--muted)' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:5, fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.08em', color:'var(--s7-muted)' }}>
                           <MapPin size={11} style={{ color:'var(--cyan)', flexShrink:0 }} /> {ev.venue}
                         </div>
                       </div>
                       {ev.description && (
-                        <p style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--muted)', lineHeight:1.7, margin:0 }}>{ev.description}</p>
+                        <p style={{ fontFamily:'var(--font-sans)', fontSize:12, color:'var(--s7-muted)', lineHeight:1.7, margin:0 }}>{ev.description}</p>
                       )}
                     </div>
 
@@ -175,7 +175,7 @@ export default function MentorshipPage() {
                   <div key={ev.id} style={{ background:'var(--surface)', border:'1px solid rgba(10,239,255,0.04)', padding: isMobile ? '14px 16px' : '18px 24px', display:'flex', gap:14, alignItems:'center', opacity:0.6 }}>
                     <DateBadge dateStr={ev.date} />
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
+                      <div style={{ fontFamily:'var(--font-sans)', fontSize:13, color:'var(--s7-muted)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{ev.title}</div>
                       <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--muted-2)', marginTop:4 }}>{ev.venue}</div>
                     </div>
                     {isBought && ev.link && (

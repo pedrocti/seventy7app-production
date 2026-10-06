@@ -72,7 +72,7 @@ export default function StatsCards({ balance, bonus, totalAvailable, performance
             Verified
           </span>
         </div>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: isMobile ? 12 : 13, fontWeight: 300, color: 'var(--muted)' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: isMobile ? 12 : 13, fontWeight: 300, color: 'var(--s7-muted)' }}>
           Welcome back{username ? `, ${username}` : ''}
         </span>
       </div>

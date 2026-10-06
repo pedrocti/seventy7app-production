@@ -180,7 +180,7 @@ export default function AdminCoursesView({
 
         <div>
           <h2 className="text-4xl font-bold" style={{ color: "var(--text)" }}>{selectedProgram.title}</h2>
-          <p className="mt-2" style={{ color: "var(--muted)" }}>
+          <p className="mt-2" style={{ color: "var(--s7-muted)" }}>
             ${selectedProgram.price} · {selectedProgram.duration_days} days access
           </p>
         </div>
@@ -194,7 +194,7 @@ export default function AdminCoursesView({
             <UserPlus className="w-6 h-6" style={{ color: "var(--cyan)" }} />
             <h3 className="text-2xl font-bold" style={{ color: "var(--cyan)" }}>Grant Program Access</h3>
           </div>
-          <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
+          <p className="mb-6 text-sm" style={{ color: "var(--s7-muted)" }}>
             Grant a user free access to this program regardless of price. Enter their email or username.
           </p>
           <form onSubmit={handleGrantAccess} className="flex gap-4">
@@ -236,15 +236,15 @@ export default function AdminCoursesView({
                 Enrolled Users
               </span>
             </div>
-            <span style={{ color: "var(--muted)" }}>{showEnrolled ? "▲ Hide" : "▼ Show"}</span>
+            <span style={{ color: "var(--s7-muted)" }}>{showEnrolled ? "▲ Hide" : "▼ Show"}</span>
           </button>
 
           {showEnrolled && (
             <div className="px-8 pb-8">
               {loadingEnrolled ? (
-                <p className="text-center py-8" style={{ color: "var(--muted)" }}>Loading...</p>
+                <p className="text-center py-8" style={{ color: "var(--s7-muted)" }}>Loading...</p>
               ) : enrolledUsers.length === 0 ? (
-                <p className="text-center py-8" style={{ color: "var(--muted)" }}>No users enrolled yet.</p>
+                <p className="text-center py-8" style={{ color: "var(--s7-muted)" }}>No users enrolled yet.</p>
               ) : (
                 <div className="space-y-3">
                   {enrolledUsers.map((u) => (
@@ -255,7 +255,7 @@ export default function AdminCoursesView({
                     >
                       <div>
                         <p className="font-semibold" style={{ color: "var(--text)" }}>{u.username ?? "Unknown"}</p>
-                        <p className="text-sm" style={{ color: "var(--muted)" }}>{u.email}</p>
+                        <p className="text-sm" style={{ color: "var(--s7-muted)" }}>{u.email}</p>
                         <p className="text-xs mt-1" style={{ color: "var(--muted-2)" }}>
                           Progress: {u.progress_percent}% · Paid: ${u.amount_paid}
                         </p>
@@ -314,9 +314,9 @@ export default function AdminCoursesView({
         <div>
           <h3 className="text-3xl font-bold mb-8" style={{ color: "var(--cyan)" }}>Courses</h3>
           {loadingCourses ? (
-            <p className="text-xl text-center py-12" style={{ color: "var(--muted)" }}>Loading courses...</p>
+            <p className="text-xl text-center py-12" style={{ color: "var(--s7-muted)" }}>Loading courses...</p>
           ) : courses.length === 0 ? (
-            <p className="text-xl text-center py-12" style={{ color: "var(--muted)" }}>
+            <p className="text-xl text-center py-12" style={{ color: "var(--s7-muted)" }}>
               No courses yet. Create one above!
             </p>
           ) : (

@@ -95,7 +95,7 @@ export default function Topbar({ active, onCollapse, onProfileClick }: TopbarPro
       {/* ── Left: hamburger + page label ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, minWidth: 0, flex: 1 }}>
         <button onClick={onCollapse}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', display: 'flex', alignItems: 'center', flexShrink: 0, padding: 4 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--s7-muted)', display: 'flex', alignItems: 'center', flexShrink: 0, padding: 4 }}>
           <Menu size={18} />
         </button>
 
@@ -117,9 +117,9 @@ export default function Topbar({ active, onCollapse, onProfileClick }: TopbarPro
 
         {/* Bell */}
         <button ref={bellRef} onClick={toggleNotif}
-          style={{ position: 'relative', background: 'none', border: '1px solid rgba(10,239,255,0.12)', cursor: 'pointer', color: 'var(--muted)', width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}
+          style={{ position: 'relative', background: 'none', border: '1px solid rgba(10,239,255,0.12)', cursor: 'pointer', color: 'var(--s7-muted)', width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,239,255,0.35)'; (e.currentTarget as HTMLElement).style.color = 'var(--cyan)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,239,255,0.12)'; (e.currentTarget as HTMLElement).style.color = 'var(--muted)'; }}>
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(10,239,255,0.12)'; (e.currentTarget as HTMLElement).style.color = 'var(--s7-muted)'; }}>
           <Bell size={14} />
           {unread > 0 && (
             <span style={{ position: 'absolute', top: 6, right: 6, width: 6, height: 6, borderRadius: '50%', background: 'var(--red)' }} />

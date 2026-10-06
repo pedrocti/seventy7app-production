@@ -69,7 +69,7 @@ export default function AcademyMentorshipPage() {
                 padding:        "10px 28px",
                 background:     activeTab === tab ? "linear-gradient(135deg, var(--cyan), var(--purple))" : "var(--surface)",
                 border:         activeTab === tab ? "none" : "1px solid rgba(10,239,255,0.15)",
-                color:          activeTab === tab ? "white" : "var(--muted)",
+                color:          activeTab === tab ? "white" : "var(--s7-muted)",
                 fontFamily:     "var(--font-mono)",
                 fontSize:       10,
                 letterSpacing:  "0.12em",

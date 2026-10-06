@@ -56,7 +56,7 @@ function ProjectionPanel({ amount, plan }: { amount: number; plan: Plan | null }
   const maxRate = plan.maxMonthlyRoi / 100;
   const midRate = (minRate + maxRate) / 2;
   const scenarios = [
-    { label: 'Conservative', rate: minRate, color: 'var(--muted)' },
+    { label: 'Conservative', rate: minRate, color: 'var(--s7-muted)' },
     { label: 'Mid',          rate: midRate, color: 'var(--text)'  },
     { label: 'Optimistic',   rate: maxRate, color: 'var(--cyan)'  },
   ].map(s => ({ ...s, final: amount + amount * s.rate * months, totalPct: (s.rate * months * 100).toFixed(1) }));
@@ -86,7 +86,7 @@ function ProjectionPanel({ amount, plan }: { amount: number; plan: Plan | null }
             const pay = amount * midRate;
             return (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '7px 14px', borderTop: '1px solid rgba(10,239,255,0.05)' }}>
-                <Mono style={{ fontSize: 10, color: 'var(--muted)' }}>M{i + 1}</Mono>
+                <Mono style={{ fontSize: 10, color: 'var(--s7-muted)' }}>M{i + 1}</Mono>
                 <Mono style={{ fontSize: 10, color: 'var(--green)' }}>+${fmt(pay)}</Mono>
                 <Mono style={{ fontSize: 10, color: 'var(--text)' }}>${fmt(pay * (i + 1))}</Mono>
                 <Mono style={{ fontSize: 10, color: 'var(--cyan)' }}>${fmt(amount + pay * (i + 1))}</Mono>
@@ -137,7 +137,7 @@ function ReinvestModal({ plans, token, mainBalance, onClose, onDone }: {
       <div style={{ background: 'var(--surface)', border: '1px solid rgba(10,239,255,0.15)', width: '100%', maxWidth: 480 }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid rgba(10,239,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 300, color: 'var(--text)' }}>Reinvest Earnings</span>
-          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,237,230,0.12)', color: 'var(--muted)', width: 30, height: 30, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 16 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: '1px solid rgba(240,237,230,0.12)', color: 'var(--s7-muted)', width: 30, height: 30, cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 16 }}>×</button>
         </div>
         <div style={{ padding: '20px 24px' }}>
           <div style={{ padding: '12px 14px', background: 'rgba(10,239,255,0.04)', border: '1px solid rgba(10,239,255,0.15)', marginBottom: 20 }}>
@@ -155,13 +155,13 @@ function ReinvestModal({ plans, token, mainBalance, onClose, onDone }: {
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--red)', marginBottom: 12 }}>
                 Insufficient for any plan
               </div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 20 }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)', lineHeight: 1.7, marginBottom: 20 }}>
                 Your earnings of ${earnings.toFixed(2)} don't meet the minimum for any available plan.
                 The lowest minimum is ${Math.min(...plans.map(p => p.minAmount)).toLocaleString()}.
                 Withdraw to your main balance, top up, then reinvest.
               </div>
               <button onClick={onClose}
-                style={{ padding: '10px 24px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                style={{ padding: '10px 24px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 Close
               </button>
             </div>
@@ -189,7 +189,7 @@ function ReinvestModal({ plans, token, mainBalance, onClose, onDone }: {
                           </div>
                         )}
                       </div>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 300, color: sel ? 'var(--cyan)' : 'var(--muted)' }}>
+                      <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 300, color: sel ? 'var(--cyan)' : 'var(--s7-muted)' }}>
                         {plan.minMonthlyRoi}–{plan.maxMonthlyRoi}%
                       </div>
                     </div>
@@ -198,7 +198,7 @@ function ReinvestModal({ plans, token, mainBalance, onClose, onDone }: {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={onClose}
-                  style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid rgba(10,239,255,0.15)', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
                   Cancel
                 </button>
                 <button onClick={confirm} disabled={!selectedPlanId || acting}
@@ -325,7 +325,7 @@ function InvestmentCard({ inv, plans, onAction }: { inv: Investment; plans: Plan
       {(inv.payouts?.length ?? 0) > 0 && (
         <>
           <button onClick={() => setShowPayouts(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--s7-muted)', fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer', padding: 0, marginBottom: 8 }}>
             {showPayouts ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             Payout History ({inv.payouts!.length})
           </button>
@@ -338,10 +338,10 @@ function InvestmentCard({ inv, plans, onAction }: { inv: Investment; plans: Plan
               </div>
               {inv.payouts!.map(p => (
                 <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', padding: '8px 12px', borderTop: '1px solid rgba(10,239,255,0.05)' }}>
-                  <Mono style={{ fontSize: 10, color: 'var(--muted)' }}>M{p.month_number}</Mono>
+                  <Mono style={{ fontSize: 10, color: 'var(--s7-muted)' }}>M{p.month_number}</Mono>
                   <Mono style={{ fontSize: 10, color: 'var(--cyan)' }}>{p.roi_percent}%</Mono>
                   <Mono style={{ fontSize: 10, color: 'var(--green)' }}>+${fmt(p.amount)}</Mono>
-                  <Mono style={{ fontSize: 10, color: p.status === 'credited' ? 'var(--cyan)' : p.status === 'withdrawn' ? 'var(--muted)' : 'var(--green)' }}>{p.status}</Mono>
+                  <Mono style={{ fontSize: 10, color: p.status === 'credited' ? 'var(--cyan)' : p.status === 'withdrawn' ? 'var(--s7-muted)' : 'var(--green)' }}>{p.status}</Mono>
                 </div>
               ))}
             </div>
@@ -549,7 +549,7 @@ export default function InvestPage() {
 
           {selectedPlan && (
             <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(10,239,255,0.04)', border: '1px solid rgba(10,239,255,0.10)' }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 8 }}>{selectedPlan.description}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--s7-muted)', lineHeight: 1.6, marginBottom: 8 }}>{selectedPlan.description}</div>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--cyan)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                   {selectedPlan.minMonthlyRoi}–{selectedPlan.maxMonthlyRoi}%/mo
@@ -566,7 +566,7 @@ export default function InvestPage() {
               <input type="checkbox" checked={useBonusFirst} disabled={bonusBalance <= 0}
                 onChange={() => setUseBonusFirst(v => !v)}
                 style={{ width: 14, height: 14, accentColor: 'var(--cyan)' }} />
-              <Mono style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>Use bonus balance first</Mono>
+              <Mono style={{ fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--s7-muted)' }}>Use bonus balance first</Mono>
             </label>
           </div>
 

@@ -204,7 +204,7 @@ export default function AdminSettings() {
                   <input type="number" min={0} max={100} value={referralPercent}
                     onChange={e => setReferralPercent(Number(e.target.value) || 0)}
                     style={{ ...inp, maxWidth:120, textAlign:"center", fontSize:18, fontFamily:"var(--font-display)", fontWeight:300 }} />
-                  <span style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--muted)" }}>%</span>
+                  <span style={{ fontFamily:"var(--font-display)", fontSize:22, color:"var(--s7-muted)" }}>%</span>
                 </div>
               </div>
               <div style={{ padding:"14px 16px", background:"rgba(10,239,255,0.04)", border:"1px solid rgba(10,239,255,0.1)" }}>
@@ -377,7 +377,7 @@ export default function AdminSettings() {
                 <div style={{ padding:20, fontFamily:"var(--font-mono)", fontSize:9, color:"var(--muted-2)" }}>Loading...</div>
               ) : templates.map(t => (
                 <button key={t.id} onClick={() => setActiveTemplate(t)}
-                  style={{ width:"100%", textAlign:"left", padding:"12px 16px", background: activeTemplate?.id===t.id ? "rgba(10,239,255,0.06)" : "transparent", borderLeft: activeTemplate?.id===t.id ? "2px solid var(--cyan)" : "2px solid transparent", border:"none", borderBottom:"1px solid rgba(10,239,255,0.05)", color: activeTemplate?.id===t.id ? "var(--cyan)" : "var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                  style={{ width:"100%", textAlign:"left", padding:"12px 16px", background: activeTemplate?.id===t.id ? "rgba(10,239,255,0.06)" : "transparent", borderLeft: activeTemplate?.id===t.id ? "2px solid var(--cyan)" : "2px solid transparent", border:"none", borderBottom:"1px solid rgba(10,239,255,0.05)", color: activeTemplate?.id===t.id ? "var(--cyan)" : "var(--s7-muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
                   {(t.name ?? "").replace(/_/g, " ")}
                 </button>
               ))}

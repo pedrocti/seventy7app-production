@@ -64,7 +64,7 @@ export default function AdminSidebar({ collapsed, active, onNavigate }: SidebarP
                 background:     isActive ? "rgba(10,239,255,0.06)" : "transparent",
                 borderLeft:     isActive ? "2px solid var(--cyan)" : "2px solid transparent",
                 
-                color:          isActive ? "var(--cyan)" : "var(--muted)",
+                color:          isActive ? "var(--cyan)" : "var(--s7-muted)",
                 fontFamily:     "var(--font-mono)",
                 fontSize:       9,
                 letterSpacing:  "0.1em",
@@ -74,7 +74,7 @@ export default function AdminSidebar({ collapsed, active, onNavigate }: SidebarP
                 whiteSpace:     "nowrap",
               }}
               onMouseEnter={e => { if (!isActive) { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.background = "rgba(10,239,255,0.03)"; } }}
-              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "transparent"; } }}
+              onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = "var(--s7-muted)"; e.currentTarget.style.background = "transparent"; } }}
             >
               <span style={{ flexShrink: 0 }}>{item.icon}</span>
               {!collapsed && <span>{item.label}</span>}

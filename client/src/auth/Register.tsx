@@ -77,7 +77,7 @@ export default function Register() {
 
       <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 480 }}>
         <button type="button" onClick={() => setLocation("/")}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", marginBottom: 32, padding: 0 }}>
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--s7-muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", marginBottom: 32, padding: 0 }}>
           Back to Homepage
         </button>
 
@@ -124,7 +124,7 @@ export default function Register() {
               <input type={showPassword ? "text" : "password"} placeholder="Password" value={password}
                 onChange={e => setPassword(e.target.value)} className="form-input" style={{ paddingRight: 48 }} required />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
-                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--muted)", cursor: "pointer", display: "flex" }}>
+                style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--s7-muted)", cursor: "pointer", display: "flex" }}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>

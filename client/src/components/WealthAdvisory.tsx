@@ -132,7 +132,7 @@ function AllocationBar({ items }: { items: { label: string; pct: number; color: 
         {items.map((item, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 7, height: 7, background: item.color, flexShrink: 0 }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--muted)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--s7-muted)' }}>
               {item.label} · {item.pct}%
             </span>
           </div>
@@ -177,7 +177,7 @@ function Pill<T extends string>({ options, value, onChange }: {
         return (
           <button key={opt.value} onClick={() => onChange(opt.value)} style={{
             fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 300,
-            color: active ? 'var(--text)' : 'var(--muted)',
+            color: active ? 'var(--text)' : 'var(--s7-muted)',
             background: active ? 'rgba(10,239,255,0.06)' : 'transparent',
             border: `1px solid ${active ? 'rgba(10,239,255,0.35)' : 'rgba(240,237,230,0.10)'}`,
             padding: opt.sub ? '10px 16px' : '8px 16px',

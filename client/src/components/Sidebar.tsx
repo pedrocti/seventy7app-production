@@ -91,9 +91,9 @@ export default function Sidebar({ collapsed, active, onNavigate, isMobile = fals
                 onMouseEnter={e => { if(!isActive)(e.currentTarget as HTMLElement).style.background='rgba(10,239,255,0.03)'; }}
                 onMouseLeave={e => { if(!isActive)(e.currentTarget as HTMLElement).style.background='transparent'; }}
               >
-                <Icon size={15} style={{ color: isActive ? 'var(--cyan)' : 'var(--muted)', flexShrink:0 }}/>
+                <Icon size={15} style={{ color: isActive ? 'var(--cyan)' : 'var(--s7-muted)', flexShrink:0 }}/>
                 {showLabels && (
-                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color: isActive ? 'var(--cyan)' : 'var(--muted)' }}>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color: isActive ? 'var(--cyan)' : 'var(--s7-muted)' }}>
                     {item.label}
                   </span>
                 )}

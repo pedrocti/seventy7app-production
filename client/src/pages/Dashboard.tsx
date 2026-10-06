@@ -36,7 +36,7 @@ function ActionBtn({ icon, label, onClick, variant = 'default' }: {
     withdraw: { bg: 'rgba(14,203,129,0.08)',  border: 'rgba(14,203,129,0.35)',  color: 'var(--green)',  hoverBg: 'rgba(14,203,129,0.15)' },
     trades:   { bg: 'rgba(246,170,70,0.08)',  border: 'rgba(246,170,70,0.35)',  color: '#F6AA46',       hoverBg: 'rgba(246,170,70,0.15)' },
     stake:    { bg: 'rgba(126,34,206,0.10)',  border: 'rgba(126,34,206,0.40)',  color: 'var(--purple)', hoverBg: 'rgba(126,34,206,0.18)' },
-    default:  { bg: 'var(--surface)',         border: 'rgba(10,239,255,0.10)',  color: 'var(--muted)',  hoverBg: 'rgba(10,239,255,0.04)' },
+    default:  { bg: 'var(--surface)',         border: 'rgba(10,239,255,0.10)',  color: 'var(--s7-muted)',  hoverBg: 'rgba(10,239,255,0.04)' },
   };
   const v = variants[variant];
   return (
@@ -83,7 +83,7 @@ function ProfileModal({ onClose, user, totals, referralCount }: { onClose:()=>vo
       >
         <div style={{ padding: isMobile ? '16px 18px' : '20px 28px', borderBottom:'1px solid rgba(10,239,255,0.08)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontFamily:'var(--font-display)', fontSize:20, fontWeight:300, color:'var(--text)' }}>Account</span>
-          <button onClick={onClose} style={{ background:'none', border:'1px solid rgba(240,237,230,0.12)', color:'var(--muted)', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:16, transition:'all 0.2s' }}>×</button>
+          <button onClick={onClose} style={{ background:'none', border:'1px solid rgba(240,237,230,0.12)', color:'var(--s7-muted)', width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:16, transition:'all 0.2s' }}>×</button>
         </div>
 
         <div style={{ display:'flex', borderBottom:'1px solid rgba(10,239,255,0.08)' }}>
@@ -145,7 +145,7 @@ function ProfileModal({ onClose, user, totals, referralCount }: { onClose:()=>vo
               <div>
                 <div style={{ fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--muted-2)', marginBottom:8 }}>Referral Link</div>
                 <div style={{ display:'flex', gap:8 }}>
-                  <input readOnly value={referralLink} style={{ flex:1, background:'var(--surface-2)', border:'1px solid rgba(10,239,255,0.12)', padding:'10px 12px', color:'var(--muted)', fontFamily:'var(--font-mono)', fontSize:9, outline:'none', minWidth:0 }}/>
+                  <input readOnly value={referralLink} style={{ flex:1, background:'var(--surface-2)', border:'1px solid rgba(10,239,255,0.12)', padding:'10px 12px', color:'var(--s7-muted)', fontFamily:'var(--font-mono)', fontSize:9, outline:'none', minWidth:0 }}/>
                   <button onClick={copyLink} style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 14px', background: copied ? 'rgba(14,203,129,0.10)' : 'rgba(10,239,255,0.08)', border:`1px solid ${copied ? 'rgba(14,203,129,0.3)' : 'rgba(10,239,255,0.25)'}`, color: copied ? 'var(--green)' : 'var(--cyan)', fontFamily:'var(--font-mono)', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase', cursor:'pointer', flexShrink:0, transition:'all 0.2s' }}>
                     {copied ? <Check size={13}/> : <Copy size={13}/>}
                   </button>

@@ -62,7 +62,7 @@ export default function ProgramsList({ onSelect }: Props) {
         <h1 style={{ fontFamily:"var(--font-display)", fontSize:"clamp(28px,4vw,48px)", fontWeight:300, color:"var(--text)", lineHeight:1.1, margin:"0 0 14px" }}>
           Elevate Your <em style={{ color:"var(--cyan)" }}>Trading Edge</em>
         </h1>
-        <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--muted)", lineHeight:1.75, maxWidth:540, margin:0 }}>
+        <p style={{ fontFamily:"var(--font-sans)", fontSize:14, fontWeight:300, color:"var(--s7-muted)", lineHeight:1.75, maxWidth:540, margin:0 }}>
           Expert-led programmes in trading strategy, risk management and market analysis — built for serious investors at every level.
         </p>
       </div>
@@ -132,7 +132,7 @@ export default function ProgramsList({ onSelect }: Props) {
                     {p.title}
                   </h3>
                   {p.description && (
-                    <p style={{ fontFamily:"var(--font-sans)", fontSize:13, fontWeight:300, color:"var(--muted)", lineHeight:1.75, margin:0 }}>
+                    <p style={{ fontFamily:"var(--font-sans)", fontSize:13, fontWeight:300, color:"var(--s7-muted)", lineHeight:1.75, margin:0 }}>
                       {p.description.length > 140 ? p.description.slice(0,140) + "..." : p.description}
                     </p>
                   )}

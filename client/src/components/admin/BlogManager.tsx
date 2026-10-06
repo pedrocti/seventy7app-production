@@ -174,7 +174,7 @@ export default function BlogManager() {
               </div>
               <div style={{display:'flex',gap:6,flexShrink:0}}>
                 <button onClick={()=>togglePublish(post)} style={{...act,border:'1px solid rgba(10,239,255,0.2)',color:'var(--cyan)'}}>{post.published?'Unpublish':'Publish'}</button>
-                <button onClick={()=>startEdit(post)} style={{...act,border:'1px solid rgba(240,237,230,0.1)',color:'var(--muted)'}}>Edit</button>
+                <button onClick={()=>startEdit(post)} style={{...act,border:'1px solid rgba(240,237,230,0.1)',color:'var(--s7-muted)'}}>Edit</button>
                 <button onClick={()=>handleDelete(post.id)} disabled={deleting===post.id} style={{...act,border:'1px solid rgba(246,70,93,0.2)',color:'var(--red)',opacity:deleting===post.id?0.5:1}}>{deleting===post.id?'…':'Delete'}</button>
               </div>
             </div>

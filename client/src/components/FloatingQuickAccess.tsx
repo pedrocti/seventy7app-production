@@ -54,9 +54,9 @@ export default function FloatingQuickAccess() {
                   </a>
                 ) : (
                   <Link href={btn.link}>
-                    <a style={{ ...base, background: "var(--surface)", border: "1px solid rgba(10,239,255,0.15)", color: "var(--muted)" }}
+                    <a style={{ ...base, background: "var(--surface)", border: "1px solid rgba(10,239,255,0.15)", color: "var(--s7-muted)" }}
                       onMouseEnter={e => { e.currentTarget.style.color = "var(--cyan)"; e.currentTarget.style.background = "var(--cyan-dim)"; e.currentTarget.style.borderColor = "rgba(10,239,255,0.35)"; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = "var(--muted)"; e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "rgba(10,239,255,0.15)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--s7-muted)"; e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.borderColor = "rgba(10,239,255,0.15)"; }}
                     >
                       <span style={{ color: "var(--cyan)" }}>{ICON_MAP[btn.icon]}</span>
                       {btn.label}

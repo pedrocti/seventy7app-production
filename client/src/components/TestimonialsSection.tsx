@@ -149,7 +149,7 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
             style={{
               background: 'none',
               border: '1px solid rgba(240,237,230,0.12)',
-              color: 'var(--muted)',
+              color: 'var(--s7-muted)',
               width: 32,
               height: 32,
               display: 'flex',
@@ -167,7 +167,7 @@ function PostModal({ post, onClose }: { post: Post; onClose: () => void }) {
             }}
             onMouseLeave={e => {
               (e.currentTarget as HTMLElement).style.borderColor = 'rgba(240,237,230,0.12)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--muted)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--s7-muted)';
             }}
           >
             ×

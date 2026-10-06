@@ -136,7 +136,7 @@ export default function AdminMentorship() {
                 <div style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:300, color:"var(--text)" }}>
                   {editId ? "Edit Event" : "New Event"}
                 </div>
-                <button onClick={closeForm} style={{ background:"none", border:"1px solid rgba(240,237,230,0.12)", color:"var(--muted)", width:30, height:30, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <button onClick={closeForm} style={{ background:"none", border:"1px solid rgba(240,237,230,0.12)", color:"var(--s7-muted)", width:30, height:30, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center" }}>
                   <X size={14} />
                 </button>
               </div>
@@ -184,7 +184,7 @@ export default function AdminMentorship() {
 
                 <div style={{ display:"flex", gap:10, justifyContent:"flex-end", paddingTop:8, borderTop:"1px solid rgba(10,239,255,0.07)" }}>
                   <button type="button" onClick={closeForm}
-                    style={{ padding:"10px 24px", background:"transparent", border:"1px solid rgba(10,239,255,0.15)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    style={{ padding:"10px 24px", background:"transparent", border:"1px solid rgba(10,239,255,0.15)", color:"var(--s7-muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
                     Cancel
                   </button>
                   <button type="submit" disabled={saving} className="btn-primary"
@@ -232,7 +232,7 @@ export default function AdminMentorship() {
                       </a>
                     )}
                   </div>
-                  {ev.description && <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--muted)", lineHeight:1.65, margin:0 }}>{ev.description}</p>}
+                  {ev.description && <p style={{ fontFamily:"var(--font-sans)", fontSize:12, color:"var(--s7-muted)", lineHeight:1.65, margin:0 }}>{ev.description}</p>}
                 </div>
                 <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
                   <div style={{ fontFamily:"var(--font-display)", fontSize:20, fontWeight:300, color: isFree ? "var(--green)" : "var(--cyan)" }}>
@@ -265,7 +265,7 @@ export default function AdminMentorship() {
             <div key={ev.id} style={{ background:"var(--surface)", border:"1px solid rgba(10,239,255,0.04)", padding:"16px 24px", display:"flex", gap:14, alignItems:"center", opacity:0.55 }}>
               <DateBadge dateStr={ev.date} />
               <div style={{ flex:1 }}>
-                <div style={{ fontFamily:"var(--font-sans)", fontSize:13, color:"var(--muted)" }}>{ev.title}</div>
+                <div style={{ fontFamily:"var(--font-sans)", fontSize:13, color:"var(--s7-muted)" }}>{ev.title}</div>
                 <div style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--muted-2)", marginTop:3 }}>{ev.venue}</div>
               </div>
               <div style={{ display:"flex", gap:6, flexShrink:0 }}>
